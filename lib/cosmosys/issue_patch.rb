@@ -276,6 +276,10 @@ module Cosmosys
       Cosmosys::ChapterMap.for_issue(self)
     end
 
+    def chapter_label
+      cosmosys_chapter
+    end
+
     def cosmosys_subtree_chapter_map(issues = nil)
       Cosmosys::ChapterMap.for_subtree(self, issues)
     end

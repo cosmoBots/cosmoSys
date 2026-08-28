@@ -33,7 +33,7 @@ module Cosmosys
       current = issue
 
       while current.present?
-        sibling_ids = sibling_scope_for(current).reorder(:lft, :id).pluck(:id)
+        sibling_ids = sibling_scope_for(current).reorder(:csposition, :lft, :id).pluck(:id)
         sibling_index = sibling_ids.index(current.id)
         return nil unless sibling_index
 

@@ -15,6 +15,16 @@ module Cosmosys
         insert_at = id_index ? id_index + 1 : base.available_columns.length
         base.available_columns.insert(insert_at, column)
       end
+
+      chapter_column = QueryColumn.new(
+        :chapter_label,
+        sortable: -> { Cosmosys::ChapterSort.sql },
+        caption: :label_cosmosys_chapter
+      )
+      unless base.available_columns.any? { |available_column| available_column.name == :chapter_label }
+        csid_index = base.available_columns.find_index { |available_column| available_column.name == :csid }
+        base.available_columns.insert(csid_index ? csid_index + 1 : base.available_columns.length, chapter_column)
+      end
     end
 
     def initialize_available_filters
