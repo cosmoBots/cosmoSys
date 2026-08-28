@@ -12,7 +12,7 @@ module Cosmosys
     before_action :find_transfer, only: [:show, :status, :apply, :download, :materialize]
 
     def index
-      @transfers = Cosmosys::OdsTransfer.where(project_id: @project.project_root.self_and_descendants.select(:id)).includes(:project, :user).recent_first.limit(100)
+      @transfers = Cosmosys::OdsTransfer.where(project_id: @project.id).includes(:project, :user).recent_first.limit(100)
     end
 
     def new
@@ -118,7 +118,7 @@ module Cosmosys
     private
 
     def find_transfer
-      @transfer = Cosmosys::OdsTransfer.find_by(id: params[:id], project_id: @project.project_root.self_and_descendants.select(:id))
+      @transfer = Cosmosys::OdsTransfer.find_by(id: params[:id], project_id: @project.id)
       render_404 unless @transfer
     end
 
