@@ -1,0 +1,9 @@
+<div class="cosmosys-report-scrollbox" data-cosmosys-report-scrollbox>
+  <% if @report.sections.empty? %>
+    <p class="nodata"><%= l(:label_cosmosys_main_report_empty) %></p>
+  <% else %>
+    <% @report.sections.each do |section| %>
+      <%= render partial: 'cosmosys/items/report_section', locals: { section: section, server_export: local_assigns.fetch(:server_export, false) } %>
+    <% end %>
+  <% end %>
+</div>

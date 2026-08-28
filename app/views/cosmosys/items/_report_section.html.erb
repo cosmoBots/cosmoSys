@@ -50,10 +50,14 @@
   <% end %>
 
   <% section.issue.cosmosys_report_diagram_kinds(@report.options).each do |diagram_kind| %>
-    <div class="cosmosys-report-diagram-placeholder" data-cosmosys-report-diagram
-         data-url="<%= cosmosys_report_diagram_path(project_id: @project.identifier, kind: diagram_kind, issue_id: section.issue.id) %>">
-      <p class="icon icon-loading"><%= l(:text_cosmosys_report_diagram_loading) %></p>
-    </div>
+    <% if local_assigns.fetch(:server_export, false) %>
+      <%= render partial: 'cosmosys/items/report_diagram', locals: { kind: diagram_kind, diagram: @report_diagrams[[section.issue.id, diagram_kind]] } %>
+    <% else %>
+      <div class="cosmosys-report-diagram-placeholder" data-cosmosys-report-diagram
+           data-url="<%= cosmosys_report_diagram_path(project_id: @project.identifier, kind: diagram_kind, issue_id: section.issue.id) %>">
+        <p class="icon icon-loading"><%= l(:text_cosmosys_report_diagram_loading) %></p>
+      </div>
+    <% end %>
   <% end %>
 
   <% if section.issue.cosmosys_report_metadata? %>
@@ -61,6 +65,6 @@
   <% end %>
 
   <% section.children.each do |child| %>
-    <%= render partial: 'cosmosys/items/report_section', locals: { section: child } %>
+    <%= render partial: 'cosmosys/items/report_section', locals: { section: child, server_export: local_assigns.fetch(:server_export, false) } %>
   <% end %>
 </article>

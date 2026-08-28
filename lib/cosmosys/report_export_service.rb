@@ -4,6 +4,7 @@ require 'fileutils'
 require 'nokogiri'
 require 'open3'
 require 'tmpdir'
+require 'uri'
 
 module Cosmosys
   class ReportExportService
@@ -32,16 +33,23 @@ module Cosmosys
 
     class ExportError < StandardError; end
 
-    def initialize(project, html:, format: 'docx')
+    def initialize(project, html:, format: 'docx', user: User.current)
       @project = project
       @html = html.to_s
       @format = format.to_s
+      @user = user
+      @input_blank = @html.blank?
+      unless @input_blank
+        document = Nokogiri::HTML5(@html)
+        secure_embedded_resources!(document)
+        @html = document.to_html
+      end
       @template_resolution = project.cosmosys_effective_report_template
     end
 
     def call
       raise ExportError, 'Unsupported report format' unless FORMATS.key?(@format)
-      raise ExportError, 'The report is empty' if @html.blank?
+      raise ExportError, 'The report is empty' if @input_blank
 
       artifact_path = cached_artifact_path(@format)
       cache_state = valid_artifact?(artifact_path) ? 'warm' : 'cold'
@@ -187,6 +195,7 @@ module Cosmosys
 
     def export_html(work_dir)
       document = Nokogiri::HTML5(@html)
+      secure_embedded_resources!(document)
       prepare_export_document(document)
       document.css('svg').each_with_index do |svg, index|
         dimensions = svg_dimensions_css_px(svg)
@@ -201,6 +210,10 @@ module Cosmosys
         png_path = File.join(work_dir, "diagram-#{index}.png")
         export_svg = svg.dup
         export_svg.css('metadata').remove
+        export_svg.css('*').each do |node|
+          node.remove_attribute('href')
+          node.remove_attribute('xlink:href')
+        end
         standalone_svg = export_svg.to_xml
           .gsub(/(<\/?)(?:svg:)/, '\\1')
           .gsub(/\s+xmlns(?::[A-Za-z0-9_-]+)?="[^"]*"/, '')
@@ -220,6 +233,58 @@ module Cosmosys
         add_orientation_markers(replacement, document, alternate_orientation) if alternate_orientation
       end
       document.to_html
+    end
+
+    def secure_embedded_resources!(document)
+      document.css('object, embed, iframe, video, audio, source, link[rel="stylesheet"]').remove
+      document.css('*').each do |node|
+        unless node.name == 'img'
+          node.remove_attribute('src')
+          node.remove_attribute('srcset')
+          node.remove_attribute('poster')
+          node.remove_attribute('background')
+        end
+        node.remove_attribute('style') if node['style'].to_s.match?(/url\s*\(/i)
+      end
+      document.css('style').each do |node|
+        node.remove if node.text.match?(/url\s*\(|@import/i)
+      end
+
+      document.css('img').each do |image|
+        image.remove_attribute('srcset')
+        source = image['src'].to_s
+        next if bounded_image_data_url?(source)
+
+        attachment = authorized_attachment_for(source)
+        unless attachment
+          image.remove
+          next
+        end
+
+        image['src'] = "data:#{attachment.content_type};base64,#{Base64.strict_encode64(File.binread(attachment.diskfile))}"
+      end
+    end
+
+    def bounded_image_data_url?(source)
+      match = source.match(%r{\Adata:(image/(?:png|jpeg|gif|webp));base64,([A-Za-z0-9+/=]+)\z}i)
+      return false unless match
+
+      match[2].bytesize <= 40.megabytes
+    end
+
+    def authorized_attachment_for(source)
+      path = URI.parse(source).path
+      match = path.match(%r{\A/attachments/(?:download/)?(\d+)(?:/|\z)})
+      return unless match
+
+      attachment = Attachment.find_by(id: match[1])
+      return unless attachment&.visible?(@user)
+      return unless attachment.content_type.to_s.match?(%r{\Aimage/(?:png|jpeg|gif|webp)\z}i)
+      return unless File.file?(attachment.diskfile) && File.size(attachment.diskfile) <= 30.megabytes
+
+      attachment
+    rescue URI::InvalidURIError
+      nil
     end
 
     def add_orientation_markers(image, document, orientation)

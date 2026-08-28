@@ -530,29 +530,6 @@
         });
   }
 
-  function reportImageDataUrl(image) {
-    return window.fetch(image.src, { credentials: 'same-origin' })
-      .then(function(response) {
-        if (!response.ok) throw new Error('Image request failed');
-        return response.blob();
-      })
-      .then(function(blob) {
-        return new Promise(function(resolve, reject) {
-          var reader = new FileReader();
-          reader.onload = function() { resolve(reader.result); };
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      })
-      .then(function(dataUrl) { image.src = dataUrl; })
-      .catch(function() {
-        // A stale legacy attachment or an image the current user cannot read
-        // must not abort an otherwise valid report. Remove it from the export;
-        // the rendered HTML report still exposes the failed asset in context.
-        image.remove();
-      });
-  }
-
   var reportDiagramQueue = [];
   var activeReportDiagramLoads = 0;
   var maxReportDiagramLoads = 3;
@@ -593,13 +570,6 @@
       pumpReportDiagramQueue();
     });
     return node._cosmosysLoadPromise;
-  }
-
-  function loadAllReportDiagrams() {
-    return Promise.all(Array.prototype.map.call(
-      document.querySelectorAll('[data-cosmosys-report-diagram]'),
-      loadReportDiagram
-    ));
   }
 
   function initLazyReportDiagrams() {
@@ -657,23 +627,6 @@
           settled += 1;
           updateProgress();
         });
-    });
-  }
-
-  function serializeReportForExport() {
-    var source = document.querySelector('[data-cosmosys-report-scrollbox]');
-    if (!source) return Promise.reject(new Error('Report content not found'));
-
-    var report = source.cloneNode(true);
-    Array.prototype.forEach.call(report.querySelectorAll('a:not([data-cosmosys-export-link])'), function(link) {
-      link.replaceWith.apply(link, Array.prototype.slice.call(link.childNodes));
-    });
-
-    var images = Array.prototype.map.call(report.querySelectorAll('img'), reportImageDataUrl);
-    return Promise.all(images).then(function() {
-      var title = document.title.replace(/[<>&]/g, '');
-      return '<!doctype html><html><head><meta charset="utf-8"><title>' + title +
-        '</title></head><body>' + report.innerHTML + '</body></html>';
     });
   }
 
@@ -743,19 +696,14 @@
         formatControl.disabled = true;
         progress.hidden = false;
 
-        loadAllReportDiagrams()
-          .then(serializeReportForExport)
-          .then(function(html) {
-            var body = new FormData();
-            body.append('html', html);
-            body.append('format', format);
-            return window.fetch(button.dataset.exportUrl, {
-              method: 'POST',
-              body: body,
-              credentials: 'same-origin',
-              headers: token ? { 'X-CSRF-Token': token.content, 'X-Requested-With': 'XMLHttpRequest' } : {}
-            });
-          })
+        var body = new FormData();
+        body.append('format', format);
+        window.fetch(button.dataset.exportUrl, {
+          method: 'POST',
+          body: body,
+          credentials: 'same-origin',
+          headers: token ? { 'X-CSRF-Token': token.content, 'X-Requested-With': 'XMLHttpRequest' } : {}
+        })
           .then(function(response) {
             if (!response.ok) throw new Error('Report export failed');
             return response.blob();

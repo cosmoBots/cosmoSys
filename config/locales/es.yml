@@ -210,7 +210,7 @@ es:
   text_cosmosys_report_export_failed: "No se pudo generar el documento."
   text_cosmosys_report_diagram_loading: "Diagrama pendiente; se está cargando en segundo plano."
   text_cosmosys_report_diagrams_ready: "%{total} diagramas del informe cargados."
-  text_cosmosys_report_diagrams_failed: "No se pudieron cargar %{failed} de %{total} diagramas del informe. La exportación permanece desactivada."
+  text_cosmosys_report_diagrams_failed: "No se pudieron cargar en pantalla %{failed} de %{total} diagramas del informe. La exportación en servidor continúa disponible."
   label_cosmosys_open_item_details: "Abrir el detalle completo del ítem"
   label_cosmosys_report_landscape_scale_threshold: "Umbral automático de orientación"
   text_cosmosys_report_landscape_scale_threshold_help: "Usa una página donante de orientación opuesta cuando la dimensión limitante reduzca el diagrama por debajo de este porcentaje y el giro mejore su escala. 0 desactiva los cambios automáticos de orientación."

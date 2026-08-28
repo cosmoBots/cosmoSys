@@ -1,50 +1,71 @@
 require 'cgi'
+require 'digest'
+require 'fileutils'
 
 module Cosmosys
   module DiagramCacheSupport
     private
 
     def fetch_cached_diagram(scope_attrs:, kind:, empty:, signature: nil, revision_state: nil, render_variant: '', layout_mode: '')
-      diagram = Cosmosys::Diagram.find_or_initialize_by(
-        scope_attrs.merge(
-          kind: kind,
-          render_variant: render_variant.to_s,
-          layout_mode: layout_mode.to_s
-        )
+      lookup = scope_attrs.merge(
+        kind: kind,
+        render_variant: render_variant.to_s,
+        layout_mode: layout_mode.to_s
       )
+      diagram = Cosmosys::Diagram.find_or_initialize_by(lookup)
       trace_attributes = scope_attrs.merge(kind: kind, render_variant: render_variant.to_s, layout_mode: layout_mode.to_s)
       if diagram_cache_valid?(diagram, empty: empty, signature: signature, revision_state: revision_state)
         Cosmosys::PerformanceTrace.emit('diagram.cache_hit', trace_attributes.merge(cache: 'warm'), Process.clock_gettime(Process::CLOCK_MONOTONIC))
         return diagram
       end
 
-      generated_at = Time.current
-      metadata = diagram_metadata(
-        scope_attrs: scope_attrs,
-        kind: kind,
-        signature: signature,
-        revision_state: revision_state,
-        generated_at: generated_at,
-        render_variant: render_variant,
-        layout_mode: layout_mode
-      )
+      with_diagram_generation_lock(lookup) do
+        diagram = Cosmosys::Diagram.find_or_initialize_by(lookup)
+        if diagram_cache_valid?(diagram, empty: empty, signature: signature, revision_state: revision_state)
+          Cosmosys::PerformanceTrace.emit('diagram.cache_hit', trace_attributes.merge(cache: 'waited'), Process.clock_gettime(Process::CLOCK_MONOTONIC))
+          next diagram
+        end
 
-      dot_source = empty ? nil : Cosmosys::PerformanceTrace.measure('diagram.gv', trace_attributes.merge(cache: 'cold')) { yield }
-      dot_body = dot_source.present? ? embed_dot_metadata(dot_source, metadata) : nil
-      svg_source = dot_body.present? ? Cosmosys::PerformanceTrace.measure('diagram.svg', trace_attributes.merge(cache: 'cold')) { renderer.render_svg(dot_body) } : nil
-      svg_body = svg_source.present? ? embed_svg_metadata(svg_source, metadata) : nil
-
-      Cosmosys::PerformanceTrace.measure('diagram.persist', trace_attributes.merge(cache: 'cold')) do
-        persist_cached_diagram!(
-          diagram,
-          dot_body: dot_body,
-          svg_body: svg_body,
+        generated_at = Time.current
+        metadata = diagram_metadata(
+          scope_attrs: scope_attrs,
+          kind: kind,
           signature: signature,
           revision_state: revision_state,
           generated_at: generated_at,
           render_variant: render_variant,
           layout_mode: layout_mode
         )
+
+        dot_source = empty ? nil : Cosmosys::PerformanceTrace.measure('diagram.gv', trace_attributes.merge(cache: 'cold')) { yield }
+        dot_body = dot_source.present? ? embed_dot_metadata(dot_source, metadata) : nil
+        svg_source = dot_body.present? ? Cosmosys::PerformanceTrace.measure('diagram.svg', trace_attributes.merge(cache: 'cold')) { renderer.render_svg(dot_body) } : nil
+        svg_body = svg_source.present? ? embed_svg_metadata(svg_source, metadata) : nil
+
+        Cosmosys::PerformanceTrace.measure('diagram.persist', trace_attributes.merge(cache: 'cold')) do
+          persist_cached_diagram!(
+            diagram,
+            dot_body: dot_body,
+            svg_body: svg_body,
+            signature: signature,
+            revision_state: revision_state,
+            generated_at: generated_at,
+            render_variant: render_variant,
+            layout_mode: layout_mode
+          )
+        end
+      end
+    end
+
+    def with_diagram_generation_lock(lookup)
+      lock_root = Rails.root.join('files', 'cosmosys', 'diagram_locks')
+      FileUtils.mkdir_p(lock_root)
+      lock_key = Digest::SHA256.hexdigest(lookup.sort_by { |key, _value| key.to_s }.flatten.join("\0"))
+      File.open(lock_root.join("#{lock_key}.lock"), File::RDWR | File::CREAT, 0o640) do |lock|
+        lock.flock(File::LOCK_EX)
+        yield
+      ensure
+        lock.flock(File::LOCK_UN)
       end
     end
 

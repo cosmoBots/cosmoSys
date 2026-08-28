@@ -37,6 +37,38 @@ module Cosmosys
     end
 
     def report
+      prepare_report_view
+    end
+
+    def report_export
+      html = @project.with_cosmosys_locale do
+        prepare_report_view
+        @report_diagrams = resolve_report_diagrams
+        body = render_to_string(
+          partial: 'cosmosys/items/report_body',
+          formats: [:html],
+          locals: { server_export: true }
+        )
+        "<!doctype html><html><head><meta charset=\"utf-8\"><title>#{ERB::Util.html_escape(@project.name)}</title></head><body>#{body}</body></html>"
+      end
+
+      result = Cosmosys::ReportExportService.new(
+        @project,
+        html: html,
+        format: params[:format],
+        user: User.current
+      ).call
+      send_data(
+        result.data,
+        filename: result.filename,
+        type: result.content_type,
+        disposition: 'attachment'
+      )
+    rescue Cosmosys::ReportExportService::ExportError => error
+      render json: { error: error.message }, status: :unprocessable_entity
+    end
+
+    def prepare_report_view
       @scope = @project.cosmosys_scope
       @report_query = Cosmosys::MainReportFieldRegistry.query_for_project(@project, user: User.current)
       @report_selected_column_names, @report_field_presentations, @report_options = report_view_field_selection
@@ -53,22 +85,7 @@ module Cosmosys
       end
       @tree_health_problem = Cosmosys::IssueTreeHealth.first_problem(@report.local_issues)
     end
-
-    def report_export
-      result = Cosmosys::ReportExportService.new(
-        @project,
-        html: params[:html],
-        format: params[:format]
-      ).call
-      send_data(
-        result.data,
-        filename: result.filename,
-        type: result.content_type,
-        disposition: 'attachment'
-      )
-    rescue Cosmosys::ReportExportService::ExportError => error
-      render json: { error: error.message }, status: :unprocessable_entity
-    end
+    private :prepare_report_view
 
     def report_diagram
       kind = params[:kind].to_s
@@ -239,6 +256,31 @@ module Cosmosys
     end
 
     private
+
+    def resolve_report_diagrams
+      @report.toc_entries.each_with_object({}) do |section, diagrams|
+        section.issue.cosmosys_report_diagram_kinds(@report.options).each do |kind|
+          diagrams[[section.issue.id, kind]] = fetch_report_diagram(section.issue, kind)
+        end
+      end
+    end
+
+    def fetch_report_diagram(issue, kind)
+      case kind
+      when 'combined'
+        options = Cosmosys::CombinedDiagramOptions.resolve(user: User.current, project: issue.project, issue: issue)
+        Cosmosys::CombinedDiagramService.fetch(
+          issue,
+          render_variant: options.render_variant,
+          layout_mode: options.layout_mode,
+          include_document_references: false
+        )
+      when 'hierarchy'
+        Cosmosys::HierarchyDiagramService.fetch(issue)
+      when 'dependency'
+        Cosmosys::DependencyDiagramService.fetch(issue, include_document_references: false)
+      end
+    end
 
     def use_project_language(&block)
       @project.with_cosmosys_locale(&block)

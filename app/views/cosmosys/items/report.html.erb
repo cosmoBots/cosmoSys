@@ -50,8 +50,7 @@
       type="button"
       class="icon icon-download"
       data-cosmosys-report-export
-      disabled
-      data-export-url="<%= cosmosys_report_export_path(project_id: @project.identifier) %>"
+      data-export-url="<%= cosmosys_report_export_path({ project_id: @project.identifier }.merge(request.query_parameters)) %>"
       data-export-title="<%= @project.name %>"
       data-export-error="<%= l(:text_cosmosys_report_export_failed) %>"
     ><%= l(:button_cosmosys_report_export) %></button>
@@ -127,14 +126,6 @@
   </div>
 
   <% @project.with_cosmosys_locale do %>
-    <div class="cosmosys-report-scrollbox" data-cosmosys-report-scrollbox>
-      <% if @report.sections.empty? %>
-        <p class="nodata"><%= l(:label_cosmosys_main_report_empty) %></p>
-      <% else %>
-        <% @report.sections.each do |section| %>
-          <%= render partial: 'report_section', locals: { section: section } %>
-        <% end %>
-      <% end %>
-    </div>
+    <%= render partial: 'report_body', locals: { server_export: false } %>
   <% end %>
 </div>
