@@ -452,6 +452,7 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
     Setting[:rest_api_enabled] = '1'
     Setting[:jsonp_enabled] = '1'
     Setting[:project_list_display_type] = 'list'
+    Setting[:display_subprojects_issues] = '0'
 
     # cosmoSys is instance-wide. It is deliberately not represented as an
     # enabled project module, so projects cannot disable only part of its
