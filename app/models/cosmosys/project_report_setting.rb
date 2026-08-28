@@ -48,16 +48,21 @@ module Cosmosys
       Cosmosys::MainReportSettings.normalize_options(report_payload['options'])
     end
 
+    def item_list_column_names_array
+      Array(report_payload['item_list_columns']).map(&:to_s).reject(&:blank?)
+    end
+
     def landscape_scale_threshold
       report_payload.fetch('landscape_scale_threshold', 55).to_i.clamp(0, 100)
     end
 
-    def assign_report_settings(columns:, field_presentations:, options: nil, landscape_scale_threshold: nil)
+    def assign_report_settings(columns:, field_presentations:, options: nil, landscape_scale_threshold: nil, item_list_columns: nil)
       update_report_payload(
         columns: Array(columns).map(&:to_s).reject(&:blank?),
         field_presentations: Hash(field_presentations).transform_keys(&:to_s).transform_values(&:to_s),
         options: options,
-        landscape_scale_threshold: landscape_scale_threshold
+        landscape_scale_threshold: landscape_scale_threshold,
+        item_list_columns: item_list_columns
       )
     end
 
@@ -96,7 +101,7 @@ module Cosmosys
       Cosmosys::Diagram.where(issue_id: Issue.where(project_id: project_id).select(:id), kind: 'combined').update_all(state: 'obsolete', updated_at: Time.current)
     end
 
-    def update_report_payload(columns: nil, field_presentations: nil, options: nil, combined_layout_mode: nil, combined_render_variant: nil, landscape_scale_threshold: nil)
+    def update_report_payload(columns: nil, field_presentations: nil, options: nil, combined_layout_mode: nil, combined_render_variant: nil, landscape_scale_threshold: nil, item_list_columns: nil)
       payload = report_payload
       payload['columns'] = columns unless columns.nil?
       payload['field_presentations'] = field_presentations unless field_presentations.nil?
@@ -104,6 +109,7 @@ module Cosmosys
       payload['combined_layout_mode'] = combined_layout_mode unless combined_layout_mode.nil?
       payload['combined_render_variant'] = combined_render_variant unless combined_render_variant.nil?
       payload['landscape_scale_threshold'] = landscape_scale_threshold.to_i.clamp(0, 100) unless landscape_scale_threshold.nil?
+      payload['item_list_columns'] = item_list_columns unless item_list_columns.nil?
       self.column_names = payload.to_json
     end
   end

@@ -1,9 +1,24 @@
 module Cosmosys
   module ProjectProfileRegistry
-    Profile = Struct.new(:key, :label, :description, :provider, :required_trackers, :default_root_tracker, :ods_export_template, :report_export_template, :default_disabled_modules, keyword_init: true)
+    Profile = Struct.new(
+      :key, :label, :description, :provider, :required_trackers,
+      :default_root_tracker, :ods_export_template, :report_export_template,
+      :default_disabled_modules, :default_report_columns,
+      :default_report_field_presentations, :default_report_options,
+      :default_item_list_columns,
+      keyword_init: true
+    )
     DEFAULT_KEY = 'items'.freeze
     DEFAULT_ODS_EXPORT_TEMPLATE = 'plugins/cosmosys/assets/templates/ods/items_export_template.ods'.freeze
     DEFAULT_REPORT_EXPORT_TEMPLATE = Cosmosys::ReportTemplateCatalog.default.path.freeze
+    DEFAULT_REPORT_COLUMNS = %w[tracker status priority author assigned_to start_date due_date done_ratio].freeze
+    DEFAULT_REPORT_OPTIONS = {
+      'description' => true, 'preferred_diagram' => true,
+      'combined_diagram' => false, 'hierarchy_diagram' => false,
+      'dependency_diagram' => false, 'item_url_link' => false,
+      'info_url_link' => false
+    }.freeze
+    DEFAULT_ITEM_LIST_COLUMNS = %w[tracker status priority subject assigned_to updated_on category fixed_version].freeze
     BASE_TRACKERS = [
       { key: 'cs_info', name: 'csInfo', item_profile: 'info' }.freeze,
       { key: 'cs_ref_doc', name: 'csRefDoc', item_profile: 'doc' }.freeze
@@ -11,11 +26,11 @@ module Cosmosys
 
     module_function
 
-    def register(key, label:, description:, provider:, required_trackers:, default_root_tracker: nil, ods_export_template: DEFAULT_ODS_EXPORT_TEMPLATE, report_export_template: DEFAULT_REPORT_EXPORT_TEMPLATE, default_disabled_modules: [])
+    def register(key, label:, description:, provider:, required_trackers:, default_root_tracker: nil, ods_export_template: DEFAULT_ODS_EXPORT_TEMPLATE, report_export_template: DEFAULT_REPORT_EXPORT_TEMPLATE, default_disabled_modules: [], default_report_columns: DEFAULT_REPORT_COLUMNS, default_report_field_presentations: {}, default_report_options: DEFAULT_REPORT_OPTIONS, default_item_list_columns: DEFAULT_ITEM_LIST_COLUMNS)
       key = normalize_key(key)
       raise ArgumentError, "#{DEFAULT_KEY} is the reserved project profile" if key == DEFAULT_KEY
       raise ArgumentError, "project profile #{key} is already registered" if profiles.key?(key)
-      candidate = build(key:, label:, description:, provider:, required_trackers: BASE_TRACKERS + required_trackers, default_root_tracker:, ods_export_template:, report_export_template:, default_disabled_modules:)
+      candidate = build(key:, label:, description:, provider:, required_trackers: BASE_TRACKERS + required_trackers, default_root_tracker:, ods_export_template:, report_export_template:, default_disabled_modules:, default_report_columns:, default_report_field_presentations:, default_report_options:, default_item_list_columns:)
       validate_contract!(candidate)
       profiles[key] = candidate
     end
@@ -36,7 +51,11 @@ module Cosmosys
           default_root_tracker: 'cs_info',
           ods_export_template: DEFAULT_ODS_EXPORT_TEMPLATE,
           report_export_template: DEFAULT_REPORT_EXPORT_TEMPLATE,
-          default_disabled_modules: []
+          default_disabled_modules: [],
+          default_report_columns: DEFAULT_REPORT_COLUMNS,
+          default_report_field_presentations: {},
+          default_report_options: DEFAULT_REPORT_OPTIONS,
+          default_item_list_columns: DEFAULT_ITEM_LIST_COLUMNS
         )
       }
     end
@@ -44,6 +63,10 @@ module Cosmosys
     def build(**attributes)
       attributes[:required_trackers] = attributes[:required_trackers].map { |entry| entry.transform_keys(&:to_sym).dup.freeze }.uniq { |entry| entry.fetch(:key) }.freeze
       attributes[:default_disabled_modules] = Array(attributes[:default_disabled_modules]).map(&:to_s).uniq.freeze
+      attributes[:default_report_columns] = Array(attributes[:default_report_columns]).map(&:to_s).reject(&:blank?).uniq.freeze
+      attributes[:default_report_field_presentations] = Hash(attributes[:default_report_field_presentations]).stringify_keys.transform_values(&:to_s).freeze
+      attributes[:default_report_options] = Hash(attributes[:default_report_options]).stringify_keys.transform_values { |value| ActiveModel::Type::Boolean.new.cast(value) }.freeze
+      attributes[:default_item_list_columns] = Array(attributes[:default_item_list_columns]).map(&:to_s).reject(&:blank?).uniq.freeze
       Profile.new(**attributes.transform_values { |value| value.frozen? ? value : value.freeze }).freeze
     end
 
@@ -60,6 +83,14 @@ module Cosmosys
 
       unknown_modules = candidate.default_disabled_modules - Redmine::AccessControl.available_project_modules.map(&:to_s)
       raise ArgumentError, "unknown default-disabled project modules: #{unknown_modules.join(', ')}" if unknown_modules.any?
+
+      unknown_options = candidate.default_report_options.keys - Cosmosys::MainReportSettings::OPTION_NAMES
+      raise ArgumentError, "unknown default report options: #{unknown_options.join(', ')}" if unknown_options.any?
+
+      invalid_presentations = candidate.default_report_field_presentations.reject do |_name, mode|
+        Cosmosys::MainReportFieldRegistry.valid_representation_mode?(mode)
+      end
+      raise ArgumentError, "invalid default report presentations: #{invalid_presentations.keys.join(', ')}" if invalid_presentations.any?
 
       candidate.required_trackers.each do |entry|
         key = entry.fetch(:key).to_s

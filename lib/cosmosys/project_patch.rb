@@ -174,6 +174,8 @@ module Cosmosys
       selected_names =
         if saved_names.present?
           saved_names.select { |name| available_names.include?(name) }
+        elsif cosmosys_project_profile_definition.default_report_columns.any?
+          cosmosys_project_profile_definition.default_report_columns.select { |name| available_names.include?(name) }
         else
           Cosmosys::MainReportSettings.global_column_names(user: user).select { |name| available_names.include?(name) }
         end
@@ -184,10 +186,12 @@ module Cosmosys
     def cosmosys_report_field_presentations(user: User.current)
       selected_names = cosmosys_report_column_names(user: user)
       saved_modes =
-        if cosmosys_report_setting_record.present?
+        if cosmosys_report_setting_record&.report_payload&.key?('field_presentations')
           cosmosys_report_setting_record.field_presentations_hash.to_h
         else
-          Cosmosys::MainReportSettings.global_field_presentations(user: user)
+          Cosmosys::MainReportSettings.global_field_presentations(user: user).merge(
+            cosmosys_project_profile_definition.default_report_field_presentations
+          )
         end
 
       selected_names.each_with_object({}) do |name, result|
@@ -200,8 +204,25 @@ module Cosmosys
       if cosmosys_report_setting_record&.report_payload&.key?('options')
         cosmosys_report_setting_record.report_options_hash
       else
-        Cosmosys::MainReportSettings.global_options
+        Cosmosys::MainReportSettings.global_options.merge(
+          cosmosys_project_profile_definition.default_report_options
+        )
       end
+    end
+
+    def cosmosys_item_list_column_names
+      available_names = IssueQuery.new(name: 'cosmosys-profile-item-list', project: self).available_inline_columns.map { |column| column.name.to_s }
+      payload = cosmosys_report_setting_record&.report_payload || {}
+      selected_names =
+        if payload.key?('item_list_columns')
+          cosmosys_report_setting_record.item_list_column_names_array
+        elsif cosmosys_project_profile_definition.default_item_list_columns.any?
+          cosmosys_project_profile_definition.default_item_list_columns
+        else
+          Array(Setting.issue_list_default_columns).map(&:to_s)
+        end
+
+      selected_names.select { |name| available_names.include?(name) }
     end
 
     def cosmosys_report_landscape_scale_threshold

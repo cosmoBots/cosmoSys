@@ -23,7 +23,8 @@ module Cosmosys
     end
 
     def default_columns_names
-      super.dup - [:csid]
+      names = project.present? ? project.cosmosys_item_list_column_names.map(&:to_sym) : []
+      (names.presence || super.dup) - [:csid]
     end
 
     def columns

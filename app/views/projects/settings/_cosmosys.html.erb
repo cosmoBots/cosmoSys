@@ -5,6 +5,7 @@
 <% combined_render_variant = @project.cosmosys_combined_diagram_render_variant %>
 <% report_options = @project.cosmosys_report_options %>
 <% landscape_scale_threshold = @project.cosmosys_report_landscape_scale_threshold %>
+<% item_list_column_names = @project.cosmosys_item_list_column_names %>
 <% query.column_names = selected_column_names %>
 <% columns_by_name = query.available_inline_columns.index_by { |column| column.name.to_s } %>
 
@@ -67,6 +68,13 @@
     </p>
     <div id="list-definition" class="cosmosys-report-columns-selection">
       <%= render_query_columns_selection(query, name: 'cosmosys_setting[column_names]') %>
+    </div>
+
+    <h4><%= l(:label_cosmosys_item_list_columns) %></h4>
+    <p class="info"><%= l(:text_cosmosys_item_list_columns_help) %></p>
+    <% query.column_names = item_list_column_names %>
+    <div class="cosmosys-report-columns-selection">
+      <%= render_query_columns_selection(query, name: 'cosmosys_setting[item_list_column_names]') %>
     </div>
 
     <div class="cosmosys-report-options-selection">

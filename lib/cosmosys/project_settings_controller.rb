@@ -11,6 +11,8 @@ module Cosmosys
       available_names = query.available_inline_columns.map { |column| column.name.to_s }
       selected_names = Array(params.dig(:cosmosys_setting, :column_names)).map(&:to_s)
       sanitized_names = selected_names.select { |name| available_names.include?(name) }
+      selected_item_list_names = Array(params.dig(:cosmosys_setting, :item_list_column_names)).map(&:to_s)
+      sanitized_item_list_names = selected_item_list_names.select { |name| available_names.include?(name) }
       raw_presentations_param = params.dig(:cosmosys_setting, :field_presentations)
       raw_presentations =
         case raw_presentations_param
@@ -47,7 +49,8 @@ module Cosmosys
         columns: sanitized_names,
         field_presentations: sanitized_presentations,
         options: report_options,
-        landscape_scale_threshold: landscape_scale_threshold
+        landscape_scale_threshold: landscape_scale_threshold,
+        item_list_columns: sanitized_item_list_names
       )
       setting.assign_combined_layout_mode(layout_mode)
       setting.assign_combined_render_variant(render_variant)
