@@ -467,7 +467,8 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
     )
 
     issue_columns = Array(Setting[:issue_list_default_columns]).map(&:to_s)
-    default_issue_columns = %w[tracker status priority subject assigned_to updated_on category fixed_version]
-    Setting[:issue_list_default_columns] = issue_columns | default_issue_columns
+    primary_issue_columns = %w[chapter_label subject]
+    default_issue_columns = %w[tracker status priority assigned_to updated_on category fixed_version]
+    Setting[:issue_list_default_columns] = primary_issue_columns + ((issue_columns - primary_issue_columns) | default_issue_columns)
   end
 end

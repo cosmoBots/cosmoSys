@@ -18,7 +18,7 @@ module Cosmosys
       'dependency_diagram' => false, 'item_url_link' => false,
       'info_url_link' => false
     }.freeze
-    DEFAULT_ITEM_LIST_COLUMNS = %w[chapter_label tracker status priority subject assigned_to updated_on category fixed_version].freeze
+    DEFAULT_ITEM_LIST_COLUMNS = %w[chapter_label subject tracker status priority assigned_to updated_on category fixed_version].freeze
     BASE_TRACKERS = [
       { key: 'cs_info', name: 'csInfo', item_profile: 'info' }.freeze,
       { key: 'cs_ref_doc', name: 'csRefDoc', item_profile: 'doc' }.freeze
@@ -66,7 +66,8 @@ module Cosmosys
       attributes[:default_report_columns] = Array(attributes[:default_report_columns]).map(&:to_s).reject(&:blank?).uniq.freeze
       attributes[:default_report_field_presentations] = Hash(attributes[:default_report_field_presentations]).stringify_keys.transform_values(&:to_s).freeze
       attributes[:default_report_options] = Hash(attributes[:default_report_options]).stringify_keys.transform_values { |value| ActiveModel::Type::Boolean.new.cast(value) }.freeze
-      attributes[:default_item_list_columns] = Array(attributes[:default_item_list_columns]).map(&:to_s).reject(&:blank?).uniq.freeze
+      item_list_columns = Array(attributes[:default_item_list_columns]).map(&:to_s).reject(&:blank?).uniq
+      attributes[:default_item_list_columns] = (%w[chapter_label subject] + (item_list_columns - %w[chapter_label subject])).freeze
       Profile.new(**attributes.transform_values { |value| value.frozen? ? value : value.freeze }).freeze
     end
 
