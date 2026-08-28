@@ -401,6 +401,27 @@
     });
   }
 
+  var diagramRequestControllers = [];
+  var diagramPageLeaving = false;
+
+  function trackDiagramRequestController(controller) {
+    diagramRequestControllers.push(controller);
+    return controller;
+  }
+
+  function releaseDiagramRequestController(controller) {
+    var index = diagramRequestControllers.indexOf(controller);
+    if (index !== -1) diagramRequestControllers.splice(index, 1);
+  }
+
+  function abortDeferredDiagramRequests() {
+    diagramPageLeaving = true;
+    diagramRequestControllers.splice(0).forEach(function(controller) { controller.abort(); });
+    reportDiagramQueue.splice(0).forEach(function(job) {
+      job.reject(new DOMException('Page is leaving', 'AbortError'));
+    });
+  }
+
   function initLazyPageDiagrams() {
     var nodes = Array.prototype.slice.call(document.querySelectorAll('[data-cosmosys-page-diagram]'));
     if (!nodes.length) return;
@@ -432,23 +453,28 @@
 
     function load(node) {
       active += 1;
+      var controller = trackDiagramRequestController(new AbortController());
       window.fetch(node.dataset.url, {
         credentials: 'same-origin',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        signal: controller.signal
       })
         .then(function(response) {
           if (!response.ok) throw new Error('Diagram request failed');
           return response.text();
         })
         .then(function(html) { node.outerHTML = html; })
-        .catch(function() {
+        .catch(function(error) {
+          if (error.name === 'AbortError') return;
           node.classList.remove('cosmosys-lazy-diagram');
           node.innerHTML = '<p class="nodata"></p>';
           node.querySelector('p').textContent = node.dataset.errorText || 'Diagram unavailable';
         })
         .finally(function() {
+          releaseDiagramRequestController(controller);
           active -= 1;
           complete += 1;
+          if (diagramPageLeaving) return;
           refreshProgress();
           pump();
         });
@@ -532,10 +558,11 @@
   var maxReportDiagramLoads = 3;
 
   function pumpReportDiagramQueue() {
-    while (activeReportDiagramLoads < maxReportDiagramLoads && reportDiagramQueue.length) {
+    while (!diagramPageLeaving && activeReportDiagramLoads < maxReportDiagramLoads && reportDiagramQueue.length) {
       let job = reportDiagramQueue.shift();
       activeReportDiagramLoads += 1;
-      window.fetch(job.node.dataset.url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      let controller = trackDiagramRequestController(new AbortController());
+      window.fetch(job.node.dataset.url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' }, signal: controller.signal })
         .then(function(response) {
           if (!response.ok) throw new Error('Diagram request failed');
           return response.text();
@@ -550,6 +577,7 @@
           job.reject(error);
         })
         .finally(function() {
+          releaseDiagramRequestController(controller);
           activeReportDiagramLoads -= 1;
           pumpReportDiagramQueue();
         });
@@ -557,6 +585,7 @@
   }
 
   function loadReportDiagram(node) {
+    if (diagramPageLeaving) return Promise.reject(new DOMException('Page is leaving', 'AbortError'));
     if (node.dataset.loaded === '1') return Promise.resolve(node);
     if (node._cosmosysLoadPromise) return node._cosmosysLoadPromise;
     node._cosmosysLoadPromise = new Promise(function(resolve, reject) {
@@ -1019,6 +1048,9 @@
     });
     render();
   }
+
+  window.addEventListener('beforeunload', abortDeferredDiagramRequests);
+  window.addEventListener('pagehide', abortDeferredDiagramRequests);
 
   document.addEventListener('DOMContentLoaded', function() {
     initDocumentReferenceSearch();
