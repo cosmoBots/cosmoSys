@@ -1,0 +1,13 @@
+<%= render partial: 'nav', locals: { current: :dsm } %>
+
+<h2><%= l(:label_cosmosys_dsm) %></h2>
+<p class="cosmosys-dsm-help"><%= l(:text_cosmosys_dsm_help) %></p>
+<div class="cosmosys-dsm-diagnostics" data-cosmosys-dsm-diagnostics></div>
+<div class="cosmosys-dsm-legend">
+  <span class="cosmosys-dsm-legend-mark cosmosys-dsm-restricted">X</span> <%= l(:label_cosmosys_dsm_restricted) %>
+  <span class="cosmosys-dsm-legend-mark cosmosys-dsm-planning">←</span> <%= l(:label_cosmosys_dsm_planning) %>
+  <span class="cosmosys-dsm-legend-mark cosmosys-dsm-ghost">X</span> <%= l(:label_cosmosys_dsm_projection) %>
+</div>
+<p class="cosmosys-dsm-actions"><button type="button" data-cosmosys-dsm-toggle></button></p>
+<div class="cosmosys-dsm-frame" data-cosmosys-dsm></div>
+<script type="application/json" id="cosmosys-dsm-data"><%= raw json_escape(@dsm_payload.to_json) %></script>

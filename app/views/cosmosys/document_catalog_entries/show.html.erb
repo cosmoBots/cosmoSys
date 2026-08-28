@@ -1,0 +1,23 @@
+<%= render partial: 'cosmosys/items/nav', locals: { current: :document_catalog } %>
+
+<div class="contextual">
+  <%= link_to l(:label_cosmosys_document_catalog), project_cosmosys_document_catalog_path(@project), class: 'icon icon-list' %>
+  <%= link_to l(:label_document), document_path(@document), class: 'icon icon-document' %>
+</div>
+
+<h2><%= @entry.catalog_label %> — <%= @document.title %></h2>
+
+<p><em><%= @document.category.name %><br /><%= format_date @document.created_on %></em></p>
+<% if @document.external_code.present? %>
+  <p><strong><%= l(:field_cosmosys_external_code) %>:</strong> <%= @document.external_code %></p>
+<% end %>
+<div class="wiki"><%= textilizable @document, :description, attachments: @document.attachments %></div>
+
+<h3><%= l(:label_cosmosys_references) %></h3>
+<% if @catalog_refs.any? %>
+  <%= render partial: 'cosmosys/catalog_refs/reference_table', locals: { refs: @catalog_refs } %>
+<% else %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% end %>
+
+<% html_title "#{@entry.catalog_label} — #{@document.title}" %>

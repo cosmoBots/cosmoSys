@@ -1,0 +1,3 @@
+<% issue = local_assigns[:issue] || @issue %>
+<% problem = Cosmosys::IssueTreeHealth.problem_for_issue(issue) %>
+<%= render partial: 'cosmosys/items/tree_health_warning', locals: { problem: problem } %>

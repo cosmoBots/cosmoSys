@@ -1,0 +1,20 @@
+<fieldset class="box tabular cosmosys-project-copy-options">
+  <legend><%= l(:label_cosmosys_project_copy_policy) %></legend>
+  <p>
+    <label><%= l(:field_cosmosys_copy_mode) %></label>
+    <%= radio_button_tag 'cosmosys_copy[mode]', 'clean', params.dig(:cosmosys_copy, :mode).to_s != 'faithful' %>
+    <%= l(:label_cosmosys_copy_mode_clean) %>
+    <%= radio_button_tag 'cosmosys_copy[mode]', 'faithful', params.dig(:cosmosys_copy, :mode).to_s == 'faithful' %>
+    <%= l(:label_cosmosys_copy_mode_faithful) %>
+  </p>
+  <p>
+    <label><%= l(:label_cosmosys_project_profile) %></label>
+    <%= select_tag 'cosmosys_copy[project_profile]', options_for_select(Cosmosys::ProjectProfileRegistry.all.map { |profile| [l(profile.label), profile.key] }, @source_project.cosmosys_project_profile) %>
+  </p>
+  <p>
+    <label><%= l(:field_cosmosys_archive_baseline) %></label>
+    <%= check_box_tag 'cosmosys_copy[archive]', '1', false %>
+    <em class="info"><%= l(:text_cosmosys_archive_baseline_help) %></em>
+  </p>
+  <p><em class="info"><%= l(:text_cosmosys_project_copy_preflight, items: @source_project.issues.count, documents: @source_project.documents.count, members: @source_project.members.count) %></em></p>
+</fieldset>

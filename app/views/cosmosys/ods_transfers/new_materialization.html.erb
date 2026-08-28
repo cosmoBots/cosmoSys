@@ -1,0 +1,19 @@
+<%= render partial: 'cosmosys/items/nav', locals: { current: :ods_transfers } %>
+<h2><%= l(:label_cosmosys_materialize_snapshot) %></h2>
+
+<%= form_tag project_cosmosys_ods_materialization_path(@project), multipart: true do %>
+  <div class="box tabular">
+    <p><label><%= l(:field_ods_file) %></label><%= file_field_tag :ods_file, accept: '.ods', required: true %></p>
+    <p><label><%= l(:field_name) %></label><%= text_field_tag 'destination[name]', @destination['name'], required: true %></p>
+    <p><label><%= l(:field_identifier) %></label><%= text_field_tag 'destination[identifier]', @destination['identifier'], required: true %></p>
+    <p><label><%= l(:field_cscode) %></label><%= text_field_tag 'destination[cscode]', @destination['cscode'], required: true %></p>
+    <p><label><%= l(:field_description) %></label><%= text_area_tag 'destination[description]', @destination['description'], rows: 4 %></p>
+    <p><label><%= l(:field_cosmosys_copy_mode) %></label>
+      <%= radio_button_tag :copy_mode, 'clean', true %> <%= l(:label_cosmosys_copy_mode_clean) %>
+      <%= radio_button_tag :copy_mode, 'faithful' %> <%= l(:label_cosmosys_copy_mode_faithful) %></p>
+    <p><label><%= l(:label_cosmosys_project_profile) %></label>
+      <%= select_tag :project_profile, options_for_select(Cosmosys::ProjectProfileRegistry.all.map { |profile| [l(profile.label), profile.key] }, @project.cosmosys_project_profile) %></p>
+    <p><label><%= l(:field_cosmosys_archive_baseline) %></label><%= check_box_tag 'destination[archive]', '1' %></p>
+  </div>
+  <%= submit_tag l(:button_cosmosys_analyse_snapshot), class: 'button-positive' %>
+<% end %>

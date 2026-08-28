@@ -1,0 +1,1257 @@
+.cosmosys-tree-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.cosmosys-diagram-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.35rem 0 0.65rem;
+}
+
+.cosmosys-diagram-controls label {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.cosmosys-diagram-controls select {
+  min-width: 9rem;
+}
+
+.cosmosys-diagram-relation-controls {
+  align-items: center;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+}
+
+.cosmosys-diagram-relation-controls legend {
+  float: left;
+  font-weight: bold;
+  margin-right: 0.15rem;
+}
+
+.cosmosys-dsm-actions {
+  margin: 0.5em 0;
+}
+
+.cosmosys-diagram-selection {
+  color: #666;
+  margin-left: 0.5rem;
+}
+
+.cosmosys-diagram-panel-loading {
+  opacity: 0.7;
+}
+
+.cosmosys-diagram-loading {
+  color: #777;
+}
+
+.cosmosys-spinner {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.35rem;
+  vertical-align: -0.12rem;
+  border: 2px solid #b8c4cc;
+  border-top-color: #3e7ca5;
+  border-radius: 50%;
+  animation: cosmosys-spin 0.8s linear infinite;
+}
+
+.cosmosys-page-diagram-progress {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1000;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  min-width: 18rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #b8c4cc;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.cosmosys-page-diagram-progress progress {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 0.45rem;
+  margin-top: 0.45rem;
+}
+
+.cosmosys-page-diagram-progress-complete .cosmosys-spinner {
+  visibility: hidden;
+}
+
+.cosmosys-report-diagram-progress-failed {
+  border-color: #c62828;
+  color: #8e1b1b;
+}
+
+@keyframes cosmosys-spin {
+  to { transform: rotate(360deg); }
+}
+
+#list-definition.cosmosys-report-columns-selection {
+  align-items: start;
+  column-gap: 0.75rem;
+  display: grid;
+  grid-template-columns: minmax(15rem, 1fr) auto minmax(15rem, 1fr) auto;
+  row-gap: 0;
+  margin-top: 0.75rem;
+  width: 100%;
+}
+
+#list-definition.cosmosys-report-columns-selection .query-columns,
+#list-definition.cosmosys-report-columns-selection .buttons {
+  float: none;
+  margin: 0;
+}
+
+#list-definition.cosmosys-report-columns-selection .query-columns {
+  min-width: 0;
+  width: 100%;
+}
+
+#list-definition.cosmosys-report-columns-selection .query-columns label {
+  display: block;
+  margin-bottom: 0.35rem;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  width: 100%;
+}
+
+#list-definition.cosmosys-report-columns-selection .query-columns select {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+}
+
+#list-definition.cosmosys-report-columns-selection .buttons {
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 1.45rem;
+}
+
+#list-definition.cosmosys-report-columns-selection .buttons input[type=button] {
+  margin: 0;
+}
+
+@media screen and (max-width: 899px) {
+  #list-definition.cosmosys-report-columns-selection {
+    grid-template-columns: 1fr;
+    row-gap: 0.75rem;
+  }
+
+  #list-definition.cosmosys-report-columns-selection .buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 0;
+  }
+}
+
+.cosmosys-tree-scrollbox {
+  background: #fff;
+  border: 1px solid #dce5ef;
+  border-radius: 8px;
+  box-sizing: border-box;
+  max-height: calc(100vh - 10rem);
+  overflow: auto;
+  padding: 0.35rem;
+}
+
+.cosmosys-tree-root,
+.cosmosys-tree-children {
+  box-sizing: border-box;
+  list-style: none;
+  margin: 0;
+  padding-left: 0;
+  width: 100%;
+}
+
+.cosmosys-tree-root {
+  padding-left: 0;
+}
+
+.cosmosys-tree-children {
+  margin-left: 0.65rem;
+  padding-left: 0.65rem;
+  position: relative;
+}
+
+.cosmosys-tree-children::before {
+  border-left: 1px solid #c8d7ea;
+  bottom: 0.55rem;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 0;
+}
+
+.cosmosys-tree-item {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+.cosmosys-tree-item > .cosmosys-tree-node::before {
+  border-top: 1px solid #c8d7ea;
+  content: '';
+  left: -0.65rem;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0.56rem;
+}
+
+.cosmosys-tree-item-leaf > .cosmosys-tree-node::before {
+  width: 2.15rem;
+}
+
+.cosmosys-tree-root > .cosmosys-tree-item > .cosmosys-tree-node::before {
+  content: none;
+}
+
+.cosmosys-tree-node {
+  align-self: stretch;
+  align-items: center;
+  background: #fff;
+  box-sizing: border-box;
+  border-radius: 4px;
+  display: flex;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.02rem 0;
+  position: relative;
+  width: 100%;
+}
+
+.cosmosys-tree-item.cosmosys-selected > .cosmosys-tree-node {
+  box-shadow: inset 0 0 0 2px #3d73b9;
+}
+
+.cosmosys-tree-depth-0 {
+  background: #dbe9f8;
+}
+
+.cosmosys-tree-depth-1 {
+  background: #e5effb;
+}
+
+.cosmosys-tree-depth-2 {
+  background: #edf4fc;
+}
+
+.cosmosys-tree-depth-3 {
+  background: #f4f8fd;
+}
+
+.cosmosys-tree-depth-4 {
+  background: #f9fbfe;
+}
+
+.cosmosys-tree-depth-5 {
+  background: #fff;
+}
+
+.cosmosys-tree-node a.issue {
+  min-width: 0;
+}
+
+.cosmosys-tree-item-boundary > .cosmosys-tree-node::before,
+.cosmosys-tree-item-boundary > .cosmosys-tree-children::before {
+  border-color: #c7ccd1;
+}
+
+.cosmosys-tree-item-boundary > .cosmosys-tree-node {
+  background: #eef0f2;
+  color: #5d6770;
+}
+
+.cosmosys-tree-item-boundary.cosmosys-selected > .cosmosys-tree-node {
+  box-shadow: inset 0 0 0 2px #7f95ad;
+}
+
+.cosmosys-tree-node-boundary .cosmosys-tree-toggle,
+.cosmosys-tree-node-boundary .cosmosys-tree-toggle-placeholder,
+.cosmosys-tree-node-boundary .cosmosys-tree-drag-handle {
+  color: #7a838b;
+}
+
+.cosmosys-tree-toggle,
+.cosmosys-tree-toggle-placeholder {
+  display: inline-block;
+  min-width: 1.35rem;
+  text-align: center;
+}
+
+.cosmosys-tree-toggle {
+  cursor: pointer;
+  padding: 0 0.35rem;
+}
+
+.cosmosys-tree-ref {
+  color: #555;
+  font-family: monospace;
+}
+
+.cosmosys-tree-ref-boundary {
+  color: #6f7780;
+  font-style: italic;
+}
+
+.cosmosys-tree-boundary-prefix {
+  color: #6f7780;
+  font-style: italic;
+  font-weight: 700;
+}
+
+.cosmosys-tree-boundary-link,
+.cosmosys-tree-subject-boundary {
+  color: #5d6770;
+  font-style: italic;
+}
+
+.cosmosys-tree-project {
+  color: #666;
+}
+
+.cosmosys-tree-move {
+  margin: 0.12rem 0 0.3rem 2rem;
+}
+
+.cosmosys-collapsed > .cosmosys-tree-children {
+  display: none;
+}
+
+.cosmosys-dnd-view .cosmosys-dnd-item[draggable="true"] > .cosmosys-dnd-node {
+  cursor: grab;
+}
+
+.cosmosys-dnd-view .cosmosys-dragging > .cosmosys-dnd-node {
+  opacity: 0.14;
+}
+
+.cosmosys-tree-drag-handle {
+  color: #666;
+  cursor: grab;
+  font-family: monospace;
+  user-select: none;
+}
+
+.cosmosys-drag-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  border: 0;
+  border-radius: 4px;
+  box-shadow: none;
+  color: #222;
+  font-size: 0.95rem;
+  max-width: 32rem;
+  padding: 0.15rem 0.35rem;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.cosmosys-dnd-node.cosmosys-dnd-dropzone {
+  border: 1px dashed transparent;
+  border-radius: 4px;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.cosmosys-dnd-sibling-dropzone {
+  border: 1px solid transparent;
+  border-radius: 4px;
+  height: 0.28rem;
+  margin: 0;
+  position: relative;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.cosmosys-dnd-sibling-dropzone::before {
+  border-top: 2px solid transparent;
+  content: '';
+  left: 2rem;
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: border-color 120ms ease, border-width 120ms ease, box-shadow 120ms ease;
+}
+
+.cosmosys-tree-reorder-view.cosmosys-drag-active .cosmosys-dnd-sibling-dropzone.cosmosys-drop-candidate::before {
+  border-top-color: #bcc5cc;
+}
+
+.cosmosys-tree-reorder-view.cosmosys-drag-active .cosmosys-dnd-node.cosmosys-drop-candidate {
+  background: rgba(188, 197, 204, 0.12);
+  border-color: rgba(188, 197, 204, 0.45);
+}
+
+.cosmosys-dnd-root-dropzone {
+  border: 1px dashed transparent;
+  border-radius: 4px;
+  bottom: 0.25rem;
+  left: 0;
+  margin: 0;
+  min-height: auto;
+  position: absolute;
+  top: 2rem;
+  width: 1.1rem;
+  z-index: 2;
+}
+
+.cosmosys-tree-reorder-view {
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+#sidebar .cosmosys-tree-sidebar {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 10rem);
+  position: sticky;
+  top: 1rem;
+}
+
+.cosmosys-tree-sidebar-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cosmosys-report-view {
+  min-width: 0;
+}
+
+.cosmosys-report-scrollbox {
+  background: #fff;
+  border: 1px solid #dce5ef;
+  border-radius: 8px;
+  box-sizing: border-box;
+  max-height: calc(100vh - 10rem);
+  overflow: auto;
+  padding: 1.25rem 1.5rem;
+}
+
+#sidebar .cosmosys-report-sidebar {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  max-height: calc(100vh - 10rem);
+  min-height: 0;
+  overflow: hidden;
+  position: sticky;
+  top: 1rem;
+}
+
+.cosmosys-report-sidebar-inner {
+  background: linear-gradient(180deg, #f5f8fc 0%, #eef3f9 100%);
+  border: 1px solid #d4dde8;
+  border-radius: 8px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 1rem;
+}
+
+.cosmosys-report-sidebar-inner h2,
+.cosmosys-report-sidebar-inner h3 {
+  margin-top: 0;
+}
+
+.cosmosys-report-search-label {
+  color: #52606d;
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.cosmosys-report-search {
+  border: 1px solid #c3cfdd;
+  border-radius: 4px;
+  box-sizing: border-box;
+  margin-bottom: 1rem;
+  padding: 0.45rem 0.55rem;
+  width: 100%;
+}
+
+.cosmosys-report-toc {
+  flex: 1 1 auto;
+  list-style: none;
+  margin: 0;
+  max-height: none;
+  min-height: 0;
+  overflow: auto;
+  padding-left: 0;
+}
+
+.cosmosys-report-info-url-link {
+  font-size: 0.8em;
+  margin: -0.35em 0 0.65em;
+}
+
+.cosmosys-report-info-url-link a {
+  color: #667788;
+  text-decoration: none;
+}
+
+.cosmosys-report-toc-item {
+  line-height: 1.3;
+  margin: 0;
+}
+
+.cosmosys-report-toc-item a {
+  border-left: 2px solid transparent;
+  color: #26415f;
+  display: block;
+  padding: 0.2rem 0.35rem 0.2rem 0.55rem;
+  text-decoration: none;
+}
+
+.cosmosys-report-toc-item a:hover {
+  background: rgba(47, 111, 222, 0.08);
+  border-left-color: #7ea7e7;
+}
+
+.cosmosys-report-toc-depth-1 a { padding-left: 1rem; }
+.cosmosys-report-toc-depth-2 a { padding-left: 1.45rem; }
+.cosmosys-report-toc-depth-3 a { padding-left: 1.9rem; }
+.cosmosys-report-toc-depth-4 a { padding-left: 2.35rem; }
+.cosmosys-report-toc-depth-5 a { padding-left: 2.8rem; }
+
+.cosmosys-report-toc-chapter,
+.cosmosys-report-heading-chapter,
+.cosmosys-report-heading-ref {
+  color: #5a6f85;
+  font-family: monospace;
+}
+
+.cosmosys-report-section {
+  border-bottom: 1px solid #dce5ef;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.cosmosys-report-section:last-child {
+  border-bottom: 0;
+}
+
+.cosmosys-report-heading {
+  align-items: baseline;
+  color: #16324f;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  scroll-margin-top: 1rem;
+}
+
+.cosmosys-report-heading-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.cosmosys-report-heading-link:hover {
+  text-decoration: underline;
+}
+
+.cosmosys-report-description {
+  clear: both;
+  color: #243746;
+  margin-bottom: 1rem;
+}
+
+.cosmosys-report-diagram {
+  clear: both;
+  margin: 1rem 0 0;
+}
+
+.cosmosys-report-diagram h6 {
+  color: #52606d;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+[data-cosmosys-report-item][hidden] {
+  display: none !important;
+}
+
+@media (max-width: 980px) {
+  .cosmosys-tree-scrollbox {
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .cosmosys-report-scrollbox {
+    max-height: none;
+    overflow: visible;
+    padding: 1rem;
+  }
+
+  .cosmosys-report-sidebar-inner {
+    max-height: none;
+  }
+
+  .cosmosys-report-toc {
+    max-height: 18rem;
+  }
+}
+
+.cosmosys-tree-sidebar-kicker {
+  color: #66717a;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+}
+
+.cosmosys-tree-sidebar-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cosmosys-tree-sidebar-body[data-loading="1"] {
+  opacity: 0.6;
+}
+
+#sidebar .cosmosys-tree-issue-details {
+  background: #fff;
+  border: 1px solid #d7dce1;
+  border-radius: 4px;
+  box-sizing: border-box;
+  max-height: calc(100vh - 13rem);
+  overflow: auto;
+  padding: 0.85rem;
+}
+
+.cosmosys-tree-issue-open {
+  margin: -0.35rem 0 0.75rem;
+}
+
+.cosmosys-dnd-root-label {
+  background: #f5f7f8;
+  border: 1px dashed #c7ccd1;
+  border-radius: 4px;
+  color: #5f6b73;
+  display: flex;
+  align-items: flex-start;
+  font-size: 0.85rem;
+  justify-content: center;
+  inset: 0;
+  padding: 0.35rem 0.15rem;
+  position: absolute;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  opacity: 0;
+  transition: opacity 120ms ease, background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.cosmosys-tree-reorder-view.cosmosys-drag-active .cosmosys-dnd-root-label {
+  opacity: 1;
+}
+
+.cosmosys-dnd-root-dropzone.cosmosys-drop-allowed .cosmosys-dnd-root-label {
+  background: #eef8ee;
+  border-color: #78a878;
+  color: #2b5b2b;
+}
+
+.cosmosys-dnd-root-dropzone.cosmosys-drop-denied .cosmosys-dnd-root-label {
+  background: #fff1f1;
+  border-color: #cc7777;
+  color: #7a2222;
+}
+
+.cosmosys-drop-allowed {
+  background: #eef8ee;
+  border-color: #78a878;
+  color: #2b5b2b;
+}
+
+.cosmosys-dnd-sibling-dropzone.cosmosys-drop-allowed::before {
+  border-top-color: #2f8f46;
+  border-top-width: 4px;
+  box-shadow: 0 0 0 2px rgba(47, 143, 70, 0.15);
+}
+
+.cosmosys-dnd-root-dropzone.cosmosys-drop-allowed {
+  background: transparent;
+}
+
+.cosmosys-drop-denied {
+  background: #fff1f1;
+  border-color: #cc7777;
+  color: #7a2222;
+}
+
+.cosmosys-dnd-sibling-dropzone.cosmosys-drop-denied::before {
+  border-top-color: #cc7777;
+  border-top-width: 3px;
+}
+
+.cosmosys-dnd-root-dropzone.cosmosys-drop-denied {
+  background: transparent;
+}
+
+.cosmosys-diagram-panels {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.cosmosys-project-overview {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.cosmosys-project-diagrams {
+  box-sizing: border-box;
+  clear: both;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.splitcontent:has(> .splitcontentleft .cosmosys-project-overview) > .splitcontentleft {
+  min-width: 0;
+}
+
+.cosmosys-diagram-panel {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.cosmosys-diagram-panel h4 {
+  align-items: baseline;
+  display: flex;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem;
+}
+
+.cosmosys-diagram-export-links {
+  font-size: 0.85em;
+  font-weight: normal;
+}
+
+.cosmosys-diagram-export-separator {
+  color: #8c96a0;
+  margin: 0 0.2rem;
+}
+
+.cosmosys-diagram-revision {
+  color: #66717a;
+  font-size: 0.82rem;
+  margin: 0 0 0.4rem;
+}
+
+.cosmosys-diagram-frame {
+  background: #fff;
+  border: 1px solid #d7dce1;
+  border-radius: 4px;
+  box-sizing: border-box;
+  max-height: 28rem;
+  max-width: 100%;
+  min-width: 0;
+  overflow: auto;
+  padding: 0.5rem;
+  width: 100%;
+}
+
+.cosmosys-diagram-frame svg {
+  display: block;
+  height: auto;
+  max-width: none;
+  min-width: 0;
+  width: auto;
+}
+
+.cosmosys-diagram-frame-placeholder {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 6rem;
+}
+
+.hidden {
+  display: none;
+}
+
+.inline-block {
+  display: inline-block;
+}
+
+.cosmosys-tree-warning .button_to {
+  display: inline-block;
+  margin-left: 0.5rem;
+}
+
+.cosmosys-report-metadata {
+  border: 1px solid #dbe4ee;
+  border-collapse: collapse;
+  clear: both;
+  margin: 0.75rem 0 1rem;
+  margin-left: auto;
+  max-width: min(34rem, 100%);
+  width: min(34rem, 100%);
+}
+
+.cosmosys-report-metadata th,
+.cosmosys-report-metadata td {
+  border: 1px solid #dbe4ee;
+  padding: 0.28rem 0.45rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.cosmosys-report-metadata th {
+  background: #f3f6f9;
+  color: #5c6670;
+  font-size: 0.92em;
+  font-weight: 700;
+  white-space: nowrap;
+  width: 35%;
+}
+
+.cosmosys-report-metadata td {
+  color: #20262c;
+}
+
+.cosmosys-report-body-fields {
+  clear: both;
+  display: grid;
+  gap: 0.85rem;
+  margin: 1rem 0;
+}
+
+.cosmosys-report-body-field h6 {
+  color: #52606d;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.35rem;
+  text-transform: uppercase;
+}
+
+.cosmosys-report-body-field-value {
+  color: #20262c;
+}
+
+.cosmosys-report-field-presentations {
+  margin-top: 1rem;
+}
+
+.cosmosys-report-field-presentations h4 {
+  margin-bottom: 0.35rem;
+}
+
+.cosmosys-report-field-presentations-table {
+  margin-top: 0.5rem;
+}
+
+.cosmosys-report-field-presentations-table select {
+  min-width: 12rem;
+}
+
+.cosmosys-report-query-form-with-buttons {
+  margin-bottom: 1rem;
+}
+
+.cosmosys-report-query-form-with-buttons fieldset.collapsible {
+  margin-bottom: 0.75rem;
+}
+
+.cosmosys-report-export-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.cosmosys-ods-transfer-actions {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.cosmosys-ods-transfer-actions h3,
+.cosmosys-ods-transfer-actions .cosmosys-ods-export-toolbar {
+  margin-bottom: 0;
+}
+
+.cosmosys-ods-transfer-actions .cosmosys-ods-export-toolbar {
+  justify-content: flex-end;
+}
+
+@media screen and (max-width: 899px) {
+  .cosmosys-ods-transfer-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cosmosys-ods-transfer-actions .cosmosys-ods-export-toolbar {
+    justify-content: flex-start;
+  }
+}
+
+.cosmosys-report-export-progress {
+  align-items: center;
+  color: #52606d;
+  display: inline-flex;
+  gap: 0.45rem;
+}
+
+.cosmosys-report-export-progress progress {
+  height: 0.55rem;
+  min-width: 12rem;
+}
+
+.cosmosys-report-export-progress[hidden] {
+  display: none;
+}
+
+.cosmosys-report-spinner {
+  animation: cosmosys-report-spin 0.8s linear infinite;
+  border: 2px solid #c7d2dd;
+  border-radius: 50%;
+  border-top-color: #169;
+  height: 0.9rem;
+  width: 0.9rem;
+}
+
+.cosmosys-report-spinner[hidden] {
+  display: none;
+}
+
+@keyframes cosmosys-report-spin {
+  to { transform: rotate(360deg); }
+}
+
+.cosmosys-document-references {
+  clear: both;
+  margin-top: 1rem;
+}
+
+.cosmosys-catalog-refs-table code {
+  white-space: nowrap;
+}
+
+.cosmosys-catalog-ref-primary {
+  border-left: 0.3rem solid #169;
+}
+
+.cosmosys-broken-reference {
+  color: #c00;
+  font-weight: 600;
+}
+
+.cosmosys-restricted-document {
+  color: #777;
+  font-style: italic;
+}
+
+.cosmosys-inline-order-form {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.cosmosys-inline-button-form {
+  display: inline-block;
+  margin-left: 0.5rem;
+}
+
+.cosmosys-inline-order-form input[type="number"] {
+  width: 4rem;
+}
+
+#cosmosys-document-search,
+#cosmosys-catalog-ref-document {
+  max-width: 42rem;
+  width: min(42rem, 100%);
+}
+
+.cosmosys-report-document-catalog {
+  margin: 0.75rem 0 1rem;
+}
+
+.cosmosys-report-document-catalog-table {
+  border: 1px solid #b7c3cf;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.cosmosys-report-document-catalog-table th,
+.cosmosys-report-document-catalog-table td,
+.cosmosys-report-document-references-table th,
+.cosmosys-report-document-references-table td {
+  border: 1px solid #b7c3cf;
+  padding: 0.28rem 0.45rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.cosmosys-report-document-catalog-id-column {
+  width: 4.25rem;
+}
+
+.cosmosys-report-document-catalog-table th:first-child,
+.cosmosys-report-document-catalog-table td:first-child {
+  white-space: nowrap;
+  width: 4.25rem;
+}
+
+.cosmosys-report-document-catalog-table th,
+.cosmosys-report-document-references-table th {
+  background: #f3f6f9;
+  font-weight: 700;
+}
+
+.cosmosys-report-document-catalog-metadata-row td {
+  color: #5c6670;
+  font-size: 0.9em;
+}
+
+.cosmosys-report-document-catalog-metadata-row td:first-child {
+  background: #f3f6f9;
+}
+
+.cosmosys-document-catalog-table th:first-child,
+.cosmosys-document-catalog-table td:first-child {
+  white-space: nowrap;
+  width: 4.25rem;
+}
+
+.cosmosys-document-catalog-table th:nth-child(4),
+.cosmosys-document-catalog-table td:nth-child(4),
+.cosmosys-document-catalog-table th:nth-child(5),
+.cosmosys-document-catalog-table td:nth-child(5),
+.cosmosys-document-catalog-table th:nth-child(6),
+.cosmosys-document-catalog-table td:nth-child(6),
+.cosmosys-document-catalog-table th:nth-child(7),
+.cosmosys-document-catalog-table td:nth-child(7) {
+  white-space: nowrap;
+}
+.cosmosys-header-logo {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  display: block;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+#header > h1:has(.cosmosys-header-logo) {
+  position: relative;
+  padding-inline-start: 42px;
+}
+
+.cosmosys-sidebar-brand {
+  margin-top: auto;
+  padding: 1.25rem 0.5rem 0.75rem;
+  border-top: 1px solid var(--border-color, #ddd);
+  text-align: center;
+}
+
+@media screen and (min-width: 900px) {
+  #main.collapsiblesidebar #sidebar,
+  #main.collapsiblesidebar #sidebar-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #main.collapsiblesidebar #sidebar-wrapper {
+    flex: 1 1 auto;
+  }
+
+  #main.collapsiblesidebar #sidebar-wrapper:has(.cosmosys-report-sidebar) {
+    height: calc(100vh - 9rem);
+    max-height: calc(100vh - 9rem);
+    min-height: 0;
+    overflow: hidden;
+    position: sticky;
+    top: 1rem;
+  }
+
+  #main.collapsiblesidebar #sidebar-wrapper:has(.cosmosys-report-sidebar) .cosmosys-report-sidebar {
+    max-height: none;
+    position: static;
+  }
+}
+
+.cosmosys-sidebar-logo {
+  display: inline-block;
+  width: min(100%, 180px);
+  height: auto;
+  opacity: 0.72;
+}
+
+@media screen and (max-width: 899px) {
+  .cosmosys-sidebar-brand {
+    margin-top: 2rem;
+  }
+}
+.cosmosys-dsm-help {
+  max-width: 80em;
+}
+
+.cosmosys-dsm-diagnostics,
+.cosmosys-dsm-legend {
+  margin: 0.75em 0;
+}
+
+.cosmosys-dsm-legend-mark {
+  display: inline-block;
+  min-width: 1.5em;
+  margin-left: 1em;
+  text-align: center;
+  font-weight: bold;
+}
+
+.cosmosys-dsm-legend-mark:first-child {
+  margin-left: 0;
+}
+
+.cosmosys-dsm-frame {
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid #ddd;
+  background: #fff;
+}
+
+table.cosmosys-dsm-table {
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+}
+
+.cosmosys-dsm-table th,
+.cosmosys-dsm-table td {
+  border: 1px dotted #aaa;
+}
+
+.cosmosys-dsm-column-header,
+.cosmosys-dsm-cell,
+.cosmosys-dsm-sequence {
+  width: 2.1rem;
+  min-width: 2.1rem;
+  height: 2.1rem;
+  padding: 0.15rem !important;
+  text-align: center;
+}
+
+.cosmosys-dsm-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #eee;
+}
+
+.cosmosys-dsm-table th:first-child,
+.cosmosys-dsm-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #fff;
+}
+
+.cosmosys-dsm-table th:nth-child(2),
+.cosmosys-dsm-table td:nth-child(2) {
+  position: sticky;
+  left: 2.1rem;
+  z-index: 2;
+  background: #fff;
+}
+
+.cosmosys-dsm-table thead th:first-child,
+.cosmosys-dsm-table thead th:nth-child(2) {
+  z-index: 4;
+  background: #eee;
+}
+
+.cosmosys-dsm-item-label {
+  min-width: 24rem;
+  cursor: grab;
+}
+
+.cosmosys-dsm-item-label small {
+  display: block;
+  color: #777;
+  font-weight: normal;
+}
+
+.cosmosys-dsm-diagonal {
+  color: white;
+  background: black !important;
+  font-weight: bold;
+}
+
+.cosmosys-dsm-restricted {
+  color: #111;
+  font-weight: bold;
+}
+
+.cosmosys-dsm-planning {
+  color: #1565c0;
+  font-weight: bold;
+}
+
+.cosmosys-dsm-mixed {
+  color: #6a1b9a;
+}
+
+.cosmosys-dsm-ghost {
+  opacity: 0.55;
+  outline: 1px dashed currentColor;
+  outline-offset: -3px;
+}
+
+.cosmosys-dsm-backward {
+  background: #fff3cd;
+}
+
+.cosmosys-dsm-group-highlight {
+  background-color: #e8f2fb !important;
+  font-weight: bold;
+}
+
+.cosmosys-dsm-table tbody tr:hover > td:not(.cosmosys-dsm-diagonal):not(.cosmosys-dsm-backward),
+.cosmosys-dsm-column-highlight:not(.cosmosys-dsm-diagonal):not(.cosmosys-dsm-backward) {
+  background-color: #dcebf4 !important;
+  box-shadow: none;
+}
+
+.cosmosys-dsm-dragging {
+  opacity: 0.45;
+}

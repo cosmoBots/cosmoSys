@@ -1,0 +1,14 @@
+<fieldset class="cosmosys-diagram-relation-controls">
+  <legend><%= l(:label_cosmosys_diagram_visible_layers) %></legend>
+  <% [
+    ['blocks', :label_cosmosys_relation_blocks],
+    ['precedes', :label_cosmosys_relation_precedes],
+    ['relates', :label_cosmosys_relation_related],
+    ['document_references', :label_cosmosys_document_references]
+  ].each do |layer, label| %>
+    <label>
+      <%= check_box_tag 'visible_layers[]', layer, relation_options.visible_layers.include?(layer), disabled: !can_edit_layout, data: { cosmosys_diagram_control: 'visible_layer' } %>
+      <%= l(label) %>
+    </label>
+  <% end %>
+</fieldset>

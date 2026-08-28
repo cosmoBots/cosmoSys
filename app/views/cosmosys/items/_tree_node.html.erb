@@ -1,0 +1,61 @@
+<% issue = entry.issue %>
+<% children = entry.children %>
+<% boundary = entry.boundary == true %>
+<% can_reorganize = !boundary && reorderable_issue_ids.include?(issue.id) %>
+<% project_ancestors = Array(project_ancestor_map[issue.project_id]).join(',') %>
+<% profile = issue.cosmosys_item_kind %>
+<% parent_profile = issue.parent&.cosmosys_item_kind %>
+<% node_depth = [local_assigns.fetch(:depth, 0).to_i, 5].min %>
+<li class="cosmosys-tree-item cosmosys-dnd-item <%= children.any? ? 'cosmosys-tree-item-branch' : 'cosmosys-tree-item-leaf' %> <%= boundary ? 'cosmosys-tree-item-boundary' : 'cosmosys-tree-item-local' %>"
+    data-issue-id="<%= issue.id %>"
+    data-issue-sidebar-url="<%= cosmosys_tree_details_path(project_id: project, issue_id: issue) %>"
+    data-issue-ref="<%= issue.tracker %>##{issue.cosmosys_display_ref}"
+    data-issue-subject="<%= issue.subject %>"
+    data-project-id="<%= issue.project_id %>"
+    data-project-ancestors="<%= project_ancestors %>"
+    data-item-profile="<%= profile.key %>"
+    data-allowed-parent-profiles="<%= Array(profile.allowed_parent_profiles).join(',') %>"
+    data-boundary="<%= boundary %>"
+    data-reorderable="<%= can_reorganize %>"
+    draggable="<%= can_reorganize %>">
+  <% unless boundary %>
+    <div class="cosmosys-dnd-sibling-dropzone cosmosys-dnd-dropzone"
+         data-move-mode="before"
+         data-target-issue-id="<%= issue.id %>"
+         data-drop-parent-id="<%= issue.parent_id %>"
+         data-drop-parent-project-id="<%= issue.parent&.project_id || issue.project_id %>"
+         data-drop-parent-profile="<%= parent_profile&.key %>"
+         data-drop-parent-can-have-children="<%= parent_profile.nil? || parent_profile.can_have_children %>"></div>
+  <% end %>
+  <div class="cosmosys-tree-node cosmosys-dnd-node cosmosys-dnd-dropzone cosmosys-tree-depth-<%= node_depth %> <%= boundary ? 'cosmosys-tree-node-boundary' : 'cosmosys-tree-node-local' %>"
+       data-move-mode="child"
+       data-drop-parent-id="<%= issue.id %>"
+       data-drop-parent-project-id="<%= issue.project_id %>"
+       data-drop-parent-profile="<%= profile.key %>"
+       data-drop-parent-can-have-children="<%= profile.can_have_children %>">
+    <% if children.any? %>
+      <button type="button" class="cosmosys-tree-toggle" data-tree-toggle="node" aria-expanded="true">-</button>
+    <% else %>
+      <span class="cosmosys-tree-toggle-placeholder"></span>
+    <% end %>
+    <span class="cosmosys-tree-drag-handle"><%= can_reorganize ? '::' : '' %></span>
+    <%= cosmosys_tree_issue_link(issue, chapter_map: chapter_map, boundary: boundary) %>
+  </div>
+
+  <% if children.any? %>
+    <ul class="cosmosys-tree-children">
+      <% children.each_with_index do |child_entry, index| %>
+        <%= render partial: 'tree_node', locals: { entry: child_entry, chapter_map: chapter_map, project: project, project_ancestor_map: project_ancestor_map, reorderable_issue_ids: reorderable_issue_ids, sibling_last: index == children.length - 1, depth: local_assigns.fetch(:depth, 0).to_i + 1 } %>
+      <% end %>
+    </ul>
+  <% end %>
+  <% if local_assigns[:sibling_last] && !boundary %>
+    <div class="cosmosys-dnd-sibling-dropzone cosmosys-dnd-dropzone"
+         data-move-mode="after"
+         data-target-issue-id="<%= issue.id %>"
+         data-drop-parent-id="<%= issue.parent_id %>"
+         data-drop-parent-project-id="<%= issue.parent&.project_id || issue.project_id %>"
+         data-drop-parent-profile="<%= parent_profile&.key %>"
+         data-drop-parent-can-have-children="<%= parent_profile.nil? || parent_profile.can_have_children %>"></div>
+  <% end %>
+</li>

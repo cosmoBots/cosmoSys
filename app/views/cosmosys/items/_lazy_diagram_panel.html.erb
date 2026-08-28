@@ -1,0 +1,7 @@
+<div class="cosmosys-diagram-panel cosmosys-lazy-diagram" data-cosmosys-page-diagram
+     data-url="<%= cosmosys_diagram_panel_path(project_id: project.identifier, kind: kind, issue_id: issue&.id) %>"
+     data-error-text="<%= l(:text_cosmosys_diagram_unavailable) %>"
+     data-progress-text="<%= l(:text_cosmosys_diagrams_loading, loaded: '__LOADED__', total: '__TOTAL__') %>">
+  <h4><%= title %></h4>
+  <p class="cosmosys-diagram-loading"><span class="cosmosys-spinner" aria-hidden="true"></span> <%= l(:text_cosmosys_diagram_loading) %></p>
+</div>

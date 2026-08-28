@@ -1,0 +1,22 @@
+<% export_params = { visible_layers_present: 1, visible_layers: relation_options.visible_layers } %>
+<% panel_path = cosmosys_diagram_panel_path(project_id: project.identifier, kind: 'dependency', issue_id: issue&.id) %>
+<div class="cosmosys-diagram-panel" data-cosmosys-diagram-panel="dependency" data-panel-url="<%= panel_path %>">
+  <h4>
+    <%= issue.present? ? l(:label_cosmosys_dependency_diagram) : l(:label_cosmosys_project_dependency_diagram) %>
+    <%= render partial: 'cosmosys/items/diagram_export_links', locals: { project: project, issue: issue, kind: 'dependency', extra_params: export_params } %>
+  </h4>
+  <form class="cosmosys-diagram-controls" data-cosmosys-diagram-options>
+    <%= render partial: 'cosmosys/items/diagram_relation_controls', locals: { relation_options: relation_options, can_edit_layout: can_edit_layout } %>
+    <% if can_edit_layout %><button type="submit"><%= l(:button_apply) %></button><% end %>
+  </form>
+  <% if dependency_diagram.svg_body.present? %>
+    <p class="cosmosys-diagram-metadata">
+      <strong><%= issue.present? ? l(:label_cosmosys_dependency_diagram_signature) : l(:label_cosmosys_project_dependency_signature) %>:</strong>
+      <code><%= dependency_diagram.signature.to_s.first(12) %></code>
+      <% if dependency_diagram.generated_at.present? %><span class="cosmosys-diagram-generated-at"><%= l(:label_cosmosys_diagram_generated_at) %>: <%= format_time(dependency_diagram.generated_at) %></span><% end %>
+    </p>
+    <div class="cosmosys-diagram-frame cosmosys-diagram-frame-dependency"><%= dependency_diagram.svg_body.html_safe %></div>
+  <% else %>
+    <p class="nodata"><%= issue.present? ? l(:text_cosmosys_dependency_diagram_empty) : l(:text_cosmosys_project_dependency_diagram_empty) %></p>
+  <% end %>
+</div>

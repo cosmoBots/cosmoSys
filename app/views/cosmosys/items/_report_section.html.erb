@@ -1,0 +1,66 @@
+<article id="<%= section.anchor %>" class="cosmosys-report-section cosmosys-report-depth-<%= section.depth %>" data-cosmosys-report-item data-cosmosys-report-text="<%= [section.chapter, section.issue.csid, section.issue.subject, section.issue.description].compact.join(' ').downcase %>">
+  <% heading_tag = "h#{section.heading_level}" %>
+  <<%= heading_tag %> class="cosmosys-report-heading">
+    <% if section.issue.cosmosys_preferred_reference_mode == 'chapter' && section.chapter.present? %>
+      <%= link_to issue_path(section.issue), class: 'cosmosys-report-heading-link cosmosys-report-heading-link-chapter' do %>
+        <span class="cosmosys-report-heading-chapter"><%= "#{section.chapter}:" %></span>
+      <% end %>
+    <% end %>
+    <% if section.issue.cosmosys_preferred_reference_mode != 'chapter' %>
+      <%= link_to issue_path(section.issue), class: 'cosmosys-report-heading-link cosmosys-report-heading-link-ref' do %>
+        <span class="cosmosys-report-heading-ref"><%= section.issue.csid %></span>
+      <% end %>
+    <% end %>
+    <%= link_to issue_path(section.issue), class: 'cosmosys-report-heading-link cosmosys-report-heading-link-title' do %>
+      <span class="cosmosys-report-heading-title"><%= section.issue.subject %></span>
+    <% end %>
+  </<%= heading_tag %>>
+
+  <% if @report.options['info_url_link'] && section.issue.cosmosys_item_kind.key == 'info' %>
+    <div class="cosmosys-report-info-url-link">
+      <%= link_to section.issue.csid, issue_path(section.issue), data: { cosmosys_export_link: true } %>
+    </div>
+  <% end %>
+
+  <% if @report.options['description'] && section.issue.description.present? %>
+    <div class="wiki cosmosys-report-description">
+      <%= textilizable(
+            Cosmosys::MainReportTextNormalizer.normalize(section.issue.description),
+            object: section.issue,
+            attachments: section.issue.attachments
+          ) %>
+    </div>
+  <% end %>
+
+  <% if section.report_placeholder %>
+    <%= render partial: 'cosmosys/items/report_document_catalog', locals: { section: section } %>
+  <% elsif section.body_fields.present? %>
+    <section class="cosmosys-report-body-fields">
+      <% section.body_fields.each do |field| %>
+        <section class="cosmosys-report-body-field cosmosys-report-body-field-<%= field.key %>">
+          <h6><%= field.label %></h6>
+          <div class="cosmosys-report-body-field-value"><%= field.value %></div>
+        </section>
+      <% end %>
+    </section>
+  <% end %>
+
+  <% if section.document_references.present? %>
+    <%= render partial: 'cosmosys/items/report_document_references', locals: { section: section } %>
+  <% end %>
+
+  <% section.issue.cosmosys_report_diagram_kinds(@report.options).each do |diagram_kind| %>
+    <div class="cosmosys-report-diagram-placeholder" data-cosmosys-report-diagram
+         data-url="<%= cosmosys_report_diagram_path(project_id: @project.identifier, kind: diagram_kind, issue_id: section.issue.id) %>">
+      <p class="icon icon-loading"><%= l(:text_cosmosys_report_diagram_loading) %></p>
+    </div>
+  <% end %>
+
+  <% if section.issue.cosmosys_report_metadata? %>
+    <%= render partial: 'cosmosys/items/report_metadata', locals: { section: section } %>
+  <% end %>
+
+  <% section.children.each do |child| %>
+    <%= render partial: 'cosmosys/items/report_section', locals: { section: child } %>
+  <% end %>
+</article>

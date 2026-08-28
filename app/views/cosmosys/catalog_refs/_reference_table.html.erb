@@ -1,0 +1,16 @@
+<table class="list cosmosys-catalog-refs-table">
+  <thead><tr>
+    <th><%= l(:label_issue) %></th>
+    <th><%= l(:field_cosmosys_reference_sense) %></th>
+    <th><%= l(:field_cosmosys_reference_location) %></th>
+  </tr></thead>
+  <tbody>
+    <% refs.each do |catalog_ref| %>
+      <tr id="catalog-ref-<%= catalog_ref.id %>">
+        <td><%= link_to "##{catalog_ref.issue.csid}", issue_path(catalog_ref.issue), title: catalog_ref.issue.subject %></td>
+        <td><%= catalog_ref.sense.presence || '-' %></td>
+        <td><%= catalog_ref.location.presence || '-' %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

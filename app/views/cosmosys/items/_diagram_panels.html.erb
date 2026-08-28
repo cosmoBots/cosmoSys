@@ -1,0 +1,5 @@
+<div class="cosmosys-diagram-panels">
+  <%= render partial: 'cosmosys/items/lazy_diagram_panel', locals: { project: issue.project, issue: issue, kind: 'hierarchy', title: l(:label_cosmosys_hierarchy_diagram) } %>
+  <%= render partial: 'cosmosys/items/lazy_diagram_panel', locals: { project: issue.project, issue: issue, kind: 'dependency', title: l(:label_cosmosys_dependency_diagram) } %>
+  <%= render partial: 'cosmosys/items/lazy_diagram_panel', locals: { project: issue.project, issue: issue, kind: 'combined', title: l(:label_cosmosys_combined_diagram) } %>
+</div>

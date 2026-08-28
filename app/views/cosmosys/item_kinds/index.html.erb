@@ -1,0 +1,105 @@
+<% html_title(l(:label_cosmosys_item_kinds)) %>
+
+<div class="contextual">
+  <%= link_to l(:label_tracker_plural), trackers_path, class: 'icon icon-list' %>
+</div>
+
+<h2><%= l(:label_cosmosys_item_kinds) %></h2>
+<p class="info"><%= l(:text_cosmosys_item_kinds_help) %></p>
+<p class="info"><%= l(:text_cosmosys_item_profile_scope_help) %></p>
+
+<div class="box">
+  <h3><%= l(:label_cosmosys_item_profile_effects) %></h3>
+  <dl>
+    <% Cosmosys::ItemKindRegistry.effects.each do |effect| %>
+      <dt><strong><%= l(effect.fetch(:label)) %></strong> <code><%= effect.fetch(:key) %></code></dt>
+      <dd><%= l(effect.fetch(:scope)) %></dd>
+    <% end %>
+  </dl>
+</div>
+
+<div class="box">
+  <h3><%= l(:label_cosmosys_item_profile_options) %></h3>
+  <table class="list">
+    <thead>
+      <tr>
+        <th><%= l(:label_cosmosys_item_kind) %></th>
+        <th><%= l(:label_cosmosys_item_profile_provider) %></th>
+        <th><%= l(:field_description) %></th>
+        <th><%= l(:label_cosmosys_item_profile_shape) %></th>
+        <th><%= l(:label_cosmosys_item_profile_fill_color) %></th>
+        <th><%= l(:label_cosmosys_item_profile_border_color) %></th>
+        <th><%= l(:label_cosmosys_item_profile_font) %></th>
+        <th><%= l(:label_cosmosys_item_profile_reference) %></th>
+        <th><%= l(:label_cosmosys_item_profile_direction) %></th>
+        <th><%= l(:label_cosmosys_item_profile_diagram_visible) %></th>
+        <th><%= l(:label_cosmosys_item_profile_report_diagrams) %></th>
+        <th><%= l(:label_cosmosys_item_profile_report_metadata) %></th>
+        <th><%= l(:label_cosmosys_item_profile_report_placeholders) %></th>
+        <th><%= l(:label_cosmosys_item_profile_structure) %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @profiles.each do |profile| %>
+        <% description = profile.description.is_a?(Symbol) ? l(profile.description) : profile.description.to_s %>
+        <% shape = profile.diagram_shape.presence || l(:text_cosmosys_item_profile_shape_default) %>
+        <% fill_color = profile.diagram_fill_color.presence || l(:text_cosmosys_item_profile_color_dynamic) %>
+        <% direction = profile.dependency_rankdir.presence || 'LR' %>
+        <tr>
+          <td><strong><%= profile.label.is_a?(Symbol) ? l(profile.label) : profile.label %></strong><br><code><%= profile.key %></code></td>
+          <td><code><%= profile.provider %></code><%= " · #{l(:label_cosmosys_item_profile_protected)}" if profile.key == Cosmosys::ItemKindRegistry::DEFAULT_KEY %></td>
+          <td><%= description.presence || l(:label_none) %></td>
+          <td><code><%= shape %></code></td>
+          <td><code><%= fill_color %></code></td>
+          <td><code><%= profile.diagram_border_color.presence || l(:text_cosmosys_item_profile_color_dynamic) %></code></td>
+          <td><code><%= [profile.diagram_font_name, profile.diagram_font_color].compact.presence&.join(' / ') || l(:text_cosmosys_item_profile_font_default) %></code></td>
+          <td><%= l(profile.reference_mode == 'chapter' ? :text_cosmosys_item_profile_reference_chapter : :text_cosmosys_item_profile_reference_csid) %></td>
+          <td><%= l(direction == 'TB' ? :text_cosmosys_item_profile_direction_tb : :text_cosmosys_item_profile_direction_lr) %> (<code><%= direction %></code>)</td>
+          <td><%= l(profile.diagram_visible == false ? :general_text_No : :general_text_Yes) %></td>
+          <td><%= l(profile.report_diagrams == false ? :general_text_No : :general_text_Yes) %></td>
+          <td><%= l(profile.report_metadata == false ? :general_text_No : :general_text_Yes) %></td>
+          <td><%= profile.report_placeholder_kinds.to_a.map { |kind| l("label_cosmosys_placeholder_#{kind}") }.presence&.join(', ') || l(:label_none) %></td>
+          <td><%= l(profile.can_have_children ? :text_cosmosys_children_allowed : :text_cosmosys_children_forbidden) %>; <%= l(profile.can_split ? :text_cosmosys_split_enabled : :text_cosmosys_split_disabled) %>; DSM: <code><%= profile.dsm_mode %></code></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<%= form_tag(cosmosys_item_kinds_path, method: :put) do %>
+  <div class="box">
+    <table class="list">
+      <thead>
+        <tr>
+          <th><%= l(:label_tracker) %></th>
+          <th><%= l(:label_cosmosys_item_kind) %></th>
+          <th><%= l(:label_cosmosys_item_kind_registration_status) %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @trackers.each do |tracker| %>
+          <% registered = tracker.cosmosys_item_kind_registered? %>
+          <% profile_options = @profiles.map { |profile| [profile.label.is_a?(Symbol) ? l(profile.label) : profile.label, profile.key] } %>
+          <% profile_options << [l(:text_cosmosys_item_kind_missing, key: tracker.cosmosys_item_kind), tracker.cosmosys_item_kind] unless registered %>
+          <tr>
+            <td><%= link_to tracker.name, edit_tracker_path(tracker) %></td>
+            <td>
+              <%= select_tag(
+                    "tracker_item_kinds[#{tracker.id}]",
+                    options_for_select(profile_options, tracker.cosmosys_item_kind)
+                  ) %>
+            </td>
+            <td>
+              <% if registered %>
+                <%= l(:label_cosmosys_item_kind_available) %>
+              <% else %>
+                <span class="icon icon-warning"><%= l(:text_cosmosys_item_kind_missing, key: tracker.cosmosys_item_kind) %></span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  <%= submit_tag l(:button_save) %>
+<% end %>

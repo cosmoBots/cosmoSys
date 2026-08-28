@@ -1,0 +1,23 @@
+<section class="cosmosys-report-document-references">
+  <h6><%= l(:label_cosmosys_document_references) %></h6>
+  <table class="list cosmosys-report-document-references-table">
+    <thead>
+      <tr>
+        <th><%= l(:label_cosmosys_catalog_label) %></th>
+        <th><%= l(:field_title) %></th>
+        <th><%= l(:field_cosmosys_reference_sense) %></th>
+        <th><%= l(:field_cosmosys_reference_location) %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% section.document_references.each do |catalog_ref| %>
+        <tr>
+          <td><%= link_to catalog_ref.catalog_label, document_path(catalog_ref.document) %></td>
+          <td><%= catalog_ref.document.title %></td>
+          <td><%= catalog_ref.sense.presence || '-' %></td>
+          <td><%= catalog_ref.location.presence || '-' %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>

@@ -1,0 +1,28 @@
+<div id="cosmosys-branding-assets" hidden>
+  <%= image_tag 'logo.png', plugin: 'cosmosys', class: 'cosmosys-header-logo', alt: '' %>
+  <%= image_tag 'cBotsLogo.png', plugin: 'cosmosys', class: 'cosmosys-sidebar-logo', alt: 'cosmoBots' %>
+</div>
+
+<%= javascript_tag do %>
+  (() => {
+    const assets = document.getElementById('cosmosys-branding-assets');
+    if (!assets) return;
+
+    const heading = document.querySelector('#header > h1');
+    const headerLogo = assets.querySelector('.cosmosys-header-logo');
+    if (heading && headerLogo && !heading.querySelector('.cosmosys-header-logo')) {
+      heading.prepend(headerLogo);
+    }
+
+    const sidebar = document.querySelector('#main.collapsiblesidebar #sidebar-wrapper');
+    const sidebarLogo = assets.querySelector('.cosmosys-sidebar-logo');
+    if (sidebar && sidebarLogo && !sidebar.querySelector('.cosmosys-sidebar-brand')) {
+      const brand = document.createElement('div');
+      brand.className = 'cosmosys-sidebar-brand';
+      brand.append(sidebarLogo);
+      sidebar.append(brand);
+    }
+
+    assets.remove();
+  })();
+<% end %>

@@ -1,0 +1,8 @@
+<% project = local_assigns[:project] || @project %>
+<% if project&.visible?(User.current) %>
+  <div class="cosmosys-project-diagrams box" data-cosmosys-project-diagrams>
+    <%= render partial: 'hooks/cosmosys/project_hierarchy_diagram', locals: { project: project } %>
+    <%= render partial: 'hooks/cosmosys/project_dependency_diagram', locals: { project: project } %>
+    <%= render partial: 'hooks/cosmosys/project_combined_diagram', locals: { project: project } %>
+  </div>
+<% end %>

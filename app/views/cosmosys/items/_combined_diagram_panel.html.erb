@@ -1,0 +1,70 @@
+<% render_variant = diagram_options.render_variant %>
+<% layout_mode = diagram_options.layout_mode %>
+<% export_params = { render_variant: render_variant, combined_layout_mode: layout_mode, visible_layers_present: 1, visible_layers: relation_options.visible_layers } %>
+<% panel_path = cosmosys_diagram_panel_path(project_id: project.identifier, kind: 'combined', issue_id: issue&.id) %>
+<% can_edit_layout = local_assigns.fetch(:can_edit_layout) { issue.present? ? issue.editable?(User.current) : User.current.allowed_to?(:edit_project, project) } %>
+<div
+  class="cosmosys-diagram-panel"
+  data-cosmosys-diagram-panel="combined"
+  data-panel-url="<%= panel_path %>"
+>
+  <h4>
+    <%= issue.present? ? l(:label_cosmosys_combined_diagram) : l(:label_cosmosys_project_combined_diagram) %>
+    <%= render partial: 'cosmosys/items/diagram_export_links', locals: { project: project, issue: issue, kind: 'combined', extra_params: export_params } %>
+  </h4>
+  <form class="cosmosys-diagram-controls" data-cosmosys-diagram-options>
+    <label>
+      <span><%= l(:label_cosmosys_combined_render_variant) %></span>
+      <%= select_tag(
+        'render_variant',
+        options_for_select(
+          [
+            [l(:label_cosmosys_combined_render_variant_v1), 'v1'],
+            [l(:label_cosmosys_combined_render_variant_v2), 'v2']
+          ],
+          render_variant
+        ),
+        disabled: !can_edit_layout,
+        data: { cosmosys_combined_control: 'render_variant' }
+      ) %>
+    </label>
+    <label>
+      <span><%= l(:label_cosmosys_combined_layout_mode) %></span>
+      <%= select_tag(
+        'combined_layout_mode',
+        options_for_select(
+          [
+            [l(:label_cosmosys_combined_layout_mode_dot), 'dot'],
+            [l(:label_cosmosys_combined_layout_mode_fdp), 'fdp']
+          ],
+          layout_mode
+        ),
+        disabled: !can_edit_layout,
+        data: { cosmosys_combined_control: 'combined_layout_mode' }
+      ) %>
+    </label>
+    <%= render partial: 'cosmosys/items/diagram_relation_controls', locals: { relation_options: relation_options, can_edit_layout: can_edit_layout } %>
+    <% if can_edit_layout %><button type="submit"><%= l(:button_apply) %></button><% end %>
+  </form>
+  <% if combined_diagram.svg_body.present? %>
+    <p class="cosmosys-diagram-metadata">
+      <strong><%= issue.present? ? l(:label_cosmosys_combined_diagram_signature) : l(:label_cosmosys_project_combined_signature) %>:</strong>
+      <code><%= combined_diagram.signature.to_s.first(12) %></code>
+      <span class="cosmosys-diagram-selection">
+        <%= render_variant.upcase %> / <%= layout_mode %>
+      </span>
+      <% if combined_diagram.generated_at.present? %>
+        <span class="cosmosys-diagram-generated-at">
+          <%= l(:label_cosmosys_diagram_generated_at) %>: <%= format_time(combined_diagram.generated_at) %>
+        </span>
+      <% end %>
+    </p>
+    <div class="cosmosys-diagram-frame cosmosys-diagram-frame-combined">
+      <%= combined_diagram.svg_body.html_safe %>
+    </div>
+  <% else %>
+    <p class="nodata">
+      <%= issue.present? ? l(:text_cosmosys_combined_diagram_empty) : l(:text_cosmosys_project_combined_diagram_empty) %>
+    </p>
+  <% end %>
+</div>

@@ -1,0 +1,15 @@
+<% issue = local_assigns[:issue] || @issue %>
+<% if issue&.cosmosys_report_diagrams? %>
+  <p class="cosmosys-preferred-report-diagram-field">
+    <%= label_tag 'issue_cosmosys_preferred_report_diagram', l(:field_cosmosys_preferred_report_diagram) %>
+    <%= select_tag 'issue[cosmosys_preferred_report_diagram]',
+                   options_for_select(
+                     Cosmosys::IssuePatch::PREFERRED_REPORT_DIAGRAMS.map do |kind|
+                       [l("label_cosmosys_preferred_report_diagram_#{kind}"), kind]
+                     end,
+                     issue.cosmosys_preferred_report_diagram
+                   ),
+                   id: 'issue_cosmosys_preferred_report_diagram' %>
+    <em class="info"><%= l(:text_cosmosys_preferred_report_diagram_help) %></em>
+  </p>
+<% end %>

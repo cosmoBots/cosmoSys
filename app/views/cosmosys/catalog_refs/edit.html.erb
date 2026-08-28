@@ -1,0 +1,28 @@
+<div class="contextual">
+  <%= link_to l(:label_issue), issue_path(@catalog_ref.issue), class: 'icon icon-issue' %>
+  <%= link_to l(:label_document), document_path(@catalog_ref.document), class: 'icon icon-document' %>
+</div>
+
+<h2><%= l(:label_cosmosys_catalog_ref_edit) %>: <%= @catalog_ref.catalog_label %></h2>
+
+<div class="box cosmosys-catalog-ref-context">
+  <p>
+    <strong><%= l(:label_issue) %>:</strong>
+    <%= link_to "##{@catalog_ref.issue.csid} — #{@catalog_ref.issue.subject}", issue_path(@catalog_ref.issue) %>
+  </p>
+  <p>
+    <strong><%= l(:label_document) %>:</strong>
+    <%= link_to @catalog_ref.document.title, document_path(@catalog_ref.document) %>
+    <% if @catalog_ref.document.external_code.present? %>
+      (<%= l(:field_cosmosys_external_code) %>: <%= @catalog_ref.document.external_code %>)
+    <% end %>
+  </p>
+  <p><strong><%= l(:label_cosmosys_catalog_label) %>:</strong> <%= @catalog_ref.catalog_label %></p>
+  <p><strong><%= l(:label_cosmosys_markdown_reference) %>:</strong> <code><%= @catalog_ref.markdown_reference %></code></p>
+</div>
+
+<%= labelled_form_for @catalog_ref, as: :catalog_ref, url: cosmosys_catalog_ref_path(@catalog_ref), method: :patch do |form| %>
+  <%= render partial: 'form', locals: { form: form, catalog_ref: @catalog_ref } %>
+  <%= submit_tag l(:button_save) %>
+  <%= link_to l(:button_cancel), issue_path(@catalog_ref.issue, anchor: 'cosmosys-document-references') %>
+<% end %>

@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="csys" script:language="StarBasic" script:moduleType="normal">REM  *****  BASIC  *****
+
+
+rem ----------------------------------------------------------------------
+rem define variables
+dim dispatcher as object
+rem ----------------------------------------------------------------------
+rem get access to the document
+
+Sub UpdateAll(oDoc)
+    for Each item in oDoc.DocumentIndexes()
+        item.refresh()
+    Next
+End Sub
+
+Sub FitGraphicsToPageContent(oDoc)
+    Dim oPageStyles as Object
+    Dim oPageStyle as Object
+    Dim oGraphics as Object
+    Dim oGraphic as Object
+    Dim aSize as New com.sun.star.awt.Size
+    Dim nMaxWidth as Long
+    Dim nMaxHeight as Long
+    Dim nOriginalWidth as Long
+    Dim nOriginalHeight as Long
+    Dim sStyleName as String
+    Dim oCursor as Object
+
+    oPageStyles = oDoc.StyleFamilies.getByName(&quot;PageStyles&quot;)
+    oPageStyle = oPageStyles.getByName(&quot;Standard&quot;)
+    nMaxWidth = oPageStyle.Width - oPageStyle.LeftMargin - oPageStyle.RightMargin
+    nMaxHeight = oPageStyle.Height - oPageStyle.TopMargin - oPageStyle.BottomMargin
+    oGraphics = oDoc.GraphicObjects.createEnumeration()
+
+    While oGraphics.hasMoreElements()
+        oGraphic = oGraphics.nextElement()
+        aSize = oGraphic.Size
+        oCursor = oGraphic.Anchor.Text.createTextCursorByRange(oGraphic.Anchor)
+        sStyleName = oCursor.PageStyleName
+        If sStyleName = &quot;&quot; Then sStyleName = &quot;Standard&quot;
+        If oPageStyles.hasByName(sStyleName) Then
+            oPageStyle = oPageStyles.getByName(sStyleName)
+            nMaxWidth = oPageStyle.Width - oPageStyle.LeftMargin - oPageStyle.RightMargin
+            nMaxHeight = oPageStyle.Height - oPageStyle.TopMargin - oPageStyle.BottomMargin
+        End If
+        If aSize.Width &gt; nMaxWidth And aSize.Width &gt; 0 Then
+            nOriginalWidth = aSize.Width
+            aSize.Width = nMaxWidth
+            aSize.Height = CLng(aSize.Height * nMaxWidth / nOriginalWidth)
+        End If
+        If aSize.Height &gt; nMaxHeight And aSize.Height &gt; 0 Then
+            nOriginalHeight = aSize.Height
+            aSize.Height = nMaxHeight
+            aSize.Width = CLng(aSize.Width * nMaxHeight / nOriginalHeight)
+        End If
+        oGraphic.Size = aSize
+    Wend
+End Sub
+
+Sub EnsureLandscapePageStyle(oDoc)
+    Dim oPageStyles as Object
+    Dim oPortrait as Object
+    Dim oLandscape as Object
+    Dim oProperties as Variant
+    Dim oProperty as Variant
+    Dim nWidth as Long
+
+    oPageStyles = oDoc.StyleFamilies.getByName(&quot;PageStyles&quot;)
+    If oPageStyles.hasByName(&quot;cosmoSys Landscape&quot;) Then Exit Sub
+
+    oPortrait = oPageStyles.getByName(&quot;Standard&quot;)
+    oLandscape = oDoc.createInstance(&quot;com.sun.star.style.PageStyle&quot;)
+    oPageStyles.insertByName(&quot;cosmoSys Landscape&quot;, oLandscape)
+    oProperties = oPortrait.PropertySetInfo.Properties
+    On Local Error Resume Next
+    For Each oProperty In oProperties
+        oLandscape.setPropertyValue(oProperty.Name, oPortrait.getPropertyValue(oProperty.Name))
+    Next oProperty
+    On Local Error GoTo 0
+    nWidth = oPortrait.Width
+    oLandscape.Width = oPortrait.Height
+    oLandscape.Height = nWidth
+    oLandscape.IsLandscape = True
+End Sub
+
+Sub ApplyPageMarker(oDoc, sMarker as String, sPageStyle as String)
+    Dim oSearch as Object
+    Dim oResults as Object
+    Dim oResult as Object
+    Dim oCursor as Object
+    Dim nIndex as Long
+
+    oSearch = oDoc.createSearchDescriptor()
+    oSearch.SearchString = sMarker
+    oSearch.SearchRegularExpression = False
+    oResults = oDoc.findAll(oSearch)
+    For nIndex = oResults.Count - 1 To 0 Step -1
+        oResult = oResults.getByIndex(nIndex)
+        oCursor = oResult.Text.createTextCursorByRange(oResult)
+        oCursor.gotoStartOfParagraph(False)
+        oCursor.PageDescName = sPageStyle
+        oResult.String = &quot;&quot;
+    Next nIndex
+End Sub
+
+Function ConsumeTemplatePage(oDoc, sMarker as String) As String
+    Dim oSearch as Object
+    Dim oResult as Object
+    Dim oCursor as Object
+
+    ConsumeTemplatePage = &quot;&quot;
+    oSearch = oDoc.createSearchDescriptor()
+    oSearch.SearchString = sMarker
+    oSearch.SearchRegularExpression = False
+    oSearch.SearchCaseSensitive = True
+    oResult = oDoc.findFirst(oSearch)
+    If IsNull(oResult) Then Exit Function
+
+    oCursor = oResult.Text.createTextCursorByRange(oResult)
+    ConsumeTemplatePage = oCursor.PageStyleName
+
+    rem Remove the complete donor-page tail, including the paragraph break
+    rem which carries its explicit page-style change. The marker is required
+    rem to live on the final page of the template.
+    oCursor.gotoStartOfParagraph(False)
+    If oCursor.gotoPreviousParagraph(False) Then
+        oCursor.gotoEndOfParagraph(False)
+    End If
+    oCursor.gotoEnd(True)
+    oCursor.String = &quot;&quot;
+End Function
+
+Sub ApplyAlternateOrientationGraphics(oDoc)
+    Dim oPageStyles as Object
+    Dim oStandard as Object
+    Dim sAlternateStyle as String
+    Dim sTemplateMarker as String
+    Dim sStartMarker as String
+    Dim sEndMarker as String
+
+    oPageStyles = oDoc.StyleFamilies.getByName(&quot;PageStyles&quot;)
+    oStandard = oPageStyles.getByName(&quot;Standard&quot;)
+    If oStandard.IsLandscape Then
+        sTemplateMarker = &quot;COSMOSYS PORTRAIT TEMPLATE&quot;
+        sStartMarker = &quot;COSMOSYS_REPORT_PORTRAIT_START&quot;
+        sEndMarker = &quot;COSMOSYS_REPORT_PORTRAIT_END&quot;
+    Else
+        sTemplateMarker = &quot;COSMOSYS LANDSCAPE TEMPLATE&quot;
+        sStartMarker = &quot;COSMOSYS_REPORT_LANDSCAPE_START&quot;
+        sEndMarker = &quot;COSMOSYS_REPORT_LANDSCAPE_END&quot;
+    End If
+
+    sAlternateStyle = ConsumeTemplatePage(oDoc, sTemplateMarker)
+    If sAlternateStyle = &quot;&quot; Then Exit Sub
+    call ApplyPageMarker(oDoc, sStartMarker, sAlternateStyle)
+    call ApplyPageMarker(oDoc, sEndMarker, &quot;Standard&quot;)
+End Sub
+
+Sub Main(oDoc, HTMLPath as String, Title as String, sWP as String, sWPTitle as String)
+
+dim oSearch as object
+dim oResult as object
+dim oCursor as object
+dim dispatcher as object
+
+oText = oDoc.getText
+
+oDoc.DocumentProperties.Title = Title
+oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("sWP",sWP)
+oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("sWPTitle",sWPTitle)
+
+oCursor = oText.createTextCursor()
+rem oCursor=oDoc.CurrentController.getViewCursor()
+oSearch = oDoc.createSearchDescriptor()
+with oSearch
+   .SearchString = &quot;%REPLACEME%&quot;
+   .SearchRegularExpression = false
+   .SearchCaseSensitive = true
+end with
+
+oResult = oDoc.findFirst(oSearch)
+
+
+dim args3(1) as new com.sun.star.beans.PropertyValue
+args3(0).Name = &quot;Name&quot;
+args3(0).Value = &quot;file://&quot; &amp; HTMLPath
+args3(1).Name = &quot;Filter&quot;
+args3(1).Value = &quot;HTML (StarWriter)&quot;
+oResult.insertDocumentFromURL(&quot;file://&quot; &amp; HTMLPath, args3)
+
+call ApplyAlternateOrientationGraphics(oDoc)
+call FitGraphicsToPageContent(oDoc)
+
+rem dispatcher.executeDispatch(document, &quot;.uno:UpdateAll&quot;, &quot;&quot;, 0, Array())
+
+rem oCursor.InsertMultiIndex()
+
+rem call UpdateAll(oDoc)
+
+dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+dispatcher.executeDispatch(oDoc.CurrentController.Frame, &quot;.uno:UpdateAllIndexes&quot;, &quot;&quot;, 0, Array())
+
+end sub
+
+function OpenSilent(FilePath as String) as Object
+  Dim FileProperties(1) As New com.sun.star.beans.PropertyValue
+  FileProperties(0).Name = &quot;Hidden&quot;
+  FileProperties(0).Value = True
+  OpenSilent = StarDesktop.loadComponentFromURL(&quot;file://&quot; &amp; FilePath, &quot;_blank&quot;, 0, FileProperties())
+end function
+
+sub Headless(FilePath as String, HTMLPath as String, Title as String, sWP as String, sWPTitle as String)
+  Document = OpenSilent(FilePath)
+  call Main(Document,HTMLPath, Title, sWP, sWPTitle)
+
+  call Document.store()
+  call Document.close(True)
+end sub
+
+
+sub HeadlessWithArgs(FilePath as String, Arg1 as Variant, Arg2 as Variant)
+  Document = OpenSilent(FilePath)
+  call MyMacroWithArguments(Arg1, Arg2)
+  call Document.close(True)
+end sub
+
+
+
+</script:module>

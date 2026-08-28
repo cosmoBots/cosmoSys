@@ -1,0 +1,17 @@
+<%= render partial: 'cosmosys/items/nav', locals: { current: :ods_transfers } %>
+
+<h2><%= l(:label_cosmosys_ods_import) %></h2>
+
+<div class="box">
+  <p><%= l(:text_cosmosys_ods_import_preflight) %></p>
+  <%= form_tag project_cosmosys_ods_transfer_upload_path(@project), multipart: true, data: { cosmosys_ods_import_form: true } do %>
+    <p><%= file_field_tag :ods_file, accept: '.ods,application/vnd.oasis.opendocument.spreadsheet', required: true %></p>
+    <p>
+      <%= submit_tag l(:button_cosmosys_ods_analyse), class: 'icon icon-magnifier', data: { cosmosys_ods_import_submit: true } %>
+      <span class="cosmosys-report-export-progress" data-cosmosys-ods-import-progress hidden role="status" aria-live="polite">
+        <span class="cosmosys-report-spinner" aria-hidden="true"></span>
+        <%= l(:text_cosmosys_ods_import_in_progress) %>
+      </span>
+    </p>
+  <% end %>
+</div>

@@ -1,0 +1,13 @@
+<% project_record = local_assigns[:project] || @project %>
+<% form_builder = local_assigns[:form] %>
+
+<p>
+  <%= form_builder.text_field :cscode, required: true, readonly: project_record&.persisted? %>
+  <em class="info"><%= l(:text_cosmosys_project_code_help) %></em>
+</p>
+
+<p>
+  <%= form_builder.select :cosmosys_language,
+                          [[l(:label_cosmosys_inherit_official_language, language: Cosmosys::ProjectLanguage.instance_default), '']] + lang_options_for_select(false) %>
+  <em class="info"><%= l(:text_cosmosys_project_language_help, language: project_record&.cosmosys_effective_language || Cosmosys::ProjectLanguage.instance_default) %></em>
+</p>

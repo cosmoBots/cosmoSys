@@ -1,0 +1,13 @@
+<div class="cosmosys-tree-sidebar" data-cosmosys-tree-sidebar>
+  <div class="cosmosys-tree-sidebar-header">
+    <%= render partial: 'tree_toolbar' %>
+    <div class="cosmosys-tree-sidebar-kicker"><%= l(:label_cosmosys_selected_item) %></div>
+    <div class="cosmosys-tree-sidebar-body" data-cosmosys-tree-sidebar-body>
+      <% if issue %>
+        <%= render partial: 'issue_details', locals: { issue: issue } %>
+      <% else %>
+        <p class="nodata"><%= l(:label_no_data) %></p>
+      <% end %>
+    </div>
+  </div>
+</div>

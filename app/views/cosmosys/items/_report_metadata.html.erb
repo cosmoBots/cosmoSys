@@ -1,0 +1,23 @@
+<% include_url_link = @report.options['item_url_link'] && section.issue.cosmosys_item_kind.key != 'info' %>
+<% if section.metadata_fields.present? || include_url_link %>
+  <table id="cosmosys-metadata-<%= section.anchor %>" class="cosmosys-report-metadata" width="92%">
+    <colgroup>
+      <col class="cosmosys-report-metadata-label-column" width="35%">
+      <col class="cosmosys-report-metadata-value-column" width="65%">
+    </colgroup>
+    <tbody>
+      <% section.metadata_fields.each do |field| %>
+        <tr class="cosmosys-report-metadata-row cosmosys-report-metadata-row-<%= field.key %>">
+          <th scope="row"><%= field.label %></th>
+          <td><%= field.value %></td>
+        </tr>
+      <% end %>
+      <% if include_url_link %>
+        <tr class="cosmosys-report-metadata-row cosmosys-report-metadata-row-url-link">
+          <th scope="row"><%= l(:label_cosmosys_report_url_link) %></th>
+          <td><%= link_to section.issue.csid, issue_path(section.issue), data: { cosmosys_export_link: true } %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>

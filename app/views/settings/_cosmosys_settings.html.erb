@@ -1,0 +1,93 @@
+<% global_query = Cosmosys::MainReportFieldRegistry.query(user: User.current) %>
+<% global_column_names = Cosmosys::MainReportSettings.global_column_names(user: User.current) %>
+<% global_field_presentations = Cosmosys::MainReportSettings.global_field_presentations(user: User.current) %>
+<% global_report_options = Cosmosys::MainReportSettings.global_options %>
+<% global_query.column_names = global_column_names %>
+<% global_columns_by_name = global_query.available_inline_columns.index_by { |column| column.name.to_s } %>
+
+<fieldset class="box tabular settings">
+  <p>
+    <label><%= l(:label_cosmosys_instance_passphrase) %></label>
+    <%= password_field_tag 'settings[instance_passphrase]', @settings['instance_passphrase'], autocomplete: 'new-password' %>
+    <em class="info"><%= l(:text_cosmosys_instance_passphrase_help) %></em>
+  </p>
+
+  <p>
+    <label><%= l(:label_cosmosys_official_project_language_default) %></label>
+    <%= select_tag 'settings[official_project_language]',
+                   options_for_select(lang_options_for_select(false), Cosmosys::ProjectLanguage.normalize(@settings['official_project_language'])) %>
+    <em class="info"><%= l(:text_cosmosys_official_project_language_default_help) %></em>
+  </p>
+
+  <p>
+    <label><%= l(:label_cosmosys_precedes_direction) %></label>
+    <%= select_tag 'settings[precedes_direction]',
+      options_for_select(
+        [
+          [l(:label_cosmosys_dependency_direction_forward), 'forward'],
+          [l(:label_cosmosys_dependency_direction_reverse), 'reverse']
+        ],
+        @settings['precedes_direction']
+      ) %>
+  </p>
+
+  <p>
+    <label><%= l(:label_cosmosys_invalidate_diagram_cache_on_boot) %></label>
+    <%= hidden_field_tag 'settings[invalidate_diagram_cache_on_boot]', '0' %>
+    <%= check_box_tag 'settings[invalidate_diagram_cache_on_boot]',
+      '1',
+      ActiveModel::Type::Boolean.new.cast(@settings['invalidate_diagram_cache_on_boot']) %>
+    <em class="info"><%= l(:text_cosmosys_invalidate_diagram_cache_on_boot_help) %></em>
+  </p>
+</fieldset>
+
+<fieldset class="box">
+  <legend><%= l(:label_cosmosys_report_defaults) %></legend>
+  <p class="info"><%= l(:text_cosmosys_report_defaults_help) %></p>
+  <div id="list-definition" class="cosmosys-report-columns-selection">
+    <%= render_query_columns_selection(global_query, name: 'settings[main_report_default_columns]') %>
+  </div>
+
+  <div class="cosmosys-report-options-selection">
+    <h4><%= l(:label_cosmosys_report_contents) %></h4>
+    <% Cosmosys::MainReportSettings::OPTION_NAMES.each do |option_name| %>
+      <%= hidden_field_tag "settings[main_report_options][#{option_name}]", '0', id: nil %>
+      <label class="block">
+        <%= check_box_tag "settings[main_report_options][#{option_name}]", '1', global_report_options[option_name] %>
+        <%= l("label_cosmosys_report_include_#{option_name}") %>
+      </label>
+    <% end %>
+  </div>
+
+  <div class="cosmosys-report-field-presentations">
+    <h4><%= l(:label_cosmosys_report_field_presentations) %></h4>
+    <p class="info"><%= l(:text_cosmosys_report_field_presentations_help) %></p>
+    <table class="list cosmosys-report-field-presentations-table">
+      <thead>
+        <tr>
+          <th><%= l(:label_cosmosys_report_field) %></th>
+          <th><%= l(:label_cosmosys_report_representation) %></th>
+        </tr>
+      </thead>
+      <tbody data-cosmosys-report-field-presentations data-selected-source-id="selected_settings_main_report_default_columns">
+        <% global_columns_by_name.each do |column_name, column| %>
+          <tr data-column-name="<%= column_name %>">
+            <td><%= column.caption.is_a?(Symbol) ? l(column.caption) : column.caption %></td>
+            <td>
+              <%= select_tag(
+                "settings[main_report_field_presentations][#{column_name}]",
+                options_for_select(
+                  [
+                    [l(:label_cosmosys_report_representation_metadata), 'metadata'],
+                    [l(:label_cosmosys_report_representation_section), 'section']
+                  ],
+                  global_field_presentations[column_name] || Cosmosys::MainReportFieldRegistry::DEFAULT_REPRESENTATION_MODE
+                )
+              ) %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</fieldset>

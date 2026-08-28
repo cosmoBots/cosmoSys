@@ -1,0 +1,15 @@
+<h2><%= l(:label_cosmosys_create_related_items) %>: <%= link_to_issue(@issue) %></h2>
+
+<div class="box tabular">
+  <%= form_tag issue_cosmosys_related_items_path(@issue), method: :post do %>
+    <p><%= label_tag :count, l(:label_cosmosys_item_count) %>
+      <%= select_tag :count, options_for_select((1..4).to_a, params[:count] || 1) %></p>
+    <p><%= label_tag :tracker_id, l(:field_tracker) %>
+      <%= select_tag :tracker_id, options_from_collection_for_select(@trackers, :id, :name, params[:tracker_id] || @issue.tracker_id) %></p>
+    <p><%= label_tag :operation, l(:label_relation) %>
+      <%= select_tag :operation, options_for_select(Cosmosys::RelatedItemsCreator::OPERATIONS.map { |key| [l("label_cosmosys_relation_#{key}"), key] }, params[:operation] || 'successors') %></p>
+    <p><%= check_box_tag :restricted, '1', params[:restricted] == '1' %>
+      <%= label_tag :restricted, l(:label_cosmosys_restricted_precedence), class: 'inline' %></p>
+    <p><%= submit_tag l(:button_create) %> <%= link_to l(:button_cancel), issue_path(@issue) %></p>
+  <% end %>
+</div>

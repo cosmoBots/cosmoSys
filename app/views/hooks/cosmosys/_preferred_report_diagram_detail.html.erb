@@ -1,0 +1,7 @@
+<% issue = local_assigns[:issue] || @issue %>
+<% if issue&.cosmosys_report_diagrams? %>
+  <div class="attribute cosmosys-preferred-report-diagram-detail">
+    <div class="label"><%= l(:field_cosmosys_preferred_report_diagram) %>:</div>
+    <div class="value"><%= l("label_cosmosys_preferred_report_diagram_#{issue.cosmosys_preferred_report_diagram}") %></div>
+  </div>
+<% end %>

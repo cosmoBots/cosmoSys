@@ -1,0 +1,5 @@
+<% if issue.editable?(User.current) && User.current.allowed_to?(:manage_issue_relations, issue.project) && User.current.allowed_to?(:add_issues, issue.project) %>
+  <p class="cosmosys-item-operations contextual">
+    <%= link_to l(:label_cosmosys_create_related_items), issue_cosmosys_related_items_path(issue), class: 'icon icon-link' %>
+  </p>
+<% end %>

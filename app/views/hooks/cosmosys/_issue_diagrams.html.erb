@@ -1,0 +1,4 @@
+<% issue = local_assigns[:issue] || @issue %>
+<% if issue&.visible?(User.current) %>
+  <%= render partial: 'cosmosys/items/diagram_panels', locals: { issue: issue } %>
+<% end %>

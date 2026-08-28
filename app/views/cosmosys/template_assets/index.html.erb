@@ -1,0 +1,37 @@
+<div class="contextual">
+  <%= link_to l(:label_settings), plugin_settings_path(:cosmosys), class: 'icon icon-settings' %>
+</div>
+
+<h2><%= l(:label_cosmosys_template_assets) %></h2>
+
+<div class="box tabular">
+  <h3><%= l(:label_cosmosys_upload_template) %></h3>
+  <%= form_tag cosmosys_template_assets_path, multipart: true do %>
+    <p><label><%= l(:field_name) %></label><%= text_field_tag :name, nil, required: true %></p>
+    <p><label><%= l(:field_type) %></label><%= select_tag :kind, options_for_select([[l(:label_cosmosys_ods_template), 'ods'], [l(:label_cosmosys_report_template), 'report']]) %></p>
+    <p><label><%= l(:field_filename) %></label><%= file_field_tag :template_file, accept: '.ods,.odt,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.text', required: true %></p>
+    <p><%= submit_tag l(:button_add) %></p>
+  <% end %>
+</div>
+
+<table class="list">
+  <thead><tr><th><%= l(:field_name) %></th><th><%= l(:field_type) %></th><th><%= l(:field_filename) %></th><th>SHA-256</th><th><%= l(:field_author) %></th><th></th></tr></thead>
+  <tbody>
+    <% @assets.each do |asset| %>
+      <tr>
+        <td><%= asset.name %></td>
+        <td><%= asset.kind == 'ods' ? l(:label_cosmosys_ods_template) : l(:label_cosmosys_report_template) %></td>
+        <td><%= asset.original_filename %></td>
+        <td><code><%= asset.sha256.first(12) %></code></td>
+        <td><%= link_to_user asset.created_by %></td>
+        <td class="buttons">
+          <% if asset.in_use? %>
+            <span class="icon icon-lock"><%= l(:label_cosmosys_template_in_use) %></span>
+          <% else %>
+            <%= delete_link cosmosys_template_asset_path(asset) %>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

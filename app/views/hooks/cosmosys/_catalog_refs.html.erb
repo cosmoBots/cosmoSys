@@ -1,0 +1,71 @@
+<% issue = local_assigns[:issue] || @issue %>
+<% if issue&.persisted? && User.current.allowed_to?(:view_documents, issue.project) %>
+  <% refs = issue.cosmosys_catalog_refs.includes(document_catalog_entry: :document).sort_by { |ref| [ref.family, ref.document_catalog_entry.position, ref.id] } %>
+  <% editable = issue.editable?(User.current) && User.current.allowed_to?(:edit_documents, issue.project) %>
+  <hr />
+  <section id="cosmosys-document-references" class="cosmosys-document-references">
+    <div class="contextual">
+      <% if editable %>
+        <%= toggle_link l(:button_add), 'cosmosys-new-catalog-ref', focus: 'cosmosys-catalog-ref-family' %>
+      <% end %>
+      <%= link_to l(:label_cosmosys_document_catalog), project_cosmosys_document_catalog_path(issue.project), class: 'icon icon-list' %>
+    </div>
+    <p><strong><%= l(:label_cosmosys_document_references) %></strong></p>
+
+    <% if refs.any? %>
+      <table class="list cosmosys-catalog-refs-table">
+        <thead><tr>
+          <th><%= l(:label_cosmosys_catalog_label) %></th>
+          <th><%= l(:field_title) %></th>
+          <th><%= l(:field_cosmosys_external_code) %></th>
+          <th><%= l(:field_cosmosys_reference_sense) %></th>
+          <th><%= l(:field_cosmosys_reference_location) %></th>
+          <th><%= l(:label_cosmosys_markdown_reference) %></th>
+          <% if editable %><th></th><% end %>
+        </tr></thead>
+        <tbody>
+          <% refs.each do |catalog_ref| %>
+            <% if catalog_ref.document.visible?(User.current) %>
+              <tr>
+                <td><%= link_to catalog_ref.catalog_label, cosmosys_catalog_ref_path(catalog_ref), title: [catalog_ref.document.title, catalog_ref.sense, catalog_ref.location].compact_blank.join(' — ') %></td>
+                <td><%= catalog_ref.document.title %></td>
+                <td><%= catalog_ref.document.external_code.presence || '-' %></td>
+                <td><%= catalog_ref.sense.presence || '-' %></td>
+                <td><%= catalog_ref.location.presence || '-' %></td>
+                <td><code><%= catalog_ref.markdown_reference %></code></td>
+                <% if editable %>
+                  <td class="buttons">
+                    <%= link_to l(:button_edit), edit_cosmosys_catalog_ref_path(catalog_ref), class: 'icon icon-edit' %>
+                    <%= delete_link cosmosys_catalog_ref_path(catalog_ref) %>
+                  </td>
+                <% end %>
+              </tr>
+            <% else %>
+              <tr><td colspan="<%= editable ? 7 : 6 %>" class="cosmosys-restricted-document"><%= l(:label_cosmosys_restricted_document) %></td></tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <p class="nodata"><%= l(:label_no_data) %></p>
+    <% end %>
+
+    <% if editable %>
+      <% documents = issue.project.documents.visible(User.current).order(:title, :id) %>
+      <%= form_tag issue_cosmosys_catalog_refs_path(issue), id: 'cosmosys-new-catalog-ref', class: 'box tabular', style: 'display:none' do %>
+        <p><%= label_tag 'catalog_ref_family', l(:field_cosmosys_reference_family) %>
+          <%= select_tag 'catalog_ref[family]', options_for_select([[l(:label_cosmosys_family_reference), 'R'], [l(:label_cosmosys_family_applicable), 'A'], [l(:label_cosmosys_family_compliance), 'C']], 'R'), id: 'cosmosys-catalog-ref-family' %></p>
+        <p><%= label_tag 'cosmosys-document-search', l(:label_search) %>
+          <%= text_field_tag nil, nil, id: 'cosmosys-document-search', placeholder: l(:label_cosmosys_document_search_hint), autocomplete: 'off' %></p>
+        <p><%= label_tag 'catalog_ref_document_id', l(:label_document) %>
+          <%= select_tag 'catalog_ref[document_id]', options_from_collection_for_select(documents, :id, :cosmosys_search_label), required: true, id: 'cosmosys-catalog-ref-document' %></p>
+        <p><%= label_tag 'catalog_ref_sense', l(:field_cosmosys_reference_sense) %>
+          <%= text_field_tag 'catalog_ref[sense]', nil, maxlength: 255, size: 60 %></p>
+        <p><%= label_tag 'catalog_ref_location', l(:field_cosmosys_reference_location) %>
+          <%= text_field_tag 'catalog_ref[location]', nil, maxlength: 255, size: 60 %></p>
+        <%= submit_tag l(:button_apply) %>
+        <%= link_to_function l(:button_cancel), "$('#cosmosys-new-catalog-ref').hide();" %>
+      <% end %>
+    <% end %>
+  </section>
+<% end %>

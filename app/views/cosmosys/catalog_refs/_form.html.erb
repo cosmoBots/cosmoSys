@@ -1,0 +1,6 @@
+<%= error_messages_for catalog_ref %>
+<div class="box tabular">
+  <p><strong><%= catalog_ref.catalog_label %> — <%= catalog_ref.document.title %></strong></p>
+  <p><%= form.text_field :sense, label: l(:field_cosmosys_reference_sense), maxlength: 255, size: 60 %></p>
+  <p><%= form.text_field :location, label: l(:field_cosmosys_reference_location), maxlength: 255, size: 60 %></p>
+</div>

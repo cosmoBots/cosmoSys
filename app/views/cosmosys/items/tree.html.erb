@@ -1,0 +1,35 @@
+<%= render partial: 'nav', locals: { current: :tree } %>
+<%= render partial: 'tree_health_warning', locals: { problem: @tree_health_problem } %>
+
+<% root_entries = Array(@tree_entries) %>
+<% selected_issue = @local_tree_issues.first || @tree_issues.first %>
+<% content_for :sidebar do %>
+  <%= render partial: 'tree_sidebar', locals: { issue: selected_issue } %>
+<% end %>
+
+<% if root_entries.any? %>
+  <div class="cosmosys-tree-scrollbox">
+    <div class="box cosmosys-tree-view cosmosys-tree-reorder-view" data-cosmosys-tree="tree">
+      <div class="cosmosys-dnd-dropzone cosmosys-dnd-root-dropzone"
+           data-move-mode="root"
+           data-drop-parent-id=""
+           data-drop-parent-can-have-children="true">
+        <span class="cosmosys-dnd-root-label"><%= l(:label_cosmosys_tree_root) %></span>
+      </div>
+      <ul class="cosmosys-tree-root">
+        <% root_entries.each_with_index do |entry, index| %>
+          <%= render partial: 'tree_node', locals: { entry: entry, chapter_map: @chapter_map, project: @project, project_ancestor_map: @project_ancestor_map, reorderable_issue_ids: @reorderable_issue_ids, sibling_last: index == root_entries.length - 1, depth: 0 } %>
+        <% end %>
+      </ul>
+    </div>
+  </div>
+
+  <%= form_with url: { action: :move, project_id: @project }, method: :post, local: true, html: { id: 'cosmosys-tree-form', class: 'hidden' } do %>
+    <%= hidden_field_tag :issue_id, '', id: 'cosmosys-tree-issue-id' %>
+    <%= hidden_field_tag :parent_issue_id, '', id: 'cosmosys-tree-parent-id' %>
+    <%= hidden_field_tag :target_issue_id, '', id: 'cosmosys-tree-target-id' %>
+    <%= hidden_field_tag :move_mode, 'child', id: 'cosmosys-tree-move-mode' %>
+  <% end %>
+<% else %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% end %>

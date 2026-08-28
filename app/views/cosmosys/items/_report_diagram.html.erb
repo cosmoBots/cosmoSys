@@ -1,0 +1,11 @@
+<% labels = {
+  'combined' => :label_cosmosys_main_report_diagram,
+  'hierarchy' => :label_cosmosys_hierarchy_diagram,
+  'dependency' => :label_cosmosys_dependency_diagram
+} %>
+<% if diagram&.svg_body.present? %>
+  <section class="cosmosys-report-diagram cosmosys-report-diagram-<%= kind %>">
+    <h6><%= l(labels.fetch(kind)) %></h6>
+    <div class="cosmosys-diagram-frame cosmosys-diagram-frame-<%= kind %>"><%= diagram.svg_body.html_safe %></div>
+  </section>
+<% end %>

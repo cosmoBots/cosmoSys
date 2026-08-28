@@ -1,0 +1,37 @@
+<div class="contextual">
+  <% if @catalog_ref.editable?(User.current) %>
+    <%= link_to l(:button_edit), edit_cosmosys_catalog_ref_path(@catalog_ref), class: 'icon icon-edit' %>
+  <% end %>
+  <%= link_to l(:label_document), document_path(@document), class: 'icon icon-document' %>
+</div>
+
+<h2><%= @catalog_ref.catalog_label %> — <%= @document.title %></h2>
+
+<div class="box cosmosys-catalog-ref-primary">
+  <h3><%= l(:label_cosmosys_selected_reference) %></h3>
+  <%= render partial: 'reference_table', locals: { refs: [@catalog_ref] } %>
+</div>
+
+<p><em><%= @document.category.name %><br /><%= format_date @document.created_on %></em></p>
+<% if @document.external_code.present? %>
+  <p><strong><%= l(:field_cosmosys_external_code) %>:</strong> <%= @document.external_code %></p>
+<% end %>
+<% if @document.custom_field_values.any? %>
+  <ul>
+    <% render_custom_field_values(@document) do |custom_field, formatted| %>
+      <li><span class="label"><%= custom_field.name %>:</span> <%= formatted %></li>
+    <% end %>
+  </ul>
+<% end %>
+<div class="wiki"><%= textilizable @document, :description, attachments: @document.attachments %></div>
+<h3><%= l(:label_attachment_plural) %></h3>
+<%= link_to_attachments @document, thumbnails: true %>
+
+<h3><%= l(:label_cosmosys_other_references) %></h3>
+<% if @other_refs.any? %>
+  <%= render partial: 'reference_table', locals: { refs: @other_refs } %>
+<% else %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% end %>
+
+<% html_title "#{@catalog_ref.catalog_label} — #{@document.title}" %>

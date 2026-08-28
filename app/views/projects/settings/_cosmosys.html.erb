@@ -1,0 +1,151 @@
+<% query = Cosmosys::MainReportFieldRegistry.query_for_project(@project, user: User.current) %>
+<% selected_column_names = @project.cosmosys_report_column_names(user: User.current) %>
+<% field_presentations = @project.cosmosys_report_field_presentations(user: User.current) %>
+<% combined_layout_mode = @project.cosmosys_combined_diagram_layout_mode %>
+<% combined_render_variant = @project.cosmosys_combined_diagram_render_variant %>
+<% report_options = @project.cosmosys_report_options %>
+<% landscape_scale_threshold = @project.cosmosys_report_landscape_scale_threshold %>
+<% query.column_names = selected_column_names %>
+<% columns_by_name = query.available_inline_columns.index_by { |column| column.name.to_s } %>
+
+<%= form_tag(project_cosmosys_settings_path(@project), method: :put, id: 'cosmosys-settings-form') do %>
+  <div class="box tabular cosmosys-settings-box">
+    <h3><%= l(:label_cosmosys_project_profile) %></h3>
+    <p><%= select_tag 'cosmosys_setting[project_profile]', options_for_select(Cosmosys::ProjectProfileRegistry.all.map { |profile| [l(profile.label), profile.key] }, @project.cosmosys_project_profile) %></p>
+    <p>
+      <%= label_tag 'cosmosys_setting_language', l(:field_cosmosys_language) %>
+      <%= select_tag 'cosmosys_setting[language]',
+                     options_for_select([[l(:label_cosmosys_inherit_official_language, language: @project.cosmosys_effective_language), '']] + lang_options_for_select(false), @project.cosmosys_language),
+                     id: 'cosmosys_setting_language' %>
+      <em class="info"><%= l(:text_cosmosys_project_language_help, language: @project.cosmosys_effective_language) %></em>
+    </p>
+    <p><%= select_tag 'cosmosys_setting[root_tracker_key]', options_for_select([[l(:label_cosmosys_root_tracker_inherit), 'inherit'], [l(:label_cosmosys_root_tracker_free), 'free']] + @project.trackers.where.not(cosmosys_key: nil).map { |tracker| [tracker.name, tracker.cosmosys_key] }, @project.cosmosys_root_tracker_key.presence || 'inherit') %></p>
+    <p class="info"><%= l(:text_cosmosys_project_profile_help) %></p>
+    <% template_resolution = @project.cosmosys_effective_ods_template %>
+    <h4><%= l(:label_cosmosys_ods_template) %></h4>
+    <p>
+      <%= select_tag 'cosmosys_setting[ods_template_asset_id]', options_for_select([[l(:label_cosmosys_inherit_profile_template), '']] + Cosmosys::TemplateAsset.available_ods.map { |asset| [asset.name, asset.id] }, @project.cosmosys_ods_template_asset_id) %>
+      <% template_source = template_resolution.asset ? l(:text_cosmosys_template_asset_source, template: template_resolution.asset.name, project: template_resolution.source_project.name) : l(:text_cosmosys_template_profile_source, profile: l(template_resolution.profile.label)) %>
+      <em class="info"><%= l(:text_cosmosys_effective_template, source: template_source) %></em>
+    </p>
+    <p class="buttons">
+      <%= link_to l(:button_cosmosys_download_profile_template), project_cosmosys_profile_template_path(@project), class: 'icon icon-download' %>
+      <%= link_to l(:button_cosmosys_download_effective_template), project_cosmosys_effective_template_path(@project), class: 'icon icon-download' %>
+    </p>
+    <p><em class="info"><%= l(:text_cosmosys_template_download_help) %></em></p>
+    <% report_template_resolution = @project.cosmosys_effective_report_template %>
+    <% selected_report_template = @project.cosmosys_report_template_asset_id ? "asset:#{@project.cosmosys_report_template_asset_id}" : (@project.cosmosys_report_template_key.present? ? "builtin:#{@project.cosmosys_report_template_key}" : '') %>
+    <% report_template_options = [[l(:label_cosmosys_inherit_profile_template), '']] + Cosmosys::ReportTemplateCatalog.all.map { |template| [template.label, "builtin:#{template.key}"] } + Cosmosys::TemplateAsset.available_reports.map { |asset| [asset.name, "asset:#{asset.id}"] } %>
+    <h4><%= l(:label_cosmosys_report_template) %></h4>
+    <p>
+      <%= select_tag 'cosmosys_setting[report_template]', options_for_select(report_template_options, selected_report_template) %>
+      <% report_source = if report_template_resolution.asset
+           l(:text_cosmosys_template_asset_source, template: report_template_resolution.asset.name, project: report_template_resolution.source_project.name)
+         elsif report_template_resolution.catalog_template
+           l(:text_cosmosys_template_catalog_source, template: report_template_resolution.catalog_template.label, project: report_template_resolution.source_project.name)
+         else
+           l(:text_cosmosys_template_profile_source, profile: l(report_template_resolution.profile.label))
+         end %>
+      <em class="info"><%= l(:text_cosmosys_effective_template, source: report_source) %></em>
+    </p>
+    <p class="buttons">
+      <%= link_to l(:button_cosmosys_download_profile_template), project_cosmosys_profile_report_template_path(@project), class: 'icon icon-download' %>
+      <%= link_to l(:button_cosmosys_download_effective_template), project_cosmosys_effective_report_template_path(@project), class: 'icon icon-download' %>
+    </p>
+    <h4><%= l(:label_cosmosys_project_passphrase) %></h4>
+    <p>
+      <%= password_field_tag 'cosmosys_setting[project_passphrase]', @project.cosmosys_project_passphrase, autocomplete: 'new-password', placeholder: l(:label_cosmosys_inherit_project_passphrase) %>
+      <% passphrase_source = @project.cosmosys_project_passphrase_source %>
+      <% source_label = passphrase_source.cosmosys_project_passphrase.present? ? passphrase_source.name : l(:text_cosmosys_project_identifier_default) %>
+      <em class="info"><%= l(:text_cosmosys_project_passphrase_help, effective: @project.cosmosys_effective_project_passphrase, source: source_label) %></em>
+    </p>
+    <p class="info"><%= l(:text_cosmosys_report_settings_help) %></p>
+    <h4><%= l(:label_cosmosys_report_landscape_scale_threshold) %></h4>
+    <p>
+      <%= number_field_tag 'cosmosys_setting[landscape_scale_threshold]', landscape_scale_threshold, min: 0, max: 100, step: 1 %> %
+      <em class="info"><%= l(:text_cosmosys_report_landscape_scale_threshold_help) %></em>
+    </p>
+    <div id="list-definition" class="cosmosys-report-columns-selection">
+      <%= render_query_columns_selection(query, name: 'cosmosys_setting[column_names]') %>
+    </div>
+
+    <div class="cosmosys-report-options-selection">
+      <h4><%= l(:label_cosmosys_report_contents) %></h4>
+      <% Cosmosys::MainReportSettings::OPTION_NAMES.each do |option_name| %>
+        <%= hidden_field_tag "cosmosys_setting[report_options][#{option_name}]", '0', id: nil %>
+        <label class="block">
+          <%= check_box_tag "cosmosys_setting[report_options][#{option_name}]", '1', report_options[option_name] %>
+          <%= l("label_cosmosys_report_include_#{option_name}") %>
+        </label>
+      <% end %>
+    </div>
+
+    <div class="cosmosys-report-field-presentations">
+      <h4><%= l(:label_cosmosys_report_field_presentations) %></h4>
+      <p class="info"><%= l(:text_cosmosys_report_field_presentations_help) %></p>
+      <table class="list cosmosys-report-field-presentations-table">
+        <thead>
+          <tr>
+            <th><%= l(:label_cosmosys_report_field) %></th>
+            <th><%= l(:label_cosmosys_report_representation) %></th>
+          </tr>
+        </thead>
+        <tbody data-cosmosys-report-field-presentations data-selected-source-id="selected_cosmosys_setting_column_names">
+          <% columns_by_name.each do |column_name, column| %>
+            <tr data-column-name="<%= column_name %>">
+              <td><%= column.caption.is_a?(Symbol) ? l(column.caption) : column.caption %></td>
+              <td>
+                <%= select_tag(
+                  "cosmosys_setting[field_presentations][#{column_name}]",
+                  options_for_select(
+                    [
+                      [l(:label_cosmosys_report_representation_metadata), 'metadata'],
+                      [l(:label_cosmosys_report_representation_section), 'section']
+                    ],
+                    field_presentations[column_name] || Cosmosys::MainReportFieldRegistry::DEFAULT_REPRESENTATION_MODE
+                  )
+                ) %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="cosmosys-report-field-presentations">
+      <h4><%= l(:label_cosmosys_combined_render_variant) %></h4>
+      <p class="info"><%= l(:text_cosmosys_combined_render_variant_help) %></p>
+      <p>
+        <%= select_tag(
+          'cosmosys_setting[combined_render_variant]',
+          options_for_select(
+            [
+              [l(:label_cosmosys_combined_render_variant_v1), 'v1'],
+              [l(:label_cosmosys_combined_render_variant_v2), 'v2']
+            ],
+            combined_render_variant
+          )
+        ) %>
+      </p>
+    </div>
+
+    <div class="cosmosys-report-field-presentations">
+      <h4><%= l(:label_cosmosys_combined_layout_mode) %></h4>
+      <p class="info"><%= l(:text_cosmosys_combined_layout_mode_help) %></p>
+      <p>
+        <%= select_tag(
+          'cosmosys_setting[combined_layout_mode]',
+          options_for_select(
+            [
+              [l(:label_cosmosys_combined_layout_mode_dot), 'dot'],
+              [l(:label_cosmosys_combined_layout_mode_fdp), 'fdp']
+            ],
+            combined_layout_mode
+          )
+        ) %>
+      </p>
+    </div>
+  </div>
+
+  <p><%= submit_tag l(:button_save) %></p>
+<% end %>

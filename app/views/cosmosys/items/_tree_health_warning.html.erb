@@ -1,0 +1,17 @@
+<% if problem.present? %>
+  <div class="flash warning cosmosys-tree-warning">
+    <strong><%= l(:label_warning) %>:</strong>
+    <%= l(:text_cosmosys_tree_health_warning_html,
+          issue_ref: link_to_issue(problem.issue, project: true),
+          reason: l("text_cosmosys_tree_problem_#{problem.reason}")).html_safe %>
+    <% if User.current.admin? %>
+      <span class="cosmosys-tree-warning-action">
+        <%= button_to l(:button_cosmosys_rebuild_tree),
+              { controller: 'cosmosys/items', action: 'rebuild_tree', project_id: problem.issue.project, issue_id: problem.issue },
+              method: :post,
+              form_class: 'button_to inline-block',
+              data: { confirm: l(:text_cosmosys_rebuild_tree_confirm) } %>
+      </span>
+    <% end %>
+  </div>
+<% end %>

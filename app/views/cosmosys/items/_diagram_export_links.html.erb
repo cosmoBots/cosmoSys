@@ -1,0 +1,12 @@
+<% extra_params ||= {} %>
+<span class="cosmosys-diagram-export-links">
+  <%= link_to 'GV',
+    cosmosys_diagram_export_path({ project_id: project.identifier, kind: kind, diagram_format: 'gv', issue_id: issue&.id }.merge(extra_params)),
+    target: '_blank',
+    rel: 'noopener' %>
+  <span class="cosmosys-diagram-export-separator">|</span>
+  <%= link_to 'SVG',
+    cosmosys_diagram_export_path({ project_id: project.identifier, kind: kind, diagram_format: 'svg', issue_id: issue&.id }.merge(extra_params)),
+    target: '_blank',
+    rel: 'noopener' %>
+</span>

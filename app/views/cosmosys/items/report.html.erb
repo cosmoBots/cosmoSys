@@ -1,0 +1,140 @@
+<%= render partial: 'nav', locals: { current: :report } %>
+<%= render partial: 'tree_health_warning', locals: { problem: @tree_health_problem } %>
+
+<% content_for :sidebar do %>
+  <div class="cosmosys-report-sidebar">
+    <div class="cosmosys-report-sidebar-inner">
+      <h2><%= l(:label_cosmosys_main_report) %></h2>
+      <label class="cosmosys-report-search-label" for="cosmosys-report-search"><%= l(:label_cosmosys_main_report_search) %></label>
+      <input id="cosmosys-report-search" class="cosmosys-report-search" type="search" placeholder="<%= l(:label_cosmosys_main_report_search) %>" data-cosmosys-report-search>
+
+      <h3><%= l(:label_cosmosys_main_report_toc) %></h3>
+      <ol class="cosmosys-report-toc" data-cosmosys-report-toc>
+        <% @report.toc_entries.each do |section| %>
+          <li class="cosmosys-report-toc-item cosmosys-report-toc-depth-<%= section.depth %>" data-cosmosys-report-item data-cosmosys-report-text="<%= [section.chapter, section.issue.csid, section.issue.subject].compact.join(' ').downcase %>">
+            <a href="#<%= section.anchor %>">
+              <% if section.issue.cosmosys_preferred_reference_mode == 'chapter' %>
+                <% if section.chapter.present? %><span class="cosmosys-report-toc-chapter"><%= section.chapter %></span><% end %>
+              <% else %>
+                <span class="cosmosys-report-toc-ref"><%= section.issue.csid %></span>
+              <% end %>
+              <span class="cosmosys-report-toc-title"><%= section.issue.subject %></span>
+            </a>
+          </li>
+        <% end %>
+      </ol>
+    </div>
+  </div>
+<% end %>
+
+<div class="cosmosys-report-view" data-cosmosys-report
+     data-diagram-progress-text="<%= l(:text_cosmosys_diagrams_loading, loaded: '__LOADED__', total: '__TOTAL__') %>"
+     data-diagram-ready-text="<%= l(:text_cosmosys_report_diagrams_ready, total: '__TOTAL__') %>"
+     data-diagram-failed-text="<%= l(:text_cosmosys_report_diagrams_failed, failed: '__FAILED__', total: '__TOTAL__') %>"
+     data-diagram-error-text="<%= l(:text_cosmosys_diagram_unavailable) %>">
+  <div class="cosmosys-report-export-toolbar hide-when-print">
+    <% if @report.toc_entries.none?(&:report_placeholder) && User.current.allowed_to?(:add_issues, @project) %>
+      <%= button_to l(:button_cosmosys_add_related_documents_section),
+                    project_cosmosys_document_catalog_report_placeholders_path(@project),
+                    method: :post,
+                    class: 'icon icon-add',
+                    form: { class: 'cosmosys-inline-button-form' } %>
+    <% end %>
+    <label for="cosmosys-report-export-format"><%= l(:label_cosmosys_report_export_format) %></label>
+    <select id="cosmosys-report-export-format" data-cosmosys-report-export-format>
+      <option value="docx" selected>Word (.docx)</option>
+      <option value="odt">OpenDocument (.odt)</option>
+      <option value="pdf">PDF (.pdf)</option>
+    </select>
+    <button
+      type="button"
+      class="icon icon-download"
+      data-cosmosys-report-export
+      disabled
+      data-export-url="<%= cosmosys_report_export_path(project_id: @project.identifier) %>"
+      data-export-title="<%= @project.name %>"
+      data-export-error="<%= l(:text_cosmosys_report_export_failed) %>"
+    ><%= l(:button_cosmosys_report_export) %></button>
+    <span class="cosmosys-report-export-progress" data-cosmosys-report-export-progress hidden role="status" aria-live="polite">
+      <span class="cosmosys-report-spinner" aria-hidden="true"></span>
+      <%= l(:text_cosmosys_report_export_in_progress) %>
+    </span>
+  </div>
+  <div id="query_form_with_buttons" class="hide-when-print cosmosys-report-query-form-with-buttons">
+    <%= form_tag({ action: :report, project_id: @project }, method: :get, id: 'cosmosys-report-query-form') do %>
+      <div id="query_form_content">
+        <fieldset id="cosmosys-report-options" class="collapsible collapsed">
+          <legend onclick="toggleFieldset(this);" class="icon icon-collapsed">
+            <%= sprite_icon("angle-right", rtl: true) %>
+            <%= l(:label_options) %>
+          </legend>
+          <div class="hidden">
+            <div id="list-definition" class="cosmosys-report-columns-selection">
+              <%= render_query_columns_selection(@report_query, name: 'report_columns') %>
+            </div>
+
+            <div class="cosmosys-report-options-selection">
+              <h4><%= l(:label_cosmosys_report_contents) %></h4>
+              <% Cosmosys::MainReportSettings::OPTION_NAMES.each do |option_name| %>
+                <%= hidden_field_tag "report_options[#{option_name}]", '0', id: nil %>
+                <label class="block">
+                  <%= check_box_tag "report_options[#{option_name}]", '1', @report_options[option_name] %>
+                  <%= l("label_cosmosys_report_include_#{option_name}") %>
+                </label>
+              <% end %>
+            </div>
+
+            <div class="cosmosys-report-field-presentations">
+              <h4><%= l(:label_cosmosys_report_field_presentations) %></h4>
+              <p class="info"><%= l(:text_cosmosys_report_field_presentations_help) %></p>
+              <table class="list cosmosys-report-field-presentations-table">
+                <thead>
+                  <tr>
+                    <th><%= l(:label_cosmosys_report_field) %></th>
+                    <th><%= l(:label_cosmosys_report_representation) %></th>
+                  </tr>
+                </thead>
+                <tbody data-cosmosys-report-field-presentations data-selected-source-id="selected_report_columns">
+                  <% @report_columns_by_name.each do |column_name, column| %>
+                    <tr data-column-name="<%= column_name %>">
+                      <td><%= column.caption.is_a?(Symbol) ? l(column.caption) : column.caption %></td>
+                      <td>
+                        <%= select_tag(
+                          "report_field_presentations[#{column_name}]",
+                          options_for_select(
+                            [
+                              [l(:label_cosmosys_report_representation_metadata), 'metadata'],
+                              [l(:label_cosmosys_report_representation_section), 'section']
+                            ],
+                            @report_field_presentations[column_name] || Cosmosys::MainReportFieldRegistry::DEFAULT_REPRESENTATION_MODE
+                          )
+                        ) %>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="buttons">
+              <%= submit_tag l(:button_apply), name: nil %>
+              <%= link_to l(:button_clear), { action: :report, project_id: @project }, class: 'icon icon-reload' %>
+            </p>
+          </div>
+        </fieldset>
+      </div>
+    <% end %>
+  </div>
+
+  <% @project.with_cosmosys_locale do %>
+    <div class="cosmosys-report-scrollbox" data-cosmosys-report-scrollbox>
+      <% if @report.sections.empty? %>
+        <p class="nodata"><%= l(:label_cosmosys_main_report_empty) %></p>
+      <% else %>
+        <% @report.sections.each do |section| %>
+          <%= render partial: 'report_section', locals: { section: section } %>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,36 @@
+<section class="cosmosys-report-document-catalog cosmosys-report-document-catalog-<%= section.report_placeholder.kind.dasherize %>">
+  <% if section.document_catalog_entries.any? %>
+    <table class="list cosmosys-report-document-catalog-table">
+      <colgroup>
+        <col class="cosmosys-report-document-catalog-id-column">
+        <col><col><col>
+      </colgroup>
+      <thead>
+        <tr>
+          <th><%= l(:label_cosmosys_catalog_id) %></th>
+          <th colspan="3"><%= l(:field_title) %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% section.document_catalog_entries.each do |entry| %>
+          <% document = entry.document %>
+          <% has_metadata = document.external_code.present? || document.cosmosys_document_date.present? || document.cosmosys_document_version.present? %>
+          <tr class="cosmosys-report-document-catalog-primary-row">
+            <td><%= entry.catalog_label %></td>
+            <td colspan="3"><%= link_to document.title, document_path(document) %></td>
+          </tr>
+          <% if has_metadata %>
+            <tr class="cosmosys-report-document-catalog-metadata-row">
+              <td aria-hidden="true"></td>
+              <td title="<%= l(:field_cosmosys_external_code) %>"><%= document.external_code.presence || '-' %></td>
+              <td title="<%= l(:field_cosmosys_document_date) %>"><%= document.cosmosys_document_date.present? ? format_date(document.cosmosys_document_date) : '-' %></td>
+              <td title="<%= l(:field_cosmosys_document_version) %>"><%= document.cosmosys_document_version.presence || '-' %></td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="nodata"><%= l(:text_cosmosys_report_document_catalog_empty) %></p>
+  <% end %>
+</section>

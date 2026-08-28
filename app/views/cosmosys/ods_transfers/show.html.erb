@@ -1,0 +1,49 @@
+<%= render partial: 'cosmosys/items/nav', locals: { current: :ods_transfers } %>
+
+<div class="contextual">
+  <% if @transfer.applicable? && @transfer.direction == 'materialize' && User.current.admin? %>
+    <%= button_to l(:button_cosmosys_materialize_snapshot), materialize_project_cosmosys_ods_transfer_path(@project, @transfer), method: :post, class: 'icon icon-copy' %>
+  <% elsif @transfer.applicable? && User.current.allowed_to?(:edit_project, @project) %>
+    <%= button_to l(:button_cosmosys_ods_apply), apply_project_cosmosys_ods_transfer_path(@project, @transfer), method: :post, class: 'icon icon-checked', form: { data: { cosmosys_ods_import_form: true } } %>
+  <% end %>
+  <% if @transfer.export_payload.present? %>
+    <%= link_to l(@transfer.direction == 'export' ? :button_cosmosys_ods_download : :button_cosmosys_ods_download_reconciled), download_project_cosmosys_ods_transfer_path(@project, @transfer), class: 'icon icon-download' %>
+  <% end %>
+</div>
+
+<h2><%= l(:label_cosmosys_ods_transfer) %> #<%= @transfer.id %></h2>
+
+<div class="box">
+  <p><strong><%= l(:field_status) %>:</strong> <%= @transfer.state %></p>
+  <p><strong><%= l(:field_filename) %>:</strong> <%= @transfer.original_filename.presence || '-' %></p>
+  <% if @transfer.direction == 'export' %>
+    <p><strong><%= l(:label_cosmosys_ods_scope) %>:</strong> <%= l(@transfer.include_subprojects? ? :label_cosmosys_ods_scope_tree : :label_cosmosys_ods_scope_project) %></p>
+    <p><strong><%= l(:label_cosmosys_ods_export_writer) %>:</strong> <%= l("label_cosmosys_ods_export_writer_#{@transfer.export_writer}".to_sym) %></p>
+    <p><strong><%= l(:label_cosmosys_duration) %>:</strong> <%= @transfer.summary['duration_seconds'].present? ? l(:text_cosmosys_duration_seconds, duration: format('%.1f', @transfer.summary['duration_seconds'])) : '-' %></p>
+  <% end %>
+  <p><strong>SHA-256:</strong> <code><%= @transfer.file_sha256 %></code></p>
+  <p><strong><%= l(:label_cosmosys_ods_payload_hash) %>:</strong> <code><%= @transfer.payload_sha256.presence || '-' %></code></p>
+  <p><strong><%= l(:label_cosmosys_ods_lineage) %>:</strong> <code><%= @transfer.export_id %></code></p>
+  <% if @transfer.summary.present? %>
+    <h3><%= l(:label_summary) %></h3>
+    <pre><%= JSON.pretty_generate(@transfer.summary) %></pre>
+  <% end %>
+</div>
+
+<h3><%= l(:label_cosmosys_ods_incidents) %></h3>
+<% if @events.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+  <table class="list">
+    <thead><tr><th><%= l(:field_status) %></th><th><%= l(:label_cosmosys_ods_location) %></th><th><%= l(:field_description) %></th></tr></thead>
+    <tbody>
+      <% @events.each do |event| %>
+        <tr class="cosmosys-ods-event-<%= event.severity %>">
+          <td><%= event.severity %></td>
+          <td><%= [event.sheet, event.row_number && "R#{event.row_number}", event.field_name, event.entity_key].compact.join(' · ') %></td>
+          <td><%= event.message %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>

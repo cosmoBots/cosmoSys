@@ -1,0 +1,31 @@
+<%= render partial: 'nav', locals: { current: :overview } %>
+<%= render partial: 'tree_health_warning', locals: { problem: @tree_health_problem } %>
+
+<h2><%= l(:label_cosmosys_scope) %></h2>
+
+<div class="box">
+  <p><strong><%= l(:label_cosmosys_root_project) %>:</strong> <%= @scope[:root_project]&.name %></p>
+  <p><strong><%= l(:label_cosmosys_project_code) %>:</strong> <%= @scope[:project_code] %></p>
+  <p><strong><%= l(:label_cosmosys_last_id) %>:</strong> <%= @scope[:cslast_id] %></p>
+</div>
+
+<h3><%= l(:label_cosmosys_recent_items) %></h3>
+
+<table class="list issues">
+  <thead>
+    <tr>
+      <th><%= l(:label_cosmosys_csid) %></th>
+      <th><%= l(:label_cosmosys_project) %></th>
+      <th><%= l(:field_subject) %></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @recent_issues.each do |issue| %>
+      <tr>
+        <td><%= issue.csid %></td>
+        <td><%= issue.project.name %></td>
+        <td><%= link_to_issue(issue) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

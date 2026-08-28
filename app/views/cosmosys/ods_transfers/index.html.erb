@@ -1,0 +1,37 @@
+<%= render partial: 'cosmosys/items/nav', locals: { current: :ods_transfers } %>
+
+<h2><%= l(:label_cosmosys_ods_transfer_history) %></h2>
+
+<div class="box cosmosys-ods-transfer-actions">
+  <h3 class="icon icon-package"><%= l(:label_cosmosys_ods_transfer_actions) %></h3>
+  <%= render partial: 'cosmosys/items/ods_export_toolbar', locals: { project: @project, show_history: false } %>
+</div>
+<% if User.current.admin? %>
+  <p><%= link_to l(:button_cosmosys_materialize_snapshot), new_project_cosmosys_ods_materialization_path(@project), class: 'icon icon-copy' %></p>
+<% end %>
+
+<table class="list" data-cosmosys-ods-transfer-history>
+  <thead><tr>
+    <th><%= l(:field_created_on) %></th><th><%= l(:field_project) %></th><th><%= l(:label_user) %></th>
+    <th><%= l(:label_cosmosys_ods_direction) %></th><th><%= l(:label_cosmosys_ods_scope) %></th><th><%= l(:field_status) %></th>
+    <th><%= l(:label_cosmosys_duration) %></th>
+    <th><%= l(:label_cosmosys_ods_hash) %></th><th><%= l(:label_cosmosys_ods_lineage) %></th>
+  </tr></thead>
+  <tbody>
+    <% @transfers.each do |transfer| %>
+      <tr>
+        <td><%= link_to format_time(transfer.created_at), project_cosmosys_ods_transfer_path(@project, transfer) %></td>
+        <td><%= transfer.project.name %></td><td><%= link_to_user transfer.user %></td>
+        <td>
+          <%= l("label_cosmosys_ods_direction_#{transfer.direction}".to_sym) %><% if transfer.direction == 'export' && transfer.export_writer == 'indexed' %><abbr title="<%= l(:label_cosmosys_ods_export_writer_indexed) %>">*</abbr><% end %>
+        </td>
+        <td><%= transfer.direction == 'export' ? l(transfer.include_subprojects? ? :label_cosmosys_ods_scope_tree : :label_cosmosys_ods_scope_project) : '-' %></td>
+        <td><%= transfer.state %></td>
+        <td><%= transfer.summary['duration_seconds'].present? ? l(:text_cosmosys_duration_seconds, duration: format('%.1f', transfer.summary['duration_seconds'])) : '-' %></td>
+        <td><code><%= transfer.payload_sha256.to_s.first(12).presence || '-' %></code></td>
+        <td><code><%= transfer.export_id.to_s.first(12) %></code></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<p class="info"><%= l(:text_cosmosys_ods_export_writer_marker) %></p>

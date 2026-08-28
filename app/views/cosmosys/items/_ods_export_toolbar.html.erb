@@ -1,0 +1,31 @@
+<% project = local_assigns[:project] || @project %>
+<% show_import = local_assigns.fetch(:show_import, true) %>
+<% show_history = local_assigns.fetch(:show_history, true) %>
+<div class="cosmosys-report-export-toolbar cosmosys-ods-export-toolbar hide-when-print">
+  <span class="cosmosys-report-export-progress" data-cosmosys-ods-export-progress hidden role="status" aria-live="polite">
+    <span class="cosmosys-report-spinner" data-cosmosys-operation-spinner aria-hidden="true"></span>
+    <span data-cosmosys-operation-label><%= l(:text_cosmosys_ods_export_in_progress) %></span>
+    <progress value="0" max="100" data-cosmosys-operation-progress>0%</progress>
+  </span>
+  <label>
+    <%= l(:label_cosmosys_ods_export_writer) %>
+    <select data-cosmosys-ods-export-writer>
+      <option value="rows" selected><%= l(:label_cosmosys_ods_export_writer_rows) %></option>
+      <option value="indexed"><%= l(:label_cosmosys_ods_export_writer_indexed) %></option>
+    </select>
+  </label>
+  <button type="button" class="icon icon-download" data-cosmosys-ods-export
+    data-export-url="<%= cosmosys_ods_export_path(project_id: project.identifier) %>"
+    data-export-title="<%= project.identifier %>-items"
+    data-export-error="<%= l(:text_cosmosys_ods_export_failed) %>"><%= l(:button_cosmosys_ods_export) %></button>
+  <button type="button" class="icon icon-download" data-cosmosys-ods-export
+    data-export-url="<%= cosmosys_ods_export_path(project_id: project.identifier, include_subprojects: 1) %>"
+    data-export-title="<%= project.identifier %>-tree-items"
+    data-export-error="<%= l(:text_cosmosys_ods_export_failed) %>"><%= l(:button_cosmosys_ods_export_with_subprojects) %></button>
+  <% if show_import && User.current.allowed_to?(:edit_project, project) %>
+    <%= link_to l(:button_cosmosys_ods_import), new_project_cosmosys_ods_transfer_path(project), class: 'button icon icon-upload' %>
+  <% end %>
+  <% if show_history %>
+    <%= link_to l(:label_cosmosys_ods_transfer_history), project_cosmosys_ods_transfers_path(project), class: 'icon icon-history' %>
+  <% end %>
+</div>

@@ -1,0 +1,56 @@
+<%= render partial: 'cosmosys/items/nav', locals: { current: :document_catalog } %>
+<div class="contextual">
+  <%= link_to l(:label_document_plural), project_documents_path(@project), class: 'icon icon-document' %>
+  <% if User.current.allowed_to?(:add_issues, @project) %>
+    <%= button_to l(:button_cosmosys_add_related_documents_section),
+                  project_cosmosys_document_catalog_report_placeholders_path(@project),
+                  method: :post,
+                  class: 'icon icon-add',
+                  form: { class: 'cosmosys-inline-button-form' } %>
+  <% end %>
+</div>
+<h2><%= l(:label_cosmosys_document_catalog) %></h2>
+
+<% [['R', :label_cosmosys_family_reference], ['A', :label_cosmosys_family_applicable], ['C', :label_cosmosys_family_compliance]].each do |family, label| %>
+  <% entries = Array(@entries_by_family[family]) %>
+  <h3><%= l(label) %></h3>
+  <% if entries.any? %>
+    <table class="list cosmosys-document-catalog-table">
+      <thead>
+        <tr>
+          <th><%= l(:label_cosmosys_catalog_id) %></th>
+          <th><%= l(:field_title) %></th>
+          <th><%= l(:field_cosmosys_external_code) %></th>
+          <th><%= l(:field_cosmosys_document_date) %></th>
+          <th><%= l(:field_cosmosys_document_version) %></th>
+          <th><%= l(:label_cosmosys_reference_count) %></th>
+          <th><%= l(:label_cosmosys_position) %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% entries.each do |entry| %>
+          <tr>
+            <td><%= link_to entry.catalog_label, project_cosmosys_document_catalog_entry_path(@project, entry) %></td>
+            <td><%= link_to entry.document.title, document_path(entry.document) %></td>
+            <td><%= entry.document.external_code.presence || '-' %></td>
+            <td><%= entry.document.cosmosys_document_date.present? ? format_date(entry.document.cosmosys_document_date) : '-' %></td>
+            <td><%= entry.document.cosmosys_document_version.presence || '-' %></td>
+            <td><%= entry.catalog_refs.size %></td>
+            <td>
+              <% if entries.length > 1 && User.current.allowed_to?(:edit_documents, @project) %>
+                <%= form_tag project_cosmosys_document_catalog_entry_path(@project, entry), method: :patch, class: 'cosmosys-inline-order-form' do %>
+                  <% unless entry == entries.first %>
+                    <%= button_tag '↑', name: 'move', value: 'up', title: l(:label_sort_higher), aria: { label: l(:label_sort_higher) } %>
+                  <% end %>
+                  <% unless entry == entries.last %>
+                    <%= button_tag '↓', name: 'move', value: 'down', title: l(:label_sort_lower), aria: { label: l(:label_sort_lower) } %>
+                  <% end %>
+                <% end %>
+              <% else %><%= entry.position %><% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %><p class="nodata"><%= l(:label_no_data) %></p><% end %>
+<% end %>

@@ -1,0 +1,11 @@
+<h2><%= l(:label_cosmosys_split_task) %>: <%= link_to_issue(@issue) %></h2>
+
+<div class="box tabular">
+  <p><%= l(:text_cosmosys_split_explanation) %></p>
+  <%= form_tag issue_cosmosys_split_path(@issue), method: :post do %>
+    <p><%= label_tag :count, l(:label_cosmosys_child_count) %>
+      <%= select_tag :count, options_for_select((2..4).to_a, params[:count] || 2) %></p>
+    <p><%= submit_tag l(:button_cosmosys_split), class: 'button-positive' %>
+      <%= link_to l(:button_cancel), issue_path(@issue) %></p>
+  <% end %>
+</div>

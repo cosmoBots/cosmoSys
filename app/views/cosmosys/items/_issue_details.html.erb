@@ -1,0 +1,44 @@
+<div class="cosmosys-tree-issue-details">
+  <div class="cosmosys-tree-issue-header">
+    <h3 class="inline-block"><%= "#{issue.tracker}##{issue.cosmosys_display_ref}" %></h3>
+    <span class="badge"><%= issue.status.name %></span>
+  </div>
+  <p class="cosmosys-tree-issue-open">
+    <%= link_to l(:label_cosmosys_open_item_details), issue_path(issue), class: 'icon icon-external', target: '_blank', rel: 'noopener' %>
+  </p>
+
+  <div class="<%= issue.css_classes %> details">
+    <div class="subject">
+      <strong><%= issue.subject %></strong>
+    </div>
+
+    <dl class="cosmosys-tree-issue-meta">
+      <dt><%= l(:label_cosmosys_csid) %></dt>
+      <dd><%= issue.csid %></dd>
+      <dt>ID</dt>
+      <dd><%= issue.id %></dd>
+      <dt><%= l(:field_project) %></dt>
+      <dd><%= link_to_project(issue.project) %></dd>
+      <dt><%= l(:field_author) %></dt>
+      <dd><%= link_to_principal(issue.author) %></dd>
+      <% if issue.assigned_to %>
+        <dt><%= l(:field_assigned_to) %></dt>
+        <dd><%= link_to_principal(issue.assigned_to) %></dd>
+      <% end %>
+      <dt><%= l(:field_priority) %></dt>
+      <dd><%= issue.priority.name %></dd>
+      <dt><%= l(:field_updated_on) %></dt>
+      <dd><%= format_time(issue.updated_on) %></dd>
+    </dl>
+
+    <% if issue.description? %>
+      <hr />
+      <div class="description">
+        <p><strong><%= l(:field_description) %></strong></p>
+        <div class="wiki">
+          <%= textilizable issue, :description, attachments: issue.attachments %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

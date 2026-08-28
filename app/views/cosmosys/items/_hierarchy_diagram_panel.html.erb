@@ -1,0 +1,23 @@
+<div class="cosmosys-diagram-panel" data-cosmosys-diagram-panel="hierarchy">
+  <h4>
+    <%= issue.present? ? l(:label_cosmosys_hierarchy_diagram) : l(:label_cosmosys_project_hierarchy_diagram) %>
+    <%= render partial: 'cosmosys/items/diagram_export_links', locals: { project: project, issue: issue, kind: 'hierarchy' } %>
+  </h4>
+  <% if hierarchy_diagram.svg_body.present? %>
+    <p class="cosmosys-diagram-metadata">
+      <% if issue.present? %>
+        <strong><%= l(:label_cosmosys_hierarchy_diagram_revision) %>:</strong>
+        <%= "#{hierarchy_diagram.root_generation}.#{hierarchy_diagram.tree_revision}" %>
+      <% else %>
+        <strong><%= l(:label_cosmosys_project_hierarchy_signature) %>:</strong>
+        <code><%= hierarchy_diagram.signature.to_s.first(12) %></code>
+        <% if hierarchy_diagram.generated_at.present? %>
+          <span class="cosmosys-diagram-generated-at"><%= l(:label_cosmosys_diagram_generated_at) %>: <%= format_time(hierarchy_diagram.generated_at) %></span>
+        <% end %>
+      <% end %>
+    </p>
+    <div class="cosmosys-diagram-frame cosmosys-diagram-frame-hierarchy"><%= hierarchy_diagram.svg_body.html_safe %></div>
+  <% else %>
+    <p class="nodata"><%= issue.present? ? l(:text_cosmosys_diagram_unavailable) : l(:text_cosmosys_project_hierarchy_diagram_empty) %></p>
+  <% end %>
+</div>
