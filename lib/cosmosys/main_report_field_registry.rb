@@ -1,6 +1,6 @@
 module Cosmosys
   class MainReportFieldRegistry
-    ResolvedField = Struct.new(:key, :label, :value, :representation, keyword_init: true)
+    ResolvedField = Struct.new(:key, :label, :value, :representation, :rich_text, keyword_init: true)
 
     TEST_CUSTOM_FIELD_PREFIX = 'cst_'.freeze
     DEFAULT_HIDDEN_COLUMN_NAMES = %w[project].freeze
@@ -82,7 +82,8 @@ module Cosmosys
           key: column_name.to_s,
           label: normalize_label(column.caption),
           value: value,
-          representation: representation_by_name[column_name.to_s] || DEFAULT_REPRESENTATION_MODE
+          representation: representation_by_name[column_name.to_s] || DEFAULT_REPRESENTATION_MODE,
+          rich_text: column.respond_to?(:cosmosys_report_rich_text?) && column.cosmosys_report_rich_text?
         )
       end
     end

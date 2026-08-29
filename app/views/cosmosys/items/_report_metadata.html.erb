@@ -9,7 +9,7 @@
       <% section.metadata_fields.each do |field| %>
         <tr class="cosmosys-report-metadata-row cosmosys-report-metadata-row-<%= field.key %>">
           <th scope="row"><%= field.label %></th>
-          <td><%= field.value %></td>
+          <td><%= field.rich_text ? textilizable(section.issue, field.key.to_sym) : field.value %></td>
         </tr>
       <% end %>
       <% if include_url_link %>

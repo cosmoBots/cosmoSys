@@ -39,7 +39,7 @@
       <% section.body_fields.each do |field| %>
         <section class="cosmosys-report-body-field cosmosys-report-body-field-<%= field.key %>">
           <h6><%= field.label %></h6>
-          <div class="cosmosys-report-body-field-value"><%= field.value %></div>
+          <div class="cosmosys-report-body-field-value"><%= field.rich_text ? textilizable(section.issue, field.key.to_sym) : field.value %></div>
         </section>
       <% end %>
     </section>
