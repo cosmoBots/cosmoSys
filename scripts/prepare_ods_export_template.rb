@@ -44,6 +44,19 @@ extra_headers = {
   end
 end
 
+# Native item fields that are intentionally round-trippable but do not belong
+# in the visible planning grid live in ExtraFields. Keep this list in the base
+# transformer so specialised templates inherit the same generic contract.
+%w[preferred_report_diagram].each do |field|
+  next if (1..128).any? { |column| extra.cell(1, column).value.to_s == field }
+
+  column = (1..128).find { |index| extra.cell(1, index).value.to_s.empty? } || raise("No room for #{field}")
+  cell = extra.cell(1, column)
+  cell.value = field
+  cell.format.bold = true
+  cell.format.background_color = '#D9EAF7'
+end
+
 dictionary.cell(5, 1).value = 'cscode'
 
 documents = workbook.worksheets('Documents') || workbook.add_worksheet('Documents')
