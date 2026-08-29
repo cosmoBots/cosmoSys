@@ -253,7 +253,7 @@ es:
   label_cosmosys_preferred_report_diagram_combined: "Diagrama combinado"
   label_cosmosys_preferred_report_diagram_dependency: "Diagrama de dependencias"
   label_cosmosys_preferred_report_diagram_hierarchy: "Diagrama jerarquico"
-  label_cosmosys_preferred_report_diagram_none: "Sin diagrama"
+  label_cosmosys_preferred_report_diagram_no_diagram: "Sin diagrama"
   text_cosmosys_preferred_report_diagram_help: "Se usa cuando el informe incluye diagramas preferidos; los tipos seleccionados globalmente se anaden sin duplicados."
   label_cosmosys_item_kinds: "Perfiles de item"
   label_cosmosys_item_kind: "Perfil de item"

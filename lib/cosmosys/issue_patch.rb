@@ -3,7 +3,7 @@ require_dependency 'issue'
 
 module Cosmosys
   module IssuePatch
-    PREFERRED_REPORT_DIAGRAMS = %w[combined dependency hierarchy none].freeze
+    PREFERRED_REPORT_DIAGRAMS = %w[combined dependency hierarchy no_diagram].freeze
 
     def self.included(base)
       base.class_eval do
@@ -111,7 +111,7 @@ module Cosmosys
 
       kinds = []
       preferred = cosmosys_preferred_report_diagram
-      kinds << preferred if options['preferred_diagram'] && preferred != 'none'
+      kinds << preferred if options['preferred_diagram'] && preferred != 'no_diagram'
       %w[combined hierarchy dependency].each do |kind|
         kinds << kind if options["#{kind}_diagram"]
       end
