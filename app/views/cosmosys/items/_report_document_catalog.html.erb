@@ -14,7 +14,7 @@
       <tbody>
         <% section.document_catalog_entries.each do |entry| %>
           <% document = entry.document %>
-          <% has_metadata = document.external_code.present? || document.cosmosys_document_date.present? || document.cosmosys_document_version.present? %>
+          <% has_metadata = document.external_code.present? || document.csys_document_date.present? || document.csys_document_version.present? %>
           <tr class="cosmosys-report-document-catalog-primary-row">
             <td><%= entry.catalog_label %></td>
             <td colspan="3"><%= link_to document.title, document_path(document) %></td>
@@ -23,8 +23,8 @@
             <tr class="cosmosys-report-document-catalog-metadata-row">
               <td aria-hidden="true"></td>
               <td title="<%= l(:field_cosmosys_external_code) %>"><%= document.external_code.presence || '-' %></td>
-              <td title="<%= l(:field_cosmosys_document_date) %>"><%= document.cosmosys_document_date.present? ? format_date(document.cosmosys_document_date) : '-' %></td>
-              <td title="<%= l(:field_cosmosys_document_version) %>"><%= document.cosmosys_document_version.presence || '-' %></td>
+              <td title="<%= l(:field_cosmosys_document_date) %>"><%= document.csys_document_date.present? ? format_date(document.csys_document_date) : '-' %></td>
+              <td title="<%= l(:field_cosmosys_document_version) %>"><%= document.csys_document_version.presence || '-' %></td>
             </tr>
           <% end %>
         <% end %>

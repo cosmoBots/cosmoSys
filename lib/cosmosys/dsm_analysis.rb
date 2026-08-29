@@ -90,7 +90,7 @@ module Cosmosys
             dependent_id: dependent.id, prerequisite_id: prerequisite.id,
             relation_types: [], restricted: false, planning: false, ghost: false, sources: []
           }
-          restricted = relation.relation_type == 'blocks' || relation.cosmosys_restricted?
+          restricted = relation.relation_type == 'blocks' || relation.csys_restricted?
           ghost = prerequisite.id != relation.issue_from_id || dependent.id != relation.issue_to_id
           cell[:relation_types] |= [relation.relation_type]
           cell[:restricted] ||= restricted

@@ -4,8 +4,8 @@
 <p><%= f.select :category_id, DocumentCategory.active.collect {|c| [c.name, c.id]} %></p>
 <p><%= f.text_field :title, :required => true, :size => 60 %></p>
 <p><%= f.text_field :external_code, label: l(:field_cosmosys_external_code), size: 60, maxlength: 255 %></p>
-<p><%= f.date_field :cosmosys_document_date, label: l(:field_cosmosys_document_date) %></p>
-<p><%= f.text_field :cosmosys_document_version, label: l(:field_cosmosys_document_version), size: 30, maxlength: 255 %></p>
+<p><%= f.date_field :csys_document_date, label: l(:field_cosmosys_document_date) %></p>
+<p><%= f.text_field :csys_document_version, label: l(:field_cosmosys_document_version), size: 30, maxlength: 255 %></p>
 <p><%= f.text_area :description, :cols => 60, :rows => 15, :class => 'wiki-edit' %></p>
 
 <% @document.custom_field_values.each do |value| %>

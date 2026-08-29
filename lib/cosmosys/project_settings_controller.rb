@@ -65,20 +65,20 @@ module Cosmosys
     def update_project_profile!
       profile_key = Cosmosys::ProjectProfileRegistry.normalize_key(params.dig(:cosmosys_setting, :project_profile))
       raise ActiveRecord::RecordInvalid, @project unless Cosmosys::ProjectProfileRegistry.registered?(profile_key)
-      profile_changed = @project.cosmosys_project_profile != profile_key
+      profile_changed = @project.csys_project_profile != profile_key
 
       root_key = params.dig(:cosmosys_setting, :root_tracker_key).to_s
       root_key = nil if root_key == 'inherit'
-      allowed_keys = ['free'] + Tracker.where(id: @project.tracker_ids).where.not(cosmosys_key: nil).pluck(:cosmosys_key)
+      allowed_keys = ['free'] + Tracker.where(id: @project.tracker_ids).where.not(csys_key: nil).pluck(:csys_key)
       root_key = nil unless root_key.nil? || allowed_keys.include?(root_key)
-      @project.cosmosys_project_profile = profile_key
+      @project.csys_project_profile = profile_key
       language = params.dig(:cosmosys_setting, :language).to_s
-      @project.cosmosys_language = Cosmosys::ProjectLanguage.normalize(language, allow_blank: true)
-      @project.cosmosys_root_tracker_key = root_key
+      @project.csys_language = Cosmosys::ProjectLanguage.normalize(language, allow_blank: true)
+      @project.csys_root_tracker_key = root_key
       template_asset_id = params.dig(:cosmosys_setting, :ods_template_asset_id).presence
       @project.cosmosys_ods_template_asset = template_asset_id ? Cosmosys::TemplateAsset.available_ods.find(template_asset_id) : nil
       assign_report_template!
-      @project.cosmosys_project_passphrase = params.dig(:cosmosys_setting, :project_passphrase).to_s.presence
+      @project.csys_project_passphrase = params.dig(:cosmosys_setting, :project_passphrase).to_s.presence
       @project.cosmosys_enable_required_trackers!
       @project.save!
       @project.cosmosys_apply_profile_module_defaults! if profile_changed
@@ -87,14 +87,14 @@ module Cosmosys
     def assign_report_template!
       selection = params.dig(:cosmosys_setting, :report_template).to_s
       @project.cosmosys_report_template_asset = nil
-      @project.cosmosys_report_template_key = nil
+      @project.csys_report_template_key = nil
       case selection
       when /\Aasset:(\d+)\z/
         @project.cosmosys_report_template_asset = Cosmosys::TemplateAsset.available_reports.find(Regexp.last_match(1))
       when /\Abuiltin:([a-z0-9_]+)\z/
         key = Regexp.last_match(1)
         raise ActiveRecord::RecordNotFound unless Cosmosys::ReportTemplateCatalog.registered?(key)
-        @project.cosmosys_report_template_key = key
+        @project.csys_report_template_key = key
       end
     end
 

@@ -1,6 +1,6 @@
 <h4><%= link_to document.title, document_path(document) %></h4>
 <% if document.external_code.present? %><p><strong><%= l(:field_cosmosys_external_code) %>:</strong> <%= document.external_code %></p><% end %>
-<% if document.cosmosys_document_date.present? %><p><strong><%= l(:field_cosmosys_document_date) %>:</strong> <%= format_date(document.cosmosys_document_date) %></p><% end %>
-<% if document.cosmosys_document_version.present? %><p><strong><%= l(:field_cosmosys_document_version) %>:</strong> <%= document.cosmosys_document_version %></p><% end %>
+<% if document.csys_document_date.present? %><p><strong><%= l(:field_cosmosys_document_date) %>:</strong> <%= format_date(document.csys_document_date) %></p><% end %>
+<% if document.csys_document_version.present? %><p><strong><%= l(:field_cosmosys_document_version) %>:</strong> <%= document.csys_document_version %></p><% end %>
 <%= textilizable(document.description) %>
 <%= link_to_attachments document, :thumbnails => true %>

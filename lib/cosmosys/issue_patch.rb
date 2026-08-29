@@ -38,9 +38,9 @@ module Cosmosys
                 class_name: 'Cosmosys::ReportPlaceholder',
                 foreign_key: :issue_id,
                 dependent: :destroy
-        safe_attributes 'cosmosys_report_placeholder_kind'
-        safe_attributes 'cosmosys_preferred_report_diagram'
-        validates :cosmosys_preferred_report_diagram,
+        safe_attributes 'csys_report_placeholder_kind'
+        safe_attributes 'csys_preferred_report_diagram'
+        validates :csys_preferred_report_diagram,
                   inclusion: { in: PREFERRED_REPORT_DIAGRAMS }
         validate :cosmosys_validate_report_placeholder
         after_save :cosmosys_sync_report_placeholder
@@ -76,14 +76,14 @@ module Cosmosys
       cosmosys_item_kind.key
     end
 
-    def cosmosys_report_placeholder_kind
-      return @cosmosys_report_placeholder_kind if instance_variable_defined?(:@cosmosys_report_placeholder_kind)
+    def csys_report_placeholder_kind
+      return @csys_report_placeholder_kind if instance_variable_defined?(:@csys_report_placeholder_kind)
 
       cosmosys_report_placeholder&.kind.to_s
     end
 
-    def cosmosys_report_placeholder_kind=(value)
-      @cosmosys_report_placeholder_kind = value.to_s.presence
+    def csys_report_placeholder_kind=(value)
+      @csys_report_placeholder_kind = value.to_s.presence
     end
 
     def cosmosys_report_placeholder_kinds
@@ -99,7 +99,11 @@ module Cosmosys
     end
 
     def cosmosys_preferred_report_diagram
-      self[:cosmosys_preferred_report_diagram].presence || 'combined'
+      csys_preferred_report_diagram.presence || 'combined'
+    end
+
+    def cosmosys_preferred_report_diagram=(value)
+      self.csys_preferred_report_diagram = value
     end
 
     def cosmosys_report_diagram_kinds(options)
@@ -304,20 +308,20 @@ module Cosmosys
     end
 
     def cosmosys_validate_report_placeholder
-      kind = cosmosys_report_placeholder_kind
+      kind = csys_report_placeholder_kind
       return if kind.blank?
 
       unless cosmosys_report_placeholder_kinds.include?(kind)
-        errors.add(:cosmosys_report_placeholder_kind, :inclusion)
+        errors.add(:csys_report_placeholder_kind, :inclusion)
         return
       end
 
       duplicate = Cosmosys::ReportPlaceholder.where(project_id: project_id, kind: kind).where.not(issue_id: id).exists?
-      errors.add(:cosmosys_report_placeholder_kind, :taken) if duplicate
+      errors.add(:csys_report_placeholder_kind, :taken) if duplicate
     end
 
     def cosmosys_sync_report_placeholder
-      kind = cosmosys_report_placeholder_kind
+      kind = csys_report_placeholder_kind
       placeholder = cosmosys_report_placeholder
       unless cosmosys_report_placeholder_kinds.include?(kind)
         placeholder&.destroy!

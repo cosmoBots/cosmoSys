@@ -20,8 +20,8 @@ module Cosmosys
     private
 
     def install
-      placeholder_tracker = @project.trackers.find_by(cosmosys_key: 'cs_ref_doc') || raise(ActiveRecord::RecordNotFound, 'csRefDoc tracker is not enabled')
-      section_tracker = @project.trackers.find_by(cosmosys_key: 'cs_info') || raise(ActiveRecord::RecordNotFound, 'csInfo tracker is not enabled')
+      placeholder_tracker = @project.trackers.find_by(csys_key: 'cs_ref_doc') || raise(ActiveRecord::RecordNotFound, 'csRefDoc tracker is not enabled')
+      section_tracker = @project.trackers.find_by(csys_key: 'cs_info') || raise(ActiveRecord::RecordNotFound, 'csInfo tracker is not enabled')
       existing = Cosmosys::ReportPlaceholder.where(project_id: @project.id).index_by(&:kind)
       created_placeholders = []
       section = nil
@@ -64,7 +64,7 @@ module Cosmosys
         author: @user,
         subject: I18n.t(subject_key)
       )
-      issue.cosmosys_report_placeholder_kind = kind
+      issue.csys_report_placeholder_kind = kind
       issue.notify = false
       issue.save!
       created << issue

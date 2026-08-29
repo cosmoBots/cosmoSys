@@ -24,7 +24,7 @@ module Cosmosys
       @user = user
       @mode = MODES.include?(mode.to_s) ? mode.to_s : 'clean'
       @selected_parts = Array(selected_parts).map(&:to_s)
-      @profile_key = Cosmosys::ProjectProfileRegistry.normalize_key(profile_key.presence || source_project.cosmosys_project_profile)
+      @profile_key = Cosmosys::ProjectProfileRegistry.normalize_key(profile_key.presence || source_project.csys_project_profile)
       @archive = ActiveModel::Type::Boolean.new.cast(archive)
       @issue_map = {}
       @document_map = {}

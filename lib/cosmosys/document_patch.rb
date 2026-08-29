@@ -10,19 +10,19 @@ module Cosmosys
                  inverse_of: :document,
                  dependent: :destroy
         validates :external_code, length: { maximum: 255 }
-        validates :cosmosys_document_version, length: { maximum: 255 }
+        validates :csys_document_version, length: { maximum: 255 }
         before_destroy :cosmosys_prevent_referenced_document_destroy, prepend: true
-        safe_attributes 'external_code', 'cosmosys_document_date', 'cosmosys_document_version'
+        safe_attributes 'external_code', 'csys_document_date', 'csys_document_version'
       end
 
       searchable_columns = Array(base.searchable_options[:columns]).dup
       base.searchable_options = base.searchable_options.merge(
-        columns: searchable_columns | ["#{base.table_name}.external_code", "#{base.table_name}.cosmosys_document_version"]
+        columns: searchable_columns | ["#{base.table_name}.external_code", "#{base.table_name}.csys_document_version"]
       )
     end
 
     def cosmosys_search_label
-      [title, external_code.presence, cosmosys_document_version.presence].compact.join(' — ')
+      [title, external_code.presence, csys_document_version.presence].compact.join(' — ')
     end
 
     private

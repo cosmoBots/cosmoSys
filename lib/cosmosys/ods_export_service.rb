@@ -214,8 +214,8 @@ module Cosmosys
           'title' => document.title,
           'category' => document.category&.name,
           'external_code' => document.external_code,
-          'document_date' => document.cosmosys_document_date,
-          'document_version' => document.cosmosys_document_version,
+          'document_date' => document.csys_document_date,
+          'document_version' => document.csys_document_version,
           'description' => document.description,
           'row_uuid' => SecureRandom.uuid,
           'base_values' => JSON.generate(importable_document_values(document))
@@ -318,8 +318,8 @@ module Cosmosys
         'title' => document.title,
         'category' => document.category&.name,
         'external_code' => document.external_code,
-        'document_date' => document.cosmosys_document_date,
-        'document_version' => document.cosmosys_document_version,
+        'document_date' => document.csys_document_date,
+        'document_version' => document.csys_document_version,
         'description' => document.description
       }.transform_values { |value| canonical_value(value) }
     end

@@ -17,7 +17,7 @@ module Cosmosys
       Tracker.transaction do
         Hash(requested).each do |tracker_id, item_kind|
           tracker = Tracker.find(tracker_id)
-          tracker.update!(cosmosys_item_kind: Cosmosys::ItemKindRegistry.normalize_key(item_kind))
+          tracker.update!(csys_item_kind: Cosmosys::ItemKindRegistry.normalize_key(item_kind))
         end
       end
 

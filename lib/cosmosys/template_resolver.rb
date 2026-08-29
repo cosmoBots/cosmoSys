@@ -36,7 +36,7 @@ module Cosmosys
           return Resolution.new(kind: 'report', path: asset.source_path, asset: asset, source_project: candidate, profile: profile)
         end
 
-        catalog_template = Cosmosys::ReportTemplateCatalog.fetch(candidate.cosmosys_report_template_key)
+        catalog_template = Cosmosys::ReportTemplateCatalog.fetch(candidate.csys_report_template_key)
         next unless catalog_template
 
         return Resolution.new(
@@ -49,10 +49,10 @@ module Cosmosys
     end
 
     def self.each_same_profile_ancestor(project)
-      profile_key = project.cosmosys_project_profile
+      profile_key = project.csys_project_profile
       candidate = project
       while candidate
-        yield candidate if candidate.cosmosys_project_profile == profile_key
+        yield candidate if candidate.csys_project_profile == profile_key
         candidate = candidate.parent
       end
     end

@@ -181,10 +181,10 @@ module Cosmosys
 
       def tracker_map!
         trackers = {
-          'normal' => Tracker.where(cosmosys_item_kind: 'normal').order(:position, :id).first,
-          'csInfo' => Tracker.find_by(cosmosys_key: 'cs_info'),
-          'csRefDoc' => Tracker.find_by(cosmosys_key: 'cs_ref_doc'),
-          'csRq' => Tracker.find_by(cosmosys_key: 'requirement')
+          'normal' => Tracker.where(csys_item_kind: 'normal').order(:position, :id).first,
+          'csInfo' => Tracker.find_by(csys_key: 'cs_info'),
+          'csRefDoc' => Tracker.find_by(csys_key: 'cs_ref_doc'),
+          'csRq' => Tracker.find_by(csys_key: 'requirement')
         }
         missing = trackers.select { |_name, tracker| tracker.nil? }.keys
         raise "Missing fixture trackers: #{missing.join(', ')}" if missing.any?

@@ -29,12 +29,12 @@ module Cosmosys
       raise ProjectCopyError, "Unknown project profile #{context.profile_key}" unless Cosmosys::ProjectProfileRegistry.registered?(context.profile_key)
 
       destination.update_columns(
-        cosmosys_project_profile: context.profile_key,
-        cosmosys_root_tracker_key: source.cosmosys_root_tracker_key,
-        cosmosys_ods_template_asset_id: source.cosmosys_ods_template_asset_id,
-        cosmosys_report_template_asset_id: source.cosmosys_report_template_asset_id,
-        cosmosys_report_template_key: source.cosmosys_report_template_key,
-        cosmosys_language: source.cosmosys_language,
+        csys_project_profile: context.profile_key,
+        csys_root_tracker_key: source.csys_root_tracker_key,
+        csys_ods_template_asset_id: source.csys_ods_template_asset_id,
+        csys_report_template_asset_id: source.csys_report_template_asset_id,
+        csys_report_template_key: source.csys_report_template_key,
+        csys_language: source.csys_language,
         cslast_id: destination.issues.maximum(:csidnum).to_i
       )
       destination.cosmosys_enable_required_trackers!

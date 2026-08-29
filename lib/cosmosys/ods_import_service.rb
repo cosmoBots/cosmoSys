@@ -388,9 +388,9 @@ module Cosmosys
         document.title = normalized_text(safe.fetch('title', row['title']), row, 'title') if new_record || safe.key?('title')
         document.description = normalized_text(safe.fetch('description', row['description']), row, 'description') if new_record || safe.key?('description')
         document.external_code = safe['external_code'] if safe.key?('external_code')
-        document.cosmosys_document_version = safe['document_version'] if safe.key?('document_version')
+        document.csys_document_version = safe['document_version'] if safe.key?('document_version')
         if safe.key?('document_date')
-          document.cosmosys_document_date = safe['document_date'].blank? ? nil : Date.iso8601(safe['document_date'].to_s)
+          document.csys_document_date = safe['document_date'].blank? ? nil : Date.iso8601(safe['document_date'].to_s)
         end
         if new_record || safe.key?('category')
           category = DocumentCategory.active.find_by(name: safe.fetch('category', row['category']))
@@ -556,8 +556,8 @@ module Cosmosys
         'title' => document.title,
         'category' => document.category&.name,
         'external_code' => document.external_code,
-        'document_date' => document.cosmosys_document_date,
-        'document_version' => document.cosmosys_document_version,
+        'document_date' => document.csys_document_date,
+        'document_version' => document.csys_document_version,
         'description' => document.description
       }
     end

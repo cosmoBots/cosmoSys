@@ -18,7 +18,7 @@
 
   <% if @report.options['info_url_link'] && section.issue.cosmosys_item_kind.key == 'info' %>
     <div class="cosmosys-report-info-url-link">
-      <%= link_to section.issue.csid, issue_path(section.issue), data: { cosmosys_export_link: true } %>
+      <%= link_to section.issue.csid, issue_url(section.issue), data: { cosmosys_export_link: true } %>
     </div>
   <% end %>
 

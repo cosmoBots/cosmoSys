@@ -15,11 +15,11 @@
 <% if @document.external_code.present? %>
 <p><strong><%= l(:field_cosmosys_external_code) %>:</strong> <%= @document.external_code %></p>
 <% end %>
-<% if @document.cosmosys_document_date.present? %>
-<p><strong><%= l(:field_cosmosys_document_date) %>:</strong> <%= format_date(@document.cosmosys_document_date) %></p>
+<% if @document.csys_document_date.present? %>
+<p><strong><%= l(:field_cosmosys_document_date) %>:</strong> <%= format_date(@document.csys_document_date) %></p>
 <% end %>
-<% if @document.cosmosys_document_version.present? %>
-<p><strong><%= l(:field_cosmosys_document_version) %>:</strong> <%= @document.cosmosys_document_version %></p>
+<% if @document.csys_document_version.present? %>
+<p><strong><%= l(:field_cosmosys_document_version) %>:</strong> <%= @document.csys_document_version %></p>
 <% end %>
 
 <% if @document.custom_field_values.any? %>

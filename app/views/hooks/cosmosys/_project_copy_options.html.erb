@@ -9,7 +9,7 @@
   </p>
   <p>
     <label><%= l(:label_cosmosys_project_profile) %></label>
-    <%= select_tag 'cosmosys_copy[project_profile]', options_for_select(Cosmosys::ProjectProfileRegistry.all.map { |profile| [l(profile.label), profile.key] }, @source_project.cosmosys_project_profile) %>
+    <%= select_tag 'cosmosys_copy[project_profile]', options_for_select(Cosmosys::ProjectProfileRegistry.all.map { |profile| [l(profile.label), profile.key] }, @source_project.csys_project_profile) %>
   </p>
   <p>
     <label><%= l(:field_cosmosys_archive_baseline) %></label>

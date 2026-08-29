@@ -249,6 +249,7 @@ es:
   label_cosmosys_report_include_info_url_link: "Incluir un enlace URL discreto bajo los titulos de capitulos informativos"
   label_cosmosys_report_url_link: "URL Link"
   field_cosmosys_preferred_report_diagram: "Diagrama preferido para informes"
+  field_csys_preferred_report_diagram: "Diagrama preferido para informes"
   label_cosmosys_preferred_report_diagram_combined: "Diagrama combinado"
   label_cosmosys_preferred_report_diagram_dependency: "Diagrama de dependencias"
   label_cosmosys_preferred_report_diagram_hierarchy: "Diagrama jerarquico"

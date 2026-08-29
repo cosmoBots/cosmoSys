@@ -1,6 +1,6 @@
 <% issue = local_assigns[:issue] || @issue %>
 <% kinds = issue.cosmosys_report_placeholder_kinds %>
-<% current_kind = issue.cosmosys_report_placeholder_kind %>
+<% current_kind = issue.csys_report_placeholder_kind %>
 <% if kinds.any? || current_kind.present? %>
   <% labels = {
        'reference_documents' => l(:label_cosmosys_placeholder_reference_documents),
@@ -8,11 +8,11 @@
        'compliance_documents' => l(:label_cosmosys_placeholder_compliance_documents)
      } %>
   <p id="cosmosys-report-placeholder-field">
-    <%= label_tag 'issue_cosmosys_report_placeholder_kind', l(:field_cosmosys_report_placeholder_kind) %>
+    <%= label_tag 'issue_csys_report_placeholder_kind', l(:field_cosmosys_report_placeholder_kind) %>
     <%= select_tag(
-          'issue[cosmosys_report_placeholder_kind]',
+          'issue[csys_report_placeholder_kind]',
           options_for_select([[l(:label_none), '']] + kinds.map { |kind| [labels.fetch(kind, kind.humanize), kind] }, current_kind),
-          id: 'issue_cosmosys_report_placeholder_kind'
+          id: 'issue_csys_report_placeholder_kind'
         ) %>
     <em class="info"><%= l(:text_cosmosys_report_placeholder_help) %></em>
   </p>

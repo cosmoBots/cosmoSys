@@ -15,7 +15,7 @@
       <% if include_url_link %>
         <tr class="cosmosys-report-metadata-row cosmosys-report-metadata-row-url-link">
           <th scope="row"><%= l(:label_cosmosys_report_url_link) %></th>
-          <td><%= link_to section.issue.csid, issue_path(section.issue), data: { cosmosys_export_link: true } %></td>
+          <td><%= link_to section.issue.csid, issue_url(section.issue), data: { cosmosys_export_link: true } %></td>
         </tr>
       <% end %>
     </tbody>

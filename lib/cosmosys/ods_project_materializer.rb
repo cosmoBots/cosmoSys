@@ -101,7 +101,7 @@ module Cosmosys
     def create_destination!(data)
       target = Project.create!(name: destination_attributes.fetch('name'), identifier: destination_attributes.fetch('identifier'),
                                cscode: destination_attributes.fetch('cscode'), description: destination_attributes['description'].to_s,
-                               cosmosys_project_profile: profile_key)
+                               csys_project_profile: profile_key)
       source = Project.find_by(identifier: data.dig('manifest', 'project_identifier'))
       copy_memberships!(source, target) if source
       names = data.fetch('items').map { |row| row['tracker'] }.reject(&:blank?).uniq

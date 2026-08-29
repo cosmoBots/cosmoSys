@@ -33,8 +33,8 @@
             <td><%= link_to entry.catalog_label, project_cosmosys_document_catalog_entry_path(@project, entry) %></td>
             <td><%= link_to entry.document.title, document_path(entry.document) %></td>
             <td><%= entry.document.external_code.presence || '-' %></td>
-            <td><%= entry.document.cosmosys_document_date.present? ? format_date(entry.document.cosmosys_document_date) : '-' %></td>
-            <td><%= entry.document.cosmosys_document_version.presence || '-' %></td>
+            <td><%= entry.document.csys_document_date.present? ? format_date(entry.document.csys_document_date) : '-' %></td>
+            <td><%= entry.document.csys_document_version.presence || '-' %></td>
             <td><%= entry.catalog_refs.size %></td>
             <td>
               <% if entries.length > 1 && User.current.allowed_to?(:edit_documents, @project) %>

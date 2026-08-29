@@ -7,7 +7,7 @@
 </p>
 
 <p>
-  <%= form_builder.select :cosmosys_language,
+  <%= form_builder.select :csys_language,
                           [[l(:label_cosmosys_inherit_official_language, language: Cosmosys::ProjectLanguage.instance_default), '']] + lang_options_for_select(false) %>
   <em class="info"><%= l(:text_cosmosys_project_language_help, language: project_record&.cosmosys_effective_language || Cosmosys::ProjectLanguage.instance_default) %></em>
 </p>

@@ -50,7 +50,7 @@ summary = []
 
 Tracker.transaction do
   definitions.each do |key, name|
-    canonical = Tracker.find_by(cosmosys_key: key)
+    canonical = Tracker.find_by(csys_key: key)
     raise "Missing canonical structural tracker #{key}" unless canonical
 
     duplicates = Tracker.where('LOWER(name) = ?', name.downcase).where.not(id: canonical.id).order(:id).to_a
@@ -68,7 +68,7 @@ Tracker.transaction do
   feature = Tracker.where('LOWER(name) = ?', 'feature').order(:id).first
   if feature
     definitions.each_key do |key|
-      tracker = Tracker.find_by!(cosmosys_key: key)
+      tracker = Tracker.find_by!(csys_key: key)
       copied = replace_tracker_rows(connection, 'workflows', source_id: feature.id, target_id: tracker.id)
       summary << "Feature workflow -> #{tracker.name} (#{copied} rows)"
     end

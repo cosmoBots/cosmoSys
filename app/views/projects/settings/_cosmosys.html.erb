@@ -12,20 +12,20 @@
 <%= form_tag(project_cosmosys_settings_path(@project), method: :put, id: 'cosmosys-settings-form') do %>
   <div class="box tabular cosmosys-settings-box">
     <h3><%= l(:label_cosmosys_project_profile) %></h3>
-    <p><%= select_tag 'cosmosys_setting[project_profile]', options_for_select(Cosmosys::ProjectProfileRegistry.all.map { |profile| [l(profile.label), profile.key] }, @project.cosmosys_project_profile) %></p>
+    <p><%= select_tag 'cosmosys_setting[project_profile]', options_for_select(Cosmosys::ProjectProfileRegistry.all.map { |profile| [l(profile.label), profile.key] }, @project.csys_project_profile) %></p>
     <p>
       <%= label_tag 'cosmosys_setting_language', l(:field_cosmosys_language) %>
       <%= select_tag 'cosmosys_setting[language]',
-                     options_for_select([[l(:label_cosmosys_inherit_official_language, language: @project.cosmosys_effective_language), '']] + lang_options_for_select(false), @project.cosmosys_language),
+                     options_for_select([[l(:label_cosmosys_inherit_official_language, language: @project.cosmosys_effective_language), '']] + lang_options_for_select(false), @project.csys_language),
                      id: 'cosmosys_setting_language' %>
       <em class="info"><%= l(:text_cosmosys_project_language_help, language: @project.cosmosys_effective_language) %></em>
     </p>
-    <p><%= select_tag 'cosmosys_setting[root_tracker_key]', options_for_select([[l(:label_cosmosys_root_tracker_inherit), 'inherit'], [l(:label_cosmosys_root_tracker_free), 'free']] + @project.trackers.where.not(cosmosys_key: nil).map { |tracker| [tracker.name, tracker.cosmosys_key] }, @project.cosmosys_root_tracker_key.presence || 'inherit') %></p>
+    <p><%= select_tag 'cosmosys_setting[root_tracker_key]', options_for_select([[l(:label_cosmosys_root_tracker_inherit), 'inherit'], [l(:label_cosmosys_root_tracker_free), 'free']] + @project.trackers.where.not(csys_key: nil).map { |tracker| [tracker.name, tracker.csys_key] }, @project.csys_root_tracker_key.presence || 'inherit') %></p>
     <p class="info"><%= l(:text_cosmosys_project_profile_help) %></p>
     <% template_resolution = @project.cosmosys_effective_ods_template %>
     <h4><%= l(:label_cosmosys_ods_template) %></h4>
     <p>
-      <%= select_tag 'cosmosys_setting[ods_template_asset_id]', options_for_select([[l(:label_cosmosys_inherit_profile_template), '']] + Cosmosys::TemplateAsset.available_ods.map { |asset| [asset.name, asset.id] }, @project.cosmosys_ods_template_asset_id) %>
+      <%= select_tag 'cosmosys_setting[ods_template_asset_id]', options_for_select([[l(:label_cosmosys_inherit_profile_template), '']] + Cosmosys::TemplateAsset.available_ods.map { |asset| [asset.name, asset.id] }, @project.csys_ods_template_asset_id) %>
       <% template_source = template_resolution.asset ? l(:text_cosmosys_template_asset_source, template: template_resolution.asset.name, project: template_resolution.source_project.name) : l(:text_cosmosys_template_profile_source, profile: l(template_resolution.profile.label)) %>
       <em class="info"><%= l(:text_cosmosys_effective_template, source: template_source) %></em>
     </p>
@@ -35,7 +35,7 @@
     </p>
     <p><em class="info"><%= l(:text_cosmosys_template_download_help) %></em></p>
     <% report_template_resolution = @project.cosmosys_effective_report_template %>
-    <% selected_report_template = @project.cosmosys_report_template_asset_id ? "asset:#{@project.cosmosys_report_template_asset_id}" : (@project.cosmosys_report_template_key.present? ? "builtin:#{@project.cosmosys_report_template_key}" : '') %>
+    <% selected_report_template = @project.csys_report_template_asset_id ? "asset:#{@project.csys_report_template_asset_id}" : (@project.csys_report_template_key.present? ? "builtin:#{@project.csys_report_template_key}" : '') %>
     <% report_template_options = [[l(:label_cosmosys_inherit_profile_template), '']] + Cosmosys::ReportTemplateCatalog.all.map { |template| [template.label, "builtin:#{template.key}"] } + Cosmosys::TemplateAsset.available_reports.map { |asset| [asset.name, "asset:#{asset.id}"] } %>
     <h4><%= l(:label_cosmosys_report_template) %></h4>
     <p>
@@ -55,9 +55,9 @@
     </p>
     <h4><%= l(:label_cosmosys_project_passphrase) %></h4>
     <p>
-      <%= password_field_tag 'cosmosys_setting[project_passphrase]', @project.cosmosys_project_passphrase, autocomplete: 'new-password', placeholder: l(:label_cosmosys_inherit_project_passphrase) %>
+      <%= password_field_tag 'cosmosys_setting[project_passphrase]', @project.csys_project_passphrase, autocomplete: 'new-password', placeholder: l(:label_cosmosys_inherit_project_passphrase) %>
       <% passphrase_source = @project.cosmosys_project_passphrase_source %>
-      <% source_label = passphrase_source.cosmosys_project_passphrase.present? ? passphrase_source.name : l(:text_cosmosys_project_identifier_default) %>
+      <% source_label = passphrase_source.csys_project_passphrase.present? ? passphrase_source.name : l(:text_cosmosys_project_identifier_default) %>
       <em class="info"><%= l(:text_cosmosys_project_passphrase_help, effective: @project.cosmosys_effective_project_passphrase, source: source_label) %></em>
     </p>
     <p class="info"><%= l(:text_cosmosys_report_settings_help) %></p>

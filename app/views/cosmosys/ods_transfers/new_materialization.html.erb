@@ -12,7 +12,7 @@
       <%= radio_button_tag :copy_mode, 'clean', true %> <%= l(:label_cosmosys_copy_mode_clean) %>
       <%= radio_button_tag :copy_mode, 'faithful' %> <%= l(:label_cosmosys_copy_mode_faithful) %></p>
     <p><label><%= l(:label_cosmosys_project_profile) %></label>
-      <%= select_tag :project_profile, options_for_select(Cosmosys::ProjectProfileRegistry.all.map { |profile| [l(profile.label), profile.key] }, @project.cosmosys_project_profile) %></p>
+      <%= select_tag :project_profile, options_for_select(Cosmosys::ProjectProfileRegistry.all.map { |profile| [l(profile.label), profile.key] }, @project.csys_project_profile) %></p>
     <p><label><%= l(:field_cosmosys_archive_baseline) %></label><%= check_box_tag 'destination[archive]', '1' %></p>
   </div>
   <%= submit_tag l(:button_cosmosys_analyse_snapshot), class: 'button-positive' %>

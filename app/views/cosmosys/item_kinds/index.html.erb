@@ -80,20 +80,20 @@
         <% @trackers.each do |tracker| %>
           <% registered = tracker.cosmosys_item_kind_registered? %>
           <% profile_options = @profiles.map { |profile| [profile.label.is_a?(Symbol) ? l(profile.label) : profile.label, profile.key] } %>
-          <% profile_options << [l(:text_cosmosys_item_kind_missing, key: tracker.cosmosys_item_kind), tracker.cosmosys_item_kind] unless registered %>
+          <% profile_options << [l(:text_cosmosys_item_kind_missing, key: tracker.csys_item_kind), tracker.csys_item_kind] unless registered %>
           <tr>
             <td><%= link_to tracker.name, edit_tracker_path(tracker) %></td>
             <td>
               <%= select_tag(
                     "tracker_item_kinds[#{tracker.id}]",
-                    options_for_select(profile_options, tracker.cosmosys_item_kind)
+                    options_for_select(profile_options, tracker.csys_item_kind)
                   ) %>
             </td>
             <td>
               <% if registered %>
                 <%= l(:label_cosmosys_item_kind_available) %>
               <% else %>
-                <span class="icon icon-warning"><%= l(:text_cosmosys_item_kind_missing, key: tracker.cosmosys_item_kind) %></span>
+                <span class="icon icon-warning"><%= l(:text_cosmosys_item_kind_missing, key: tracker.csys_item_kind) %></span>
               <% end %>
             </td>
           </tr>

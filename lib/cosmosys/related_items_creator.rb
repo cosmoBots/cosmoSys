@@ -64,7 +64,7 @@ module Cosmosys
 
     def create_relation!(issue)
       from, to, type = relation_tuple(issue)
-      IssueRelation.create!(issue_from: from, issue_to: to, relation_type: type, cosmosys_restricted: @restricted)
+      IssueRelation.create!(issue_from: from, issue_to: to, relation_type: type, csys_restricted: @restricted)
     end
 
     def relation_tuple(issue)

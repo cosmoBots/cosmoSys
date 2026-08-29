@@ -11,11 +11,11 @@ module Cosmosys
     belongs_to :created_by, class_name: 'User'
     has_many :ods_overriding_projects,
              class_name: 'Project',
-             foreign_key: :cosmosys_ods_template_asset_id,
+             foreign_key: :csys_ods_template_asset_id,
              inverse_of: :cosmosys_ods_template_asset
     has_many :report_overriding_projects,
              class_name: 'Project',
-             foreign_key: :cosmosys_report_template_asset_id,
+             foreign_key: :csys_report_template_asset_id,
              inverse_of: :cosmosys_report_template_asset
 
     validates :name, :storage_key, :original_filename, :sha256, presence: true

@@ -8,20 +8,22 @@ module Cosmosys
       has_one :cosmosys_report_setting_record, class_name: 'Cosmosys::ProjectReportSetting', foreign_key: :project_id, dependent: :destroy
       belongs_to :cosmosys_ods_template_asset,
                  class_name: 'Cosmosys::TemplateAsset',
+                 foreign_key: :csys_ods_template_asset_id,
                  optional: true,
                  inverse_of: :ods_overriding_projects
       belongs_to :cosmosys_report_template_asset,
                  class_name: 'Cosmosys::TemplateAsset',
+                 foreign_key: :csys_report_template_asset_id,
                  optional: true,
                  inverse_of: :report_overriding_projects
 
-      safe_attributes 'cscode', 'cosmosys_language'
+      safe_attributes 'cscode', 'csys_language'
 
       before_validation :cosmosys_normalize_project_identity
 
       validates :cscode, presence: true
       validates :cscode, format: { with: /\A[a-zA-Z0-9]+\z/ }
-      validates :cosmosys_language, inclusion: { in: ->(_project) { Cosmosys::ProjectLanguage.available }, allow_blank: true }
+      validates :csys_language, inclusion: { in: ->(_project) { Cosmosys::ProjectLanguage.available }, allow_blank: true }
 
       validate :cosmosys_validate_project_identity_uniqueness
       validate :cosmosys_validate_root_stability
@@ -29,7 +31,7 @@ module Cosmosys
       validate :cosmosys_validate_required_trackers
       validate :cosmosys_validate_report_template_selection
       after_create :cosmosys_apply_initial_profile_contract!
-      after_commit :cosmosys_invalidate_language_dependent_diagrams, on: :update, if: :saved_change_to_cosmosys_language?
+      after_commit :cosmosys_invalidate_language_dependent_diagrams, on: :update, if: :saved_change_to_csys_language?
 
       attr_readonly :cscode
     end
@@ -55,11 +57,11 @@ module Cosmosys
     end
 
     def cosmosys_project_profile_definition
-      Cosmosys::ProjectProfileRegistry.fetch(cosmosys_project_profile)
+      Cosmosys::ProjectProfileRegistry.fetch(csys_project_profile)
     end
 
     def cosmosys_locale
-      (cosmosys_language.presence || Cosmosys::ProjectLanguage.instance_default).to_sym
+      (csys_language.presence || Cosmosys::ProjectLanguage.instance_default).to_sym
     end
 
     def cosmosys_effective_language = cosmosys_locale.to_s
@@ -77,11 +79,11 @@ module Cosmosys
     end
 
     def cosmosys_validate_report_template_selection
-      if cosmosys_report_template_key.present? && cosmosys_report_template_asset_id.present?
+      if csys_report_template_key.present? && csys_report_template_asset_id.present?
         errors.add(:base, 'Only one report template override may be selected')
       end
-      if cosmosys_report_template_key.present? && !Cosmosys::ReportTemplateCatalog.registered?(cosmosys_report_template_key)
-        errors.add(:cosmosys_report_template_key, :invalid)
+      if csys_report_template_key.present? && !Cosmosys::ReportTemplateCatalog.registered?(csys_report_template_key)
+        errors.add(:csys_report_template_key, :invalid)
       end
       if cosmosys_report_template_asset && cosmosys_report_template_asset.kind != 'report'
         errors.add(:cosmosys_report_template_asset, :invalid)
@@ -91,7 +93,7 @@ module Cosmosys
     def cosmosys_effective_project_passphrase
       candidate = self
       while candidate
-        return candidate.cosmosys_project_passphrase if candidate.cosmosys_project_passphrase.present?
+        return candidate.csys_project_passphrase if candidate.csys_project_passphrase.present?
         candidate = candidate.parent
       end
       identifier
@@ -100,7 +102,7 @@ module Cosmosys
     def cosmosys_project_passphrase_source
       candidate = self
       while candidate
-        return candidate if candidate.cosmosys_project_passphrase.present?
+        return candidate if candidate.csys_project_passphrase.present?
         candidate = candidate.parent
       end
       self
@@ -108,16 +110,16 @@ module Cosmosys
 
     def cosmosys_required_trackers
       keys = cosmosys_project_profile_definition.required_trackers.map { |entry| entry.fetch(:key) }
-      Tracker.where(cosmosys_key: keys)
+      Tracker.where(csys_key: keys)
     end
 
     def cosmosys_effective_root_tracker_key
-      cosmosys_root_tracker_key.presence || cosmosys_project_profile_definition.default_root_tracker
+      csys_root_tracker_key.presence || cosmosys_project_profile_definition.default_root_tracker
     end
 
     def cosmosys_root_tracker
       key = cosmosys_effective_root_tracker_key
-      key.present? && key != 'free' ? trackers.find_by(cosmosys_key: key) : nil
+      key.present? && key != 'free' ? trackers.find_by(csys_key: key) : nil
     end
 
     def cosmosys_enable_required_trackers!
