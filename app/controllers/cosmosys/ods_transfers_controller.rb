@@ -90,7 +90,11 @@ module Cosmosys
 
     def apply
       Cosmosys::OdsImportService.new(@transfer, user: User.current).apply!
-      flash[:notice] = @transfer.reload.applied? ? l(:notice_cosmosys_ods_import_applied) : l(:error_cosmosys_ods_import_failed)
+      if @transfer.reload.applied?
+        flash[:notice] = l(:notice_cosmosys_ods_import_applied)
+      else
+        flash[:error] = l(:error_cosmosys_ods_import_failed)
+      end
       redirect_to project_cosmosys_ods_transfer_path(@project, @transfer)
     end
 

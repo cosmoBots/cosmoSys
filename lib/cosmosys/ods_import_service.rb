@@ -362,8 +362,13 @@ module Cosmosys
         if row.key?('parent')
           parent = row['parent'].present? ? resolved[row['parent']] || resolve_item_by_key(row['parent']) : nil
           raise ImportError, "Unknown parent #{row['parent']}" if row['parent'].present? && parent.nil?
-          issue.parent_issue_id = parent&.id
-          issue.save! if issue.changed?
+          # Redmine's parent_issue_id= stores a virtual @parent_issue and only
+          # copies it to parent_id from its before_save callback. Therefore
+          # changed? remains false until save runs and cannot guard this write.
+          if issue.parent_id != parent&.id
+            issue.parent_issue_id = parent&.id
+            issue.save!
+          end
         end
         reconcile_relations!(issue, row, resolved)
       end
