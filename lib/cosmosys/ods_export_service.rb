@@ -73,6 +73,7 @@ module Cosmosys
             locations: locations,
             chapter: chapter_by_issue_id[issue.id]
           )
+          write_repeated_identity(extra_sheet, index + 2, 'csid', issue.csid)
           write_control_row(controls['items'], index + 2, issue.csid, @issue_control_values)
           report_progress(20 + (((index + 1).to_f / [issues.length, 1].max) * 45).floor, 'items')
         end
@@ -177,6 +178,11 @@ module Cosmosys
         end
       end
       locations
+    end
+
+    def write_repeated_identity(sheet, row, header, value)
+      column = sheet_headers(sheet)[header]
+      writable_cell(sheet, row, column).value = value if column
     end
 
     def write_issue(issue, row:, sheets:, locations:, chapter:)

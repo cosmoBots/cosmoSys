@@ -276,7 +276,10 @@ module Cosmosys
         issue = resolve_item(row)
         new_record = issue.nil?
         issue ||= Issue.new(project: row_project(row), author: user)
-        apply_item_fields(issue, row.merge(extras[row['csid']] || {}), new_record: new_record)
+        # Items is authoritative when a template repeats a header in both sheets.
+        # ExtraFields only enriches the visible item row; it must never replace a
+        # populated Items value with an empty duplicate cell.
+        apply_item_fields(issue, (extras[row['csid']] || {}).merge(row), new_record: new_record)
         issue.notify = false
         issue.save! if new_record || issue.changed?
         resolved[row['csid']] = issue
