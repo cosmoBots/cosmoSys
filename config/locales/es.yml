@@ -433,5 +433,5 @@ es:
   text_cosmosys_tracker_not_enabled: "El tracker seleccionado no esta habilitado en este proyecto."
   text_cosmosys_new_related_subject: "Nuevo item relacionado %{number} de %{subject}"
   notice_cosmosys_related_items_created: "Se han creado %{count} items relacionados."
-  label_cosmosys_item_list_columns: "Columnas predeterminadas del listado de items"
-  text_cosmosys_item_list_columns_help: "Estas columnas se aplican a los listados ordinarios de items del proyecto salvo que una consulta guardada o configurada explicitamente seleccione sus propias columnas."
+  label_cosmosys_item_list_columns: "Columnas predeterminadas de la pestaña Items"
+  text_cosmosys_item_list_columns_help: "Estas columnas se aplican a la pestaña Items del proyecto salvo que una consulta guardada o configurada explícitamente seleccione sus propias columnas."

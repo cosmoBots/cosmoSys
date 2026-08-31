@@ -103,7 +103,7 @@
   to { transform: rotate(360deg); }
 }
 
-#list-definition.cosmosys-report-columns-selection {
+.cosmosys-report-columns-selection {
   align-items: start;
   column-gap: 0.75rem;
   display: grid;
@@ -113,18 +113,18 @@
   width: 100%;
 }
 
-#list-definition.cosmosys-report-columns-selection .query-columns,
-#list-definition.cosmosys-report-columns-selection .buttons {
+.cosmosys-report-columns-selection .query-columns,
+.cosmosys-report-columns-selection .buttons {
   float: none;
   margin: 0;
 }
 
-#list-definition.cosmosys-report-columns-selection .query-columns {
+.cosmosys-report-columns-selection .query-columns {
   min-width: 0;
   width: 100%;
 }
 
-#list-definition.cosmosys-report-columns-selection .query-columns label {
+.cosmosys-report-columns-selection .query-columns label {
   display: block;
   margin-bottom: 0.35rem;
   overflow-wrap: anywhere;
@@ -132,13 +132,13 @@
   width: 100%;
 }
 
-#list-definition.cosmosys-report-columns-selection .query-columns select {
+.cosmosys-report-columns-selection .query-columns select {
   box-sizing: border-box;
   min-width: 0;
   width: 100%;
 }
 
-#list-definition.cosmosys-report-columns-selection .buttons {
+.cosmosys-report-columns-selection .buttons {
   align-self: start;
   display: flex;
   flex-direction: column;
@@ -146,17 +146,17 @@
   margin-top: 1.45rem;
 }
 
-#list-definition.cosmosys-report-columns-selection .buttons input[type=button] {
+.cosmosys-report-columns-selection .buttons input[type=button] {
   margin: 0;
 }
 
 @media screen and (max-width: 899px) {
-  #list-definition.cosmosys-report-columns-selection {
+  .cosmosys-report-columns-selection {
     grid-template-columns: 1fr;
     row-gap: 0.75rem;
   }
 
-  #list-definition.cosmosys-report-columns-selection .buttons {
+  .cosmosys-report-columns-selection .buttons {
     flex-direction: row;
     flex-wrap: wrap;
     margin-top: 0;

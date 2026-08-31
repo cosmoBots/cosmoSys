@@ -433,5 +433,5 @@ en:
   text_cosmosys_tracker_not_enabled: "The selected tracker is not enabled for this project."
   text_cosmosys_new_related_subject: "New related item %{number} of %{subject}"
   notice_cosmosys_related_items_created: "%{count} related items were created."
-  label_cosmosys_item_list_columns: "Default item list columns"
-  text_cosmosys_item_list_columns_help: "These columns apply to ordinary project item lists unless a saved or explicitly configured query selects its own columns."
+  label_cosmosys_item_list_columns: "Default columns for the Items tab"
+  text_cosmosys_item_list_columns_help: "These columns apply to the project's Items tab unless a saved or explicitly configured query selects its own columns."
