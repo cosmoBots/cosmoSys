@@ -29,7 +29,7 @@ module Cosmosys
       'landscape' => ['COSMOSYS_REPORT_LANDSCAPE_START', 'COSMOSYS_REPORT_LANDSCAPE_END'],
       'portrait' => ['COSMOSYS_REPORT_PORTRAIT_START', 'COSMOSYS_REPORT_PORTRAIT_END']
     }.freeze
-    CACHE_SCHEMA = 'cosmosys-report-artifact-v3'.freeze
+    CACHE_SCHEMA = 'cosmosys-report-artifact-v4'.freeze
     MAX_CACHED_REPORTS_PER_PROJECT = 5
 
     class ExportError < StandardError; end
@@ -84,6 +84,7 @@ module Cosmosys
         CACHE_SCHEMA,
         @project.id,
         @project.name,
+        @project.identifier,
         @project.cscode,
         @project.csys_report_code,
         report_application_version,
@@ -552,7 +553,7 @@ module Cosmosys
         Date.current.iso8601,
         @project.cscode.to_s,
         @project.name,
-        @project.id.to_s
+        @project.identifier.to_s
       ].map { |value| macro_argument(value) }.join(',')
       "macro:///Standard.csys.Headless(#{args})"
     end
