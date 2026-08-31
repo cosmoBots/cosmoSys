@@ -393,6 +393,20 @@ module Cosmosys
         end
         reconcile_relations!(issue, row, resolved)
       end
+
+      restore_imported_sibling_order!(rows, resolved)
+    end
+
+    def restore_imported_sibling_order!(rows, resolved)
+      rows.filter_map { |row| resolved[row['csid']] }.group_by { |issue| [issue.project_id, issue.reload.parent_id] }.each_value do |imported|
+        scope = Cosmosys::SiblingOrder.sibling_scope(imported.first)
+        imported_by_id = imported.index_by(&:id)
+        preferred = imported.map(&:id)
+        ordered = scope.reorder(:lft, :id).to_a.map do |issue|
+          imported_by_id.key?(issue.id) ? imported_by_id.fetch(preferred.shift) : issue
+        end
+        Cosmosys::SiblingOrder.apply_order!(ordered)
+      end
     end
 
     def reconcile_relations!(issue, row, resolved)

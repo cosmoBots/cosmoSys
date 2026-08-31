@@ -22,6 +22,18 @@ module Cosmosys
       end
     end
 
+    def self.apply_order!(issues)
+      Array(issues).each.with_index(1) do |issue, index|
+        next if issue.csposition == index
+
+        issue.update_column(:csposition, index)
+      end
+    end
+
+    def self.align_with_tree!(scope)
+      apply_order!(scope.reorder(:lft, :id).to_a)
+    end
+
     def self.sibling_scope(issue)
       if issue.parent_id.present?
         Issue.where(parent_id: issue.parent_id)
