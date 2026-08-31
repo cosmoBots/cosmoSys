@@ -99,6 +99,17 @@
   color: #8e1b1b;
 }
 
+.cosmosys-project-profile-impact {
+  background: #fff8dc;
+  border: 1px solid #d9c77c;
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+}
+
+.cosmosys-project-profile-impact ul {
+  margin-bottom: 0.75rem;
+}
+
 @keyframes cosmosys-spin {
   to { transform: rotate(360deg); }
 }

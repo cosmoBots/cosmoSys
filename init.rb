@@ -72,6 +72,7 @@ require_dependency File.expand_path('lib/cosmosys/issue_copy_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_native_copy_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_copy_finalizer', __dir__)
 require_dependency File.expand_path('lib/cosmosys/projects_controller_copy_patch', __dir__)
+require_dependency File.expand_path('lib/cosmosys/projects_controller_profile_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issue_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issue_relation_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/document_patch', __dir__)
@@ -162,6 +163,7 @@ patch_cosmosys_models = proc do
   QueriesHelper.prepend Cosmosys::QueriesHelperPatch unless QueriesHelper < Cosmosys::QueriesHelperPatch
   ProjectsHelper.prepend Cosmosys::ProjectsHelperPatch unless ProjectsHelper < Cosmosys::ProjectsHelperPatch
   ProjectsController.prepend Cosmosys::ProjectsControllerCopyPatch unless ProjectsController < Cosmosys::ProjectsControllerCopyPatch
+  ProjectsController.prepend Cosmosys::ProjectsControllerProfilePatch unless ProjectsController < Cosmosys::ProjectsControllerProfilePatch
 end
 
 patch_cosmosys_models.call

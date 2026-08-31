@@ -12,7 +12,46 @@
 <%= form_tag(project_cosmosys_settings_path(@project), method: :put, id: 'cosmosys-settings-form') do %>
   <div class="box tabular cosmosys-settings-box">
     <h3><%= l(:label_cosmosys_project_profile) %></h3>
-    <p><%= select_tag 'cosmosys_setting[project_profile]', options_for_select(Cosmosys::ProjectProfileRegistry.all.map { |profile| [l(profile.label), profile.key] }, @project.csys_project_profile) %></p>
+    <p><%= select_tag 'cosmosys_setting[project_profile]', options_for_select(Cosmosys::ProjectProfileRegistry.all.map { |profile| [l(profile.label), profile.key] }, @project.csys_project_profile), id: 'cosmosys_setting_project_profile' %></p>
+    <%= hidden_field_tag 'cosmosys_setting[current_project_profile]', @project.csys_project_profile, id: 'cosmosys_setting_current_project_profile' %>
+    <div id="cosmosys-project-profile-impact" class="cosmosys-project-profile-impact" hidden>
+      <p><strong><%= l(:label_cosmosys_project_profile_impact) %></strong></p>
+      <% Cosmosys::ProjectProfileRegistry.all.each do |profile| %>
+        <% impact = @project.cosmosys_profile_module_impact(profile.key) %>
+        <div data-cosmosys-profile-impact="<%= profile.key %>" hidden>
+          <p><%= l(:text_cosmosys_project_profile_impact_help, profile: l(profile.label)) %></p>
+          <ul>
+            <li><%= l(:label_cosmosys_modules_enabled_by_migration, modules: impact[:enable].presence&.map { |name| l_or_humanize(name, prefix: 'project_module_') }&.join(', ') || l(:label_none)) %></li>
+            <li><%= l(:label_cosmosys_modules_disabled_by_migration, modules: impact[:disable].presence&.map { |name| l_or_humanize(name, prefix: 'project_module_') }&.join(', ') || l(:label_none)) %></li>
+            <li><%= l(:label_cosmosys_modules_required_by_profile, modules: impact[:required].presence&.map { |name| l_or_humanize(name, prefix: 'project_module_') }&.join(', ') || l(:label_none)) %></li>
+          </ul>
+        </div>
+      <% end %>
+      <label class="block">
+        <%= check_box_tag 'cosmosys_setting[confirm_profile_reconfiguration]', '1', false, id: 'cosmosys_setting_confirm_profile_reconfiguration' %>
+        <%= l(:label_cosmosys_confirm_project_profile_reconfiguration) %>
+      </label>
+    </div>
+    <%= javascript_tag do %>
+      document.addEventListener('DOMContentLoaded', function() {
+        var selector = document.getElementById('cosmosys_setting_project_profile');
+        var current = document.getElementById('cosmosys_setting_current_project_profile');
+        var container = document.getElementById('cosmosys-project-profile-impact');
+        var confirmation = document.getElementById('cosmosys_setting_confirm_profile_reconfiguration');
+        if (!selector || !current || !container || !confirmation) return;
+        var refreshImpact = function() {
+          var changed = selector.value !== current.value;
+          container.hidden = !changed;
+          container.querySelectorAll('[data-cosmosys-profile-impact]').forEach(function(panel) {
+            panel.hidden = !changed || panel.dataset.cosmosysProfileImpact !== selector.value;
+          });
+          confirmation.required = changed;
+          if (!changed) confirmation.checked = false;
+        };
+        selector.addEventListener('change', refreshImpact);
+        refreshImpact();
+      });
+    <% end %>
     <p>
       <%= label_tag 'cosmosys_setting_language', l(:field_cosmosys_language) %>
       <%= select_tag 'cosmosys_setting[language]',

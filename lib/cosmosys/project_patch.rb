@@ -18,14 +18,19 @@ module Cosmosys
                  inverse_of: :report_overriding_projects
 
       safe_attributes 'cscode', 'csys_language', 'csys_report_code', 'csys_report_export_format'
+      safe_attributes 'csys_project_profile', if: ->(project, _user) { project.new_record? }
+      safe_attributes 'csys_modules_explicit', if: ->(project, _user) { project.new_record? }
 
       before_validation :cosmosys_normalize_project_identity
+      before_validation :cosmosys_apply_initial_module_defaults
+      before_validation :cosmosys_ensure_required_modules
 
       validates :cscode, presence: true
       validates :cscode, format: { with: /\A[a-zA-Z0-9]+\z/ }
       validates :csys_language, inclusion: { in: ->(_project) { Cosmosys::ProjectLanguage.available }, allow_blank: true }
       validates :csys_report_code, length: { maximum: 255 }
       validates :csys_report_export_format, inclusion: { in: Cosmosys::ReportFormat::FORMATS, allow_blank: true }
+      validate :cosmosys_validate_project_profile
 
       validate :cosmosys_validate_project_identity_uniqueness
       validate :cosmosys_validate_root_stability
@@ -36,6 +41,7 @@ module Cosmosys
       after_commit :cosmosys_invalidate_language_dependent_diagrams, on: :update, if: :saved_change_to_csys_language?
 
       attr_readonly :cscode
+      attr_accessor :csys_modules_explicit
     end
 
     def project_root
@@ -129,16 +135,57 @@ module Cosmosys
     end
 
     def cosmosys_apply_profile_module_defaults!
-      disabled = cosmosys_project_profile_definition.default_disabled_modules
-      return if disabled.empty?
+      self.enabled_module_names = cosmosys_profile_default_module_names(enabled_module_names)
+    end
 
-      enabled_modules.where(name: disabled).delete_all
-      association(:enabled_modules).reset
+    def cosmosys_apply_initial_module_defaults
+      return unless new_record?
+      return if ActiveModel::Type::Boolean.new.cast(csys_modules_explicit)
+
+      self.enabled_module_names = cosmosys_profile_default_module_names
+    end
+
+    def cosmosys_profile_default_module_names(base_names = Setting.default_projects_modules)
+      profile = cosmosys_project_profile_definition
+      names = Array(base_names).map(&:to_s)
+      names |= profile.default_enabled_modules
+      names -= profile.default_disabled_modules
+      names | profile.required_modules
+    end
+
+    def cosmosys_profile_module_impact(profile_key)
+      profile = Cosmosys::ProjectProfileRegistry.fetch(profile_key)
+      current = enabled_module_names.map(&:to_s)
+      target = cosmosys_profile_default_module_names_for(profile, Setting.default_projects_modules)
+      { enable: target - current, disable: current - target, required: profile.required_modules }
+    end
+
+    def cosmosys_reconfigure_modules_for_profile!
+      self.enabled_module_names = cosmosys_profile_default_module_names
+    end
+
+    def cosmosys_ensure_required_modules
+      required = cosmosys_project_profile_definition.required_modules
+      self.enabled_module_names = enabled_module_names | required if required.any?
+    end
+
+    def cosmosys_validate_project_profile
+      return if Cosmosys::ProjectProfileRegistry.registered?(csys_project_profile)
+
+      errors.add(:csys_project_profile, :inclusion)
     end
 
     def cosmosys_apply_initial_profile_contract!
       cosmosys_enable_required_trackers!
-      cosmosys_apply_profile_module_defaults!
+      cosmosys_ensure_required_modules
+      save! if changed?
+    end
+
+    def cosmosys_profile_default_module_names_for(profile, base_names)
+      names = Array(base_names).map(&:to_s)
+      names |= profile.default_enabled_modules
+      names -= profile.default_disabled_modules
+      names | profile.required_modules
     end
 
     def cosmosys_invalidate_language_dependent_diagrams

@@ -1,0 +1,16 @@
+<%= title l(:label_project_new) %>
+
+<div class="box tabular cosmosys-project-profile-step">
+  <h3><%= l(:label_cosmosys_project_profile_creation) %></h3>
+  <p class="info"><%= l(:text_cosmosys_project_profile_creation_help) %></p>
+
+  <%= form_tag new_project_path, method: :get do %>
+    <%= hidden_field_tag 'project[parent_id]', @cosmosys_parent_id if @cosmosys_parent_id.present? %>
+    <p>
+      <%= label_tag :project_profile, l(:label_cosmosys_project_profile) %>
+      <%= select_tag :project_profile,
+                     options_for_select(@cosmosys_project_profiles.map { |profile| [l(profile.label), profile.key] }, Cosmosys::ProjectProfileRegistry::DEFAULT_KEY) %>
+    </p>
+    <p><%= submit_tag l(:button_continue) %></p>
+  <% end %>
+</div>

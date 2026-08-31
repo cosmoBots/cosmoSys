@@ -3,7 +3,8 @@ module Cosmosys
     Profile = Struct.new(
       :key, :label, :description, :provider, :required_trackers,
       :default_root_tracker, :ods_export_template, :report_export_template,
-      :default_disabled_modules, :default_report_columns,
+      :default_enabled_modules, :default_disabled_modules, :required_modules,
+      :default_report_columns,
       :default_report_field_presentations, :default_report_options,
       :default_item_list_columns,
       keyword_init: true
@@ -26,11 +27,11 @@ module Cosmosys
 
     module_function
 
-    def register(key, label:, description:, provider:, required_trackers:, default_root_tracker: nil, ods_export_template: DEFAULT_ODS_EXPORT_TEMPLATE, report_export_template: DEFAULT_REPORT_EXPORT_TEMPLATE, default_disabled_modules: [], default_report_columns: DEFAULT_REPORT_COLUMNS, default_report_field_presentations: {}, default_report_options: DEFAULT_REPORT_OPTIONS, default_item_list_columns: DEFAULT_ITEM_LIST_COLUMNS)
+    def register(key, label:, description:, provider:, required_trackers:, default_root_tracker: nil, ods_export_template: DEFAULT_ODS_EXPORT_TEMPLATE, report_export_template: DEFAULT_REPORT_EXPORT_TEMPLATE, default_enabled_modules: [], default_disabled_modules: [], required_modules: [], default_report_columns: DEFAULT_REPORT_COLUMNS, default_report_field_presentations: {}, default_report_options: DEFAULT_REPORT_OPTIONS, default_item_list_columns: DEFAULT_ITEM_LIST_COLUMNS)
       key = normalize_key(key)
       raise ArgumentError, "#{DEFAULT_KEY} is the reserved project profile" if key == DEFAULT_KEY
       raise ArgumentError, "project profile #{key} is already registered" if profiles.key?(key)
-      candidate = build(key:, label:, description:, provider:, required_trackers: BASE_TRACKERS + required_trackers, default_root_tracker:, ods_export_template:, report_export_template:, default_disabled_modules:, default_report_columns:, default_report_field_presentations:, default_report_options:, default_item_list_columns:)
+      candidate = build(key:, label:, description:, provider:, required_trackers: BASE_TRACKERS + required_trackers, default_root_tracker:, ods_export_template:, report_export_template:, default_enabled_modules:, default_disabled_modules:, required_modules:, default_report_columns:, default_report_field_presentations:, default_report_options:, default_item_list_columns:)
       validate_contract!(candidate)
       profiles[key] = candidate
     end
@@ -51,7 +52,9 @@ module Cosmosys
           default_root_tracker: 'cs_info',
           ods_export_template: DEFAULT_ODS_EXPORT_TEMPLATE,
           report_export_template: DEFAULT_REPORT_EXPORT_TEMPLATE,
+          default_enabled_modules: [],
           default_disabled_modules: [],
+          required_modules: [],
           default_report_columns: DEFAULT_REPORT_COLUMNS,
           default_report_field_presentations: {},
           default_report_options: DEFAULT_REPORT_OPTIONS,
@@ -62,7 +65,9 @@ module Cosmosys
 
     def build(**attributes)
       attributes[:required_trackers] = attributes[:required_trackers].map { |entry| entry.transform_keys(&:to_sym).dup.freeze }.uniq { |entry| entry.fetch(:key) }.freeze
+      attributes[:default_enabled_modules] = Array(attributes[:default_enabled_modules]).map(&:to_s).uniq.freeze
       attributes[:default_disabled_modules] = Array(attributes[:default_disabled_modules]).map(&:to_s).uniq.freeze
+      attributes[:required_modules] = Array(attributes[:required_modules]).map(&:to_s).uniq.freeze
       attributes[:default_report_columns] = Array(attributes[:default_report_columns]).map(&:to_s).reject(&:blank?).uniq.freeze
       attributes[:default_report_field_presentations] = Hash(attributes[:default_report_field_presentations]).stringify_keys.transform_values(&:to_s).freeze
       attributes[:default_report_options] = Hash(attributes[:default_report_options]).stringify_keys.transform_values { |value| ActiveModel::Type::Boolean.new.cast(value) }.freeze
@@ -82,8 +87,11 @@ module Cosmosys
       raise ArgumentError, 'Report export template path must be relative to Rails.root' if report_template_path.absolute? || report_template_path.each_filename.include?('..')
       raise ArgumentError, 'Report export template must be an .odt file' unless report_template_path.extname.casecmp('.odt').zero?
 
-      unknown_modules = candidate.default_disabled_modules - Redmine::AccessControl.available_project_modules.map(&:to_s)
-      raise ArgumentError, "unknown default-disabled project modules: #{unknown_modules.join(', ')}" if unknown_modules.any?
+      configured_modules = candidate.default_enabled_modules + candidate.default_disabled_modules + candidate.required_modules
+      unknown_modules = configured_modules.uniq - Redmine::AccessControl.available_project_modules.map(&:to_s)
+      raise ArgumentError, "unknown project profile modules: #{unknown_modules.join(', ')}" if unknown_modules.any?
+      conflicting_modules = candidate.default_disabled_modules & (candidate.default_enabled_modules + candidate.required_modules)
+      raise ArgumentError, "modules cannot be both disabled and enabled/required: #{conflicting_modules.join(', ')}" if conflicting_modules.any?
 
       unknown_options = candidate.default_report_options.keys - Cosmosys::MainReportSettings::OPTION_NAMES
       raise ArgumentError, "unknown default report options: #{unknown_options.join(', ')}" if unknown_options.any?

@@ -6,7 +6,7 @@ module Cosmosys
     before_action :authorize_project_settings
 
     def update
-      update_project_profile!
+      return unless update_project_profile!
       query = Cosmosys::MainReportFieldRegistry.query_for_project(@project, user: User.current)
       available_names = query.available_inline_columns.map { |column| column.name.to_s }
       selected_names = Array(params.dig(:cosmosys_setting, :column_names)).map(&:to_s)
@@ -66,6 +66,11 @@ module Cosmosys
       profile_key = Cosmosys::ProjectProfileRegistry.normalize_key(params.dig(:cosmosys_setting, :project_profile))
       raise ActiveRecord::RecordInvalid, @project unless Cosmosys::ProjectProfileRegistry.registered?(profile_key)
       profile_changed = @project.csys_project_profile != profile_key
+      if profile_changed && !ActiveModel::Type::Boolean.new.cast(params.dig(:cosmosys_setting, :confirm_profile_reconfiguration))
+        flash[:error] = l(:error_cosmosys_project_profile_confirmation_required)
+        redirect_to settings_project_path(@project, tab: 'cosmosys')
+        return false
+      end
 
       root_key = params.dig(:cosmosys_setting, :root_tracker_key).to_s
       root_key = nil if root_key == 'inherit'
@@ -85,8 +90,9 @@ module Cosmosys
       assign_report_template!
       @project.csys_project_passphrase = params.dig(:cosmosys_setting, :project_passphrase).to_s.presence
       @project.cosmosys_enable_required_trackers!
+      @project.cosmosys_reconfigure_modules_for_profile! if profile_changed
       @project.save!
-      @project.cosmosys_apply_profile_module_defaults! if profile_changed
+      true
     end
 
     def assign_report_template!

@@ -1,6 +1,31 @@
 <% project_record = local_assigns[:project] || @project %>
 <% form_builder = local_assigns[:form] %>
 
+<% if project_record&.new_record? %>
+  <%= form_builder.hidden_field :csys_project_profile %>
+  <%= form_builder.hidden_field :csys_modules_explicit, value: '1' %>
+  <p>
+    <%= form_builder.label :csys_project_profile, l(:label_cosmosys_project_profile) %>
+    <strong><%= l(project_record.cosmosys_project_profile_definition.label) %></strong>
+    <em class="info"><%= l(:text_cosmosys_project_profile_selected_before_creation) %></em>
+  </p>
+  <% required_modules = project_record.cosmosys_project_profile_definition.required_modules %>
+  <% required_modules.each do |module_name| %>
+    <%= hidden_field_tag 'project[enabled_module_names][]', module_name %>
+  <% end %>
+  <% if required_modules.any? %>
+    <p class="info"><%= l(:text_cosmosys_required_modules, modules: required_modules.map { |name| l_or_humanize(name, prefix: 'project_module_') }.join(', ')) %></p>
+    <%= javascript_tag do %>
+      document.addEventListener('DOMContentLoaded', function() {
+        <% required_modules.each do |module_name| %>
+          var checkbox = document.getElementById(<%= "project_enabled_module_names_#{module_name}".to_json.html_safe %>);
+          if (checkbox) { checkbox.checked = true; checkbox.disabled = true; }
+        <% end %>
+      });
+    <% end %>
+  <% end %>
+<% end %>
+
 <p>
   <%= form_builder.text_field :cscode, required: true, readonly: project_record&.persisted? %>
   <em class="info"><%= l(:text_cosmosys_project_code_help) %></em>
