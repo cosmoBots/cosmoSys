@@ -158,7 +158,7 @@ Sub ApplyAlternateOrientationGraphics(oDoc)
     call ApplyPageMarker(oDoc, sEndMarker, &quot;Standard&quot;)
 End Sub
 
-Sub Main(oDoc, HTMLPath as String, Title as String, DelivCode as String, AppVersion as String, DocDate as String, ProjectAbbrev as String, ProjectName as String, ProjectRef as String)
+Sub Main(oDoc, HTMLPath as String, Title as String, DelivCode as String, cSysVersion as String, DocDate as String, ProjectAbbrev as String, ProjectName as String, ProjectRef as String)
 
 dim oSearch as object
 dim oResult as object
@@ -169,7 +169,10 @@ oText = oDoc.getText
 
 oDoc.DocumentProperties.Title = Title
 oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("DelivCode",DelivCode)
-oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("AppVersion",AppVersion)
+If oDoc.DocumentProperties.UserDefinedProperties.PropertySetInfo.hasPropertyByName("cSysVersion") Then
+    oDoc.DocumentProperties.UserDefinedProperties.removeProperty("cSysVersion")
+End If
+oDoc.DocumentProperties.UserDefinedProperties.addProperty("cSysVersion",0,cSysVersion)
 Dim ReportDate as New com.sun.star.util.DateTime
 ReportDate.Year = CInt(Left(DocDate, 4))
 ReportDate.Month = CInt(Mid(DocDate, 6, 2))
@@ -220,9 +223,9 @@ function OpenSilent(FilePath as String) as Object
   OpenSilent = StarDesktop.loadComponentFromURL(&quot;file://&quot; &amp; FilePath, &quot;_blank&quot;, 0, FileProperties())
 end function
 
-sub Headless(FilePath as String, HTMLPath as String, Title as String, DelivCode as String, AppVersion as String, DocDate as String, ProjectAbbrev as String, ProjectName as String, ProjectRef as String)
+sub Headless(FilePath as String, HTMLPath as String, Title as String, DelivCode as String, cSysVersion as String, DocDate as String, ProjectAbbrev as String, ProjectName as String, ProjectRef as String)
   Document = OpenSilent(FilePath)
-  call Main(Document,HTMLPath,Title,DelivCode,AppVersion,DocDate,ProjectAbbrev,ProjectName,ProjectRef)
+  call Main(Document,HTMLPath,Title,DelivCode,cSysVersion,DocDate,ProjectAbbrev,ProjectName,ProjectRef)
 
   call Document.store()
   call Document.close(True)

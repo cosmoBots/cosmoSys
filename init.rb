@@ -35,6 +35,7 @@ Redmine::Plugin.register :cosmosys do
     'instance_passphrase' => 'admin',
     'invalidate_diagram_cache_on_boot' => '0',
     'official_project_language' => 'en',
+    'report_export_format' => 'odt',
     'main_report_default_columns' => [],
     'main_report_field_presentations' => {},
     'main_report_options' => {
@@ -64,6 +65,7 @@ require_dependency 'queries_helper'
 require_dependency 'projects_helper'
 require_dependency 'projects_controller'
 require_dependency File.expand_path('lib/cosmosys/project_language', __dir__)
+require_dependency File.expand_path('lib/cosmosys/report_format', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_copy_context', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issue_copy_patch', __dir__)

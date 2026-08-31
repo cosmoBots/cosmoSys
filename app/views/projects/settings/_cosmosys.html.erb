@@ -44,6 +44,16 @@
       <em class="info"><%= l(:text_cosmosys_report_code_help) %></em>
     </p>
     <p>
+      <%= label_tag 'cosmosys_setting_report_export_format', l(:label_cosmosys_report_export_format_default) %>
+      <%= select_tag 'cosmosys_setting[report_export_format]',
+                     options_for_select(
+                       [[l(:label_cosmosys_report_format_inherit), '']] + Cosmosys::ReportFormat.options.map { |format| [l("label_cosmosys_report_format_#{format}"), format] },
+                       @project.csys_report_export_format.to_s
+                     ),
+                     id: 'cosmosys_setting_report_export_format' %>
+      <em class="info"><%= l(:text_cosmosys_project_report_export_format_help, effective_format: l("label_cosmosys_report_format_#{@project.cosmosys_effective_report_export_format}")) %></em>
+    </p>
+    <p>
       <%= select_tag 'cosmosys_setting[report_template]', options_for_select(report_template_options, selected_report_template) %>
       <% report_source = if report_template_resolution.asset
            l(:text_cosmosys_template_asset_source, template: report_template_resolution.asset.name, project: report_template_resolution.source_project.name)

@@ -20,6 +20,13 @@
   </p>
 
   <p>
+    <label><%= l(:label_cosmosys_report_export_format_default) %></label>
+    <%= select_tag 'settings[report_export_format]',
+                   options_for_select(Cosmosys::ReportFormat.options.map { |format| [l("label_cosmosys_report_format_#{format}"), format] }, Cosmosys::ReportFormat.normalize(@settings['report_export_format'])) %>
+    <em class="info"><%= l(:text_cosmosys_report_export_format_default_help) %></em>
+  </p>
+
+  <p>
     <label><%= l(:label_cosmosys_precedes_direction) %></label>
     <%= select_tag 'settings[precedes_direction]',
       options_for_select(

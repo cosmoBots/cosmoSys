@@ -17,7 +17,7 @@ module Cosmosys
                  optional: true,
                  inverse_of: :report_overriding_projects
 
-      safe_attributes 'cscode', 'csys_language', 'csys_report_code'
+      safe_attributes 'cscode', 'csys_language', 'csys_report_code', 'csys_report_export_format'
 
       before_validation :cosmosys_normalize_project_identity
 
@@ -25,6 +25,7 @@ module Cosmosys
       validates :cscode, format: { with: /\A[a-zA-Z0-9]+\z/ }
       validates :csys_language, inclusion: { in: ->(_project) { Cosmosys::ProjectLanguage.available }, allow_blank: true }
       validates :csys_report_code, length: { maximum: 255 }
+      validates :csys_report_export_format, inclusion: { in: Cosmosys::ReportFormat::FORMATS, allow_blank: true }
 
       validate :cosmosys_validate_project_identity_uniqueness
       validate :cosmosys_validate_root_stability
@@ -230,6 +231,17 @@ module Cosmosys
 
     def cosmosys_report_landscape_scale_threshold
       cosmosys_report_setting_record&.landscape_scale_threshold || 55
+    end
+
+    def cosmosys_effective_report_export_format
+      project = self
+      while project
+        format = Cosmosys::ReportFormat.normalize(project.csys_report_export_format, allow_blank: true)
+        return format if format.present?
+
+        project = project.parent
+      end
+      Cosmosys::ReportFormat.global_default
     end
 
     def cosmosys_combined_diagram_layout_mode

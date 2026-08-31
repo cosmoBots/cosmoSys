@@ -75,6 +75,10 @@ module Cosmosys
       language = params.dig(:cosmosys_setting, :language).to_s
       @project.csys_language = Cosmosys::ProjectLanguage.normalize(language, allow_blank: true)
       @project.csys_report_code = params.dig(:cosmosys_setting, :report_code).to_s.strip.presence
+      @project.csys_report_export_format = Cosmosys::ReportFormat.normalize(
+        params.dig(:cosmosys_setting, :report_export_format),
+        allow_blank: true
+      )
       @project.csys_root_tracker_key = root_key
       template_asset_id = params.dig(:cosmosys_setting, :ods_template_asset_id).presence
       @project.cosmosys_ods_template_asset = template_asset_id ? Cosmosys::TemplateAsset.available_ods.find(template_asset_id) : nil

@@ -42,9 +42,9 @@
     <% end %>
     <label for="cosmosys-report-export-format"><%= l(:label_cosmosys_report_export_format) %></label>
     <select id="cosmosys-report-export-format" data-cosmosys-report-export-format>
-      <option value="docx" selected>Word (.docx)</option>
-      <option value="odt">OpenDocument (.odt)</option>
-      <option value="pdf">PDF (.pdf)</option>
+      <% Cosmosys::ReportFormat.options.each do |format| %>
+        <option value="<%= format %>"<%= ' selected' if format == @project.cosmosys_effective_report_export_format %>><%= l("label_cosmosys_report_format_#{format}") %></option>
+      <% end %>
     </select>
     <button
       type="button"

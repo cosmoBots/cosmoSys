@@ -29,7 +29,7 @@ module Cosmosys
       'landscape' => ['COSMOSYS_REPORT_LANDSCAPE_START', 'COSMOSYS_REPORT_LANDSCAPE_END'],
       'portrait' => ['COSMOSYS_REPORT_PORTRAIT_START', 'COSMOSYS_REPORT_PORTRAIT_END']
     }.freeze
-    CACHE_SCHEMA = 'cosmosys-report-artifact-v2'.freeze
+    CACHE_SCHEMA = 'cosmosys-report-artifact-v3'.freeze
     MAX_CACHED_REPORTS_PER_PROJECT = 5
 
     class ExportError < StandardError; end
@@ -86,7 +86,7 @@ module Cosmosys
         @project.name,
         @project.cscode,
         @project.csys_report_code,
-        report_application_identity,
+        report_application_version,
         @project.cosmosys_report_landscape_scale_threshold,
         Digest::SHA256.hexdigest(@html),
         file_digest(template_path),
@@ -548,7 +548,7 @@ module Cosmosys
         html_path,
         "#{@project.name} report",
         @project.csys_report_code.to_s,
-        report_application_identity,
+        report_application_version,
         Date.current.iso8601,
         @project.cscode.to_s,
         @project.name,
@@ -557,10 +557,10 @@ module Cosmosys
       "macro:///Standard.csys.Headless(#{args})"
     end
 
-    def report_application_identity
+    def report_application_version
       provider = @project.cosmosys_project_profile_definition.provider
       plugin = Redmine::Plugin.find(provider)
-      plugin&.name.to_s.presence || 'cosmoSys'
+      plugin&.version.to_s.presence || Redmine::Plugin.find(:cosmosys).version.to_s
     end
 
     def macro_argument(value)
