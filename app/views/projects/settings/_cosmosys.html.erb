@@ -37,14 +37,14 @@
     <% report_template_resolution = @project.cosmosys_effective_report_template %>
     <% selected_report_template = @project.csys_report_template_asset_id ? "asset:#{@project.csys_report_template_asset_id}" : (@project.csys_report_template_key.present? ? "builtin:#{@project.csys_report_template_key}" : '') %>
     <% report_template_options = [[l(:label_cosmosys_inherit_profile_template), '']] + Cosmosys::ReportTemplateCatalog.all.map { |template| [template.label, "builtin:#{template.key}"] } + Cosmosys::TemplateAsset.available_reports.map { |asset| [asset.name, "asset:#{asset.id}"] } %>
-    <h4><%= l(:label_cosmosys_report_template) %></h4>
+    <h4><%= l(:label_cosmosys_report_generation) %></h4>
     <p>
       <%= label_tag 'cosmosys_setting_report_code', l(:field_cosmosys_report_code) %>
       <%= text_field_tag 'cosmosys_setting[report_code]', @project.csys_report_code, id: 'cosmosys_setting_report_code', maxlength: 255 %>
       <em class="info"><%= l(:text_cosmosys_report_code_help) %></em>
     </p>
     <p>
-      <%= label_tag 'cosmosys_setting_report_export_format', l(:label_cosmosys_report_export_format_default) %>
+      <%= label_tag 'cosmosys_setting_report_export_format', l(:label_cosmosys_report_format_default) %>
       <%= select_tag 'cosmosys_setting[report_export_format]',
                      options_for_select(
                        [[l(:label_cosmosys_report_format_inherit), '']] + Cosmosys::ReportFormat.options.map { |format| [l("label_cosmosys_report_format_#{format}"), format] },
@@ -54,6 +54,7 @@
       <em class="info"><%= l(:text_cosmosys_project_report_export_format_help, effective_format: l("label_cosmosys_report_format_#{@project.cosmosys_effective_report_export_format}")) %></em>
     </p>
     <p>
+      <%= label_tag 'cosmosys_setting_report_template', l(:label_cosmosys_template) %>
       <%= select_tag 'cosmosys_setting[report_template]', options_for_select(report_template_options, selected_report_template) %>
       <% report_source = if report_template_resolution.asset
            l(:text_cosmosys_template_asset_source, template: report_template_resolution.asset.name, project: report_template_resolution.source_project.name)
