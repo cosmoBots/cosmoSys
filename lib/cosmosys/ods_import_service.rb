@@ -505,7 +505,7 @@ module Cosmosys
         Cosmosys::OdsProtectionService.apply!(workbook, project: project)
         output = StringIO.new(''.b)
         workbook.save(output)
-        output.string
+        Cosmosys::OdfPackageNormalizer.call(output.string, expected_mimetype: OdsExportService::CONTENT_TYPE)
       end
     end
 

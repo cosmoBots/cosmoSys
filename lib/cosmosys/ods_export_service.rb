@@ -94,9 +94,12 @@ module Cosmosys
 
       output = StringIO.new(''.b)
       trace_phase('ods_export.serialize', 96, 'serializing') { workbook.save(output) }
+      packaged_data = trace_phase('ods_export.package', 98, 'packaging') do
+        Cosmosys::OdfPackageNormalizer.call(output.string, expected_mimetype: CONTENT_TYPE)
+      end
       duration_seconds = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
       Result.new(
-        data: output.string,
+        data: packaged_data,
         filename: "#{safe_filename(project.identifier)}#{@include_subprojects ? '-tree' : ''}-items-#{@exported_at.strftime('%Y%m%dT%H%M%SZ')}.ods",
         content_type: CONTENT_TYPE,
         export_id: @export_id,
