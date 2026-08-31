@@ -78,7 +78,7 @@ module Cosmosys
         report_progress(15, 'applying_items')
         apply_items!(current_data.fetch('items'), current_data.fetch('extra'), resolved_items, result)
         report_progress(45, 'applying_hierarchy')
-        apply_item_hierarchy_and_relations!(current_data.fetch('items'), resolved_items)
+        apply_item_hierarchy_and_relations!(current_data.fetch('items'), current_data.fetch('extra'), resolved_items)
         report_progress(60, 'applying_documents')
         apply_documents!(current_data.fetch('documents'), resolved_documents, result)
         report_progress(72, 'applying_catalog')
@@ -377,8 +377,12 @@ module Cosmosys
       issue.custom_field_values = values
     end
 
-    def apply_item_hierarchy_and_relations!(rows, resolved)
-      rows.each do |row|
+    def apply_item_hierarchy_and_relations!(rows, extra_rows, resolved)
+      extras = extra_rows.index_by { |row| row['csid'] }
+      rows.each do |item_row|
+        # Items remains authoritative for repeated columns, while ExtraFields
+        # contributes relations and other fields that are only present there.
+        row = (extras[item_row['csid']] || {}).merge(item_row)
         issue = resolved.fetch(row['csid']).reload
         if row.key?('parent')
           parent = row['parent'].present? ? resolved[row['parent']] || resolve_item_by_key(row['parent']) : nil
