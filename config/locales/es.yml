@@ -85,6 +85,7 @@ es:
   text_cosmosys_ods_import_phase_completed: "Importación ODS terminada."
   text_cosmosys_ods_import_phase_rejected: "El análisis ODS ha rechazado la importación."
   text_cosmosys_ods_import_phase_failed: "La importación ODS ha fallado."
+  text_cosmosys_ods_import_phase_superseded: "Esta importación ha quedado obsoleta por una importación posterior del proyecto."
   error_cosmosys_ods_invalid_size: "Selecciona un ODS no vacio y menor de 50 MB."
   error_cosmosys_ods_duplicate_payload: "El contenido de este libro ya se aplico correctamente a este proyecto."
   error_cosmosys_ods_import_failed: "No se pudo aplicar la importacion ODS. Revisa su informe de incidencias."

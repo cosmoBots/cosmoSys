@@ -847,7 +847,7 @@
                 progressBar.textContent = (status.progress || 0) + '%';
               }
               if (progressLabel) progressLabel.textContent = status.phase_label || status.phase;
-            }, ['awaiting_confirmation', 'applied', 'rejected', 'failed']);
+            }, ['awaiting_confirmation', 'applied', 'rejected', 'failed', 'superseded']);
           })
           .then(function(status) {
             window.location.assign(status.show_url);
@@ -869,7 +869,7 @@
         progressBar.value = status.progress || 0;
         progressBar.textContent = (status.progress || 0) + '%';
         progressLabel.textContent = status.phase_label || status.phase;
-      }, ['awaiting_confirmation', 'applied', 'rejected', 'failed'])
+      }, ['awaiting_confirmation', 'applied', 'rejected', 'failed', 'superseded'])
         .then(function(status) { window.location.assign(status.show_url); })
         .catch(function(error) { progressLabel.textContent = error.message; });
     });

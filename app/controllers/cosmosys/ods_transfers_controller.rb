@@ -85,9 +85,9 @@ module Cosmosys
         writer: summary['writer'],
         duration_seconds: summary['duration_seconds'],
         completion_label: summary['duration_seconds'].present? ? I18n.t(:text_cosmosys_ods_export_completed_in, duration: format('%.1f', summary['duration_seconds'])) : nil,
-        download_url: @transfer.applied? ? download_project_cosmosys_ods_transfer_path(@project, @transfer) : nil,
+        download_url: @transfer.export_payload.present? ? download_project_cosmosys_ods_transfer_path(@project, @transfer) : nil,
         filename: @transfer.original_filename,
-        complete: %w[awaiting_confirmation applied rejected failed].include?(@transfer.state),
+        complete: %w[awaiting_confirmation applied rejected failed superseded].include?(@transfer.state),
         show_url: project_cosmosys_ods_transfer_path(@project, @transfer)
       }
     end

@@ -17,7 +17,7 @@ module Cosmosys
         raise ArgumentError, "Unsupported ODS import operation #{operation.inspect}"
       end
     rescue StandardError => error
-      if transfer&.persisted?
+      if transfer&.persisted? && !transfer.reload.superseded?
         transfer.events.create!(severity: 'error', code: 'background_import_failed', message: error.message)
         transfer.update!(state: 'failed', summary: transfer.summary.merge('progress_phase' => 'failed'))
       end

@@ -31,6 +31,8 @@ module Cosmosys
     end
 
     def analyse!
+      return transfer if transfer.reload.superseded?
+
       clear_events!
       transfer.update!(state: 'analysing')
       report_progress(5, 'loading_workbook')
@@ -47,12 +49,18 @@ module Cosmosys
       plan = build_plan(workbook_data)
       report_progress(95, 'finalizing_analysis')
       blocking = transfer.events.where(severity: 'error').exists?
-      transfer.summary = plan.merge('blocking' => blocking, 'payload_sha256' => payload_sha256, 'progress' => 100,
-                                    'progress_phase' => blocking ? 'rejected' : 'awaiting_confirmation')
-      transfer.state = blocking ? 'rejected' : 'awaiting_confirmation'
-      transfer.save!
+      transfer.with_lock do
+        return transfer if transfer.superseded?
+
+        transfer.summary = plan.merge('blocking' => blocking, 'payload_sha256' => payload_sha256, 'progress' => 100,
+                                      'progress_phase' => blocking ? 'rejected' : 'awaiting_confirmation')
+        transfer.state = blocking ? 'rejected' : 'awaiting_confirmation'
+        transfer.save!
+      end
       transfer
     rescue StandardError => error
+      return transfer if transfer.reload.superseded?
+
       event!('error', 'analysis_failed', message: error.message) unless transfer.events.where(code: 'analysis_failed').exists?
       transfer.update!(state: 'failed', summary: transfer.summary.merge('blocking' => true, 'exception' => error.class.name,
                                                                         'progress_phase' => 'failed'))
@@ -61,6 +69,7 @@ module Cosmosys
 
     def apply!
       raise ImportError, 'Import is not awaiting confirmation' unless transfer.applicable? || transfer.state == 'applying'
+      raise ImportError, 'Import was superseded by a newer import for this project' if transfer.superseded_by_newer_import?
       raise ImportError, 'The current user cannot edit this project' unless user.allowed_to?(:edit_project, project)
 
       transfer.update!(state: 'applying')
@@ -91,9 +100,13 @@ module Cosmosys
       reconciled = reconcile_workbook(current_data, resolved_items, resolved_documents, provisional_markers)
       transfer.summary = transfer.summary.merge(result).merge('provisional_markers' => provisional_markers,
                                                                'progress' => 100, 'progress_phase' => 'completed')
-      transfer.update!(state: 'applied', result_data: reconciled)
+      transfer.update!(state: 'applied', result_data: reconciled, file_data: nil)
+      Cosmosys::OdsTransfer.where(project_id: project.id, direction: 'import', state: 'applied')
+                           .where.not(id: transfer.id).update_all(result_data: nil)
       transfer
     rescue StandardError => error
+      return transfer if transfer.reload.superseded?
+
       event!('error', 'application_failed', message: error.message)
       transfer.update!(state: 'failed', summary: transfer.summary.merge('application_exception' => error.class.name,
                                                                          'progress_phase' => 'failed'))
