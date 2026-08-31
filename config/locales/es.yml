@@ -246,6 +246,8 @@ es:
   text_cosmosys_invalid_parent_scope: "El padre solo puede pertenecer al mismo proyecto o a un proyecto ancestro."
   text_cosmosys_project_code_help: "Obligatorio. Solo letras y numeros. No se puede cambiar despues de crear el proyecto."
   field_cosmosys_language: "Idioma oficial del proyecto"
+  field_cosmosys_report_code: "Código del informe"
+  text_cosmosys_report_code_help: "Código que las plantillas ODT reciben como DelivCode. Puede dejarse vacío."
   label_cosmosys_official_project_language_default: "Idioma oficial predeterminado de los proyectos"
   label_cosmosys_inherit_official_language: "Usar el predeterminado de la instancia (%{language})"
   text_cosmosys_official_project_language_default_help: "El valor inicial es inglés. Cada proyecto puede redefinirlo con independencia del idioma de interfaz y de sus plantillas."

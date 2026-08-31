@@ -17,13 +17,14 @@ module Cosmosys
                  optional: true,
                  inverse_of: :report_overriding_projects
 
-      safe_attributes 'cscode', 'csys_language'
+      safe_attributes 'cscode', 'csys_language', 'csys_report_code'
 
       before_validation :cosmosys_normalize_project_identity
 
       validates :cscode, presence: true
       validates :cscode, format: { with: /\A[a-zA-Z0-9]+\z/ }
       validates :csys_language, inclusion: { in: ->(_project) { Cosmosys::ProjectLanguage.available }, allow_blank: true }
+      validates :csys_report_code, length: { maximum: 255 }
 
       validate :cosmosys_validate_project_identity_uniqueness
       validate :cosmosys_validate_root_stability

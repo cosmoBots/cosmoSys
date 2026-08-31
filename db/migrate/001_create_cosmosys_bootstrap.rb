@@ -25,6 +25,7 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
     add_column :projects, :csys_report_template_key, :string unless column_exists?(:projects, :csys_report_template_key)
     add_column :projects, :csys_project_passphrase, :string unless column_exists?(:projects, :csys_project_passphrase)
     add_column :projects, :csys_language, :string unless column_exists?(:projects, :csys_language)
+    add_column :projects, :csys_report_code, :string unless column_exists?(:projects, :csys_report_code)
 
     add_index :projects, :cscode unless index_exists?(:projects, :cscode)
     add_index :projects, 'LOWER(cscode)', name: 'idx_projects_lower_cscode' unless index_exists?(:projects, name: 'idx_projects_lower_cscode')
@@ -267,6 +268,7 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
     remove_column :projects, :csys_report_template_key if column_exists?(:projects, :csys_report_template_key)
     remove_column :projects, :csys_project_passphrase if column_exists?(:projects, :csys_project_passphrase)
     remove_column :projects, :csys_language if column_exists?(:projects, :csys_language)
+    remove_column :projects, :csys_report_code if column_exists?(:projects, :csys_report_code)
     remove_index :trackers, :csys_key if index_exists?(:trackers, :csys_key)
     remove_column :trackers, :csys_key if column_exists?(:trackers, :csys_key)
     remove_index :trackers, :csys_item_kind if index_exists?(:trackers, :csys_item_kind)

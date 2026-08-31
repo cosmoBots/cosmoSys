@@ -246,6 +246,8 @@ en:
   text_cosmosys_invalid_parent_scope: "The parent item must belong to the same project or to an ancestor project."
   text_cosmosys_project_code_help: "Required. Letters and digits only. It cannot be changed after project creation."
   field_cosmosys_language: "Official project language"
+  field_cosmosys_report_code: "Report code"
+  text_cosmosys_report_code_help: "Code used as DelivCode by ODT report templates. It may be left empty."
   label_cosmosys_official_project_language_default: "Default official project language"
   label_cosmosys_inherit_official_language: "Use instance default (%{language})"
   text_cosmosys_official_project_language_default_help: "English is the initial default. Projects may override it independently of users' interface languages and report templates."

@@ -35,6 +35,7 @@ module Cosmosys
         csys_report_template_asset_id: source.csys_report_template_asset_id,
         csys_report_template_key: source.csys_report_template_key,
         csys_language: source.csys_language,
+        csys_report_code: source.csys_report_code,
         cslast_id: destination.issues.maximum(:csidnum).to_i
       )
       destination.cosmosys_enable_required_trackers!

@@ -158,7 +158,7 @@ Sub ApplyAlternateOrientationGraphics(oDoc)
     call ApplyPageMarker(oDoc, sEndMarker, &quot;Standard&quot;)
 End Sub
 
-Sub Main(oDoc, HTMLPath as String, Title as String, sWP as String, sWPTitle as String)
+Sub Main(oDoc, HTMLPath as String, Title as String, DelivCode as String, AppVersion as String, DocDate as String, ProjectAbbrev as String, ProjectName as String, ProjectRef as String)
 
 dim oSearch as object
 dim oResult as object
@@ -168,8 +168,16 @@ dim dispatcher as object
 oText = oDoc.getText
 
 oDoc.DocumentProperties.Title = Title
-oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("sWP",sWP)
-oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("sWPTitle",sWPTitle)
+oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("DelivCode",DelivCode)
+oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("AppVersion",AppVersion)
+Dim ReportDate as New com.sun.star.util.DateTime
+ReportDate.Year = CInt(Left(DocDate, 4))
+ReportDate.Month = CInt(Mid(DocDate, 6, 2))
+ReportDate.Day = CInt(Mid(DocDate, 9, 2))
+oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("DocDate",ReportDate)
+oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("ProjectAbbrev",ProjectAbbrev)
+oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("ProjectName",ProjectName)
+oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("ProjectRef",ProjectRef)
 
 oCursor = oText.createTextCursor()
 rem oCursor=oDoc.CurrentController.getViewCursor()
@@ -200,6 +208,7 @@ rem oCursor.InsertMultiIndex()
 rem call UpdateAll(oDoc)
 
 dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+dispatcher.executeDispatch(oDoc.CurrentController.Frame, &quot;.uno:UpdateFields&quot;, &quot;&quot;, 0, Array())
 dispatcher.executeDispatch(oDoc.CurrentController.Frame, &quot;.uno:UpdateAllIndexes&quot;, &quot;&quot;, 0, Array())
 
 end sub
@@ -211,9 +220,9 @@ function OpenSilent(FilePath as String) as Object
   OpenSilent = StarDesktop.loadComponentFromURL(&quot;file://&quot; &amp; FilePath, &quot;_blank&quot;, 0, FileProperties())
 end function
 
-sub Headless(FilePath as String, HTMLPath as String, Title as String, sWP as String, sWPTitle as String)
+sub Headless(FilePath as String, HTMLPath as String, Title as String, DelivCode as String, AppVersion as String, DocDate as String, ProjectAbbrev as String, ProjectName as String, ProjectRef as String)
   Document = OpenSilent(FilePath)
-  call Main(Document,HTMLPath, Title, sWP, sWPTitle)
+  call Main(Document,HTMLPath,Title,DelivCode,AppVersion,DocDate,ProjectAbbrev,ProjectName,ProjectRef)
 
   call Document.store()
   call Document.close(True)
