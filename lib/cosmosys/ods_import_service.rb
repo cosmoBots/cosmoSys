@@ -23,67 +23,88 @@ module Cosmosys
 
     attr_reader :transfer, :project, :user
 
-    def initialize(transfer, user: transfer.user)
+    def initialize(transfer, user: transfer.user, progress: nil)
       @transfer = transfer
       @project = transfer.project
       @user = user
+      @progress = progress
     end
 
     def analyse!
       clear_events!
-      transfer.update!(state: 'analysed')
+      transfer.update!(state: 'analysing')
+      report_progress(5, 'loading_workbook')
       workbook_data = read_workbook
+      report_progress(30, 'validating')
       validate_manifest!(workbook_data.fetch('manifest'))
+      report_progress(45, 'digesting')
       payload_sha256 = semantic_digest(workbook_data)
       transfer.update!(payload_sha256: payload_sha256, export_id: workbook_data.dig('manifest', 'export_id'), format_version: workbook_data.dig('manifest', 'format_version'))
       duplicate = Cosmosys::OdsTransfer.where(project_id: project.id, direction: 'import', state: 'applied', payload_sha256: payload_sha256).where.not(id: transfer.id).exists?
       event!('error', 'duplicate_payload', message: I18n.t(:error_cosmosys_ods_duplicate_payload)) if duplicate
 
+      report_progress(60, 'planning')
       plan = build_plan(workbook_data)
+      report_progress(95, 'finalizing_analysis')
       blocking = transfer.events.where(severity: 'error').exists?
-      transfer.summary = plan.merge('blocking' => blocking, 'payload_sha256' => payload_sha256)
+      transfer.summary = plan.merge('blocking' => blocking, 'payload_sha256' => payload_sha256, 'progress' => 100,
+                                    'progress_phase' => blocking ? 'rejected' : 'awaiting_confirmation')
       transfer.state = blocking ? 'rejected' : 'awaiting_confirmation'
       transfer.save!
       transfer
     rescue StandardError => error
       event!('error', 'analysis_failed', message: error.message) unless transfer.events.where(code: 'analysis_failed').exists?
-      transfer.update!(state: 'failed', summary: { 'blocking' => true, 'exception' => error.class.name })
+      transfer.update!(state: 'failed', summary: transfer.summary.merge('blocking' => true, 'exception' => error.class.name,
+                                                                        'progress_phase' => 'failed'))
       transfer
     end
 
     def apply!
-      raise ImportError, 'Import is not awaiting confirmation' unless transfer.applicable?
+      raise ImportError, 'Import is not awaiting confirmation' unless transfer.applicable? || transfer.state == 'applying'
       raise ImportError, 'The current user cannot edit this project' unless user.allowed_to?(:edit_project, project)
 
+      transfer.update!(state: 'applying')
+      report_progress(5, 'verifying_upload')
       current_data = read_workbook
       current_digest = semantic_digest(current_data)
       raise ImportError, 'Uploaded workbook changed after analysis' unless current_digest == transfer.payload_sha256
 
-      transfer.update!(state: 'applying')
       result = { 'created_items' => 0, 'updated_items' => 0, 'created_documents' => 0, 'updated_documents' => 0, 'created_catalog_refs' => 0, 'updated_catalog_refs' => 0 }
       resolved_items = {}
       resolved_documents = {}
       provisional_markers = {}
 
       ActiveRecord::Base.transaction do
+        report_progress(15, 'applying_items')
         apply_items!(current_data.fetch('items'), current_data.fetch('extra'), resolved_items, result)
+        report_progress(45, 'applying_hierarchy')
         apply_item_hierarchy_and_relations!(current_data.fetch('items'), resolved_items)
+        report_progress(60, 'applying_documents')
         apply_documents!(current_data.fetch('documents'), resolved_documents, result)
+        report_progress(72, 'applying_catalog')
         apply_catalog!(current_data.fetch('catalog'), resolved_items, resolved_documents, provisional_markers, result)
+        report_progress(82, 'reconciling_references')
         replace_provisional_markers!(resolved_items.values.compact.uniq, provisional_markers)
       end
 
+      report_progress(90, 'serializing_result')
       reconciled = reconcile_workbook(current_data, resolved_items, resolved_documents, provisional_markers)
-      transfer.summary = transfer.summary.merge(result).merge('provisional_markers' => provisional_markers)
+      transfer.summary = transfer.summary.merge(result).merge('provisional_markers' => provisional_markers,
+                                                               'progress' => 100, 'progress_phase' => 'completed')
       transfer.update!(state: 'applied', result_data: reconciled)
       transfer
     rescue StandardError => error
       event!('error', 'application_failed', message: error.message)
-      transfer.update!(state: 'failed', summary: transfer.summary.merge('application_exception' => error.class.name))
+      transfer.update!(state: 'failed', summary: transfer.summary.merge('application_exception' => error.class.name,
+                                                                         'progress_phase' => 'failed'))
       transfer
     end
 
     private
+
+    def report_progress(percent, phase, details = {})
+      @progress&.call(percent, phase, details)
+    end
 
     def item_fields
       ITEM_FIELDS + Cosmosys::OdsItemFieldRegistry.names

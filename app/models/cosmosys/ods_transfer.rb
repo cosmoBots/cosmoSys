@@ -5,7 +5,7 @@ module Cosmosys
     self.table_name = 'cosmosys_ods_transfers'
 
     DIRECTIONS = %w[export import materialize].freeze
-    STATES = %w[queued generating uploaded analysed awaiting_confirmation applying applied rejected failed].freeze
+    STATES = %w[queued generating uploaded analysing analysed awaiting_confirmation applying applied rejected failed].freeze
 
     belongs_to :project
     belongs_to :user

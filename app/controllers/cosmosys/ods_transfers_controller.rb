@@ -61,10 +61,11 @@ module Cosmosys
         file_sha256: Digest::SHA256.hexdigest(data),
         export_id: SecureRandom.uuid,
         format_version: Cosmosys::OdsExportService::FORMAT_VERSION,
+        summary: { 'progress' => 0, 'progress_phase' => 'uploaded' },
         file_data: data
       )
-      Cosmosys::OdsImportService.new(transfer, user: User.current).analyse!
-      redirect_to project_cosmosys_ods_transfer_path(@project, transfer)
+      Cosmosys::OdsImportJob.perform_later(transfer.id, 'analyse')
+      respond_with_operation(transfer)
     end
 
     def show
@@ -74,28 +75,34 @@ module Cosmosys
     def status
       summary = @transfer.summary
       phase = summary['progress_phase'].presence || @transfer.state
+      label_key = "text_cosmosys_ods_#{@transfer.direction == 'import' ? 'import' : 'export'}_phase_#{phase}"
       render json: {
         id: @transfer.id,
         state: @transfer.state,
         progress: summary['progress'].to_i.clamp(0, 100),
         phase: phase,
-        phase_label: I18n.t("text_cosmosys_ods_export_phase_#{phase}", default: phase.to_s.humanize),
+        phase_label: I18n.t(label_key, default: phase.to_s.humanize),
         writer: summary['writer'],
         duration_seconds: summary['duration_seconds'],
         completion_label: summary['duration_seconds'].present? ? I18n.t(:text_cosmosys_ods_export_completed_in, duration: format('%.1f', summary['duration_seconds'])) : nil,
         download_url: @transfer.applied? ? download_project_cosmosys_ods_transfer_path(@project, @transfer) : nil,
-        filename: @transfer.original_filename
+        filename: @transfer.original_filename,
+        complete: %w[awaiting_confirmation applied rejected failed].include?(@transfer.state),
+        show_url: project_cosmosys_ods_transfer_path(@project, @transfer)
       }
     end
 
     def apply
-      Cosmosys::OdsImportService.new(@transfer, user: User.current).apply!
-      if @transfer.reload.applied?
-        flash[:notice] = l(:notice_cosmosys_ods_import_applied)
-      else
+      unless @transfer.applicable?
+        return render json: { error: 'Import is not awaiting confirmation' }, status: :unprocessable_entity if request.xhr?
+
         flash[:error] = l(:error_cosmosys_ods_import_failed)
+        return redirect_to project_cosmosys_ods_transfer_path(@project, @transfer)
       end
-      redirect_to project_cosmosys_ods_transfer_path(@project, @transfer)
+
+      @transfer.update!(state: 'applying', summary: @transfer.summary.merge('progress' => 0, 'progress_phase' => 'queued_apply'))
+      Cosmosys::OdsImportJob.perform_later(@transfer.id, 'apply')
+      respond_with_operation(@transfer)
     end
 
     def materialize
@@ -136,6 +143,19 @@ module Cosmosys
 
     def authorize_admin
       render_403 unless User.current.admin?
+    end
+
+    def respond_with_operation(transfer)
+      payload = {
+        transfer_id: transfer.id,
+        status_url: status_project_cosmosys_ods_transfer_path(@project, transfer),
+        show_url: project_cosmosys_ods_transfer_path(@project, transfer)
+      }
+      if request.xhr? || request.format.json?
+        render json: payload, status: :accepted
+      else
+        redirect_to payload[:show_url]
+      end
     end
   end
 end

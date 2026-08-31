@@ -9,8 +9,9 @@
     <p>
       <%= submit_tag l(:button_cosmosys_ods_analyse), class: 'icon icon-magnifier', data: { cosmosys_ods_import_submit: true } %>
       <span class="cosmosys-report-export-progress" data-cosmosys-ods-import-progress hidden role="status" aria-live="polite">
-        <span class="cosmosys-report-spinner" aria-hidden="true"></span>
-        <%= l(:text_cosmosys_ods_import_in_progress) %>
+        <span class="cosmosys-report-spinner" data-cosmosys-operation-spinner aria-hidden="true"></span>
+        <span data-cosmosys-operation-label><%= l(:text_cosmosys_ods_import_in_progress) %></span>
+        <progress value="0" max="100" data-cosmosys-operation-progress>0%</progress>
       </span>
     </p>
   <% end %>

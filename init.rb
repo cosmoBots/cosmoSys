@@ -116,6 +116,7 @@ require_dependency File.expand_path('app/models/cosmosys/ods_transfer_event', __
 require_dependency File.expand_path('app/models/cosmosys/ods_import_identity', __dir__)
 require_dependency File.expand_path('lib/cosmosys/ods_text_normalizer', __dir__)
 require_dependency File.expand_path('lib/cosmosys/ods_import_service', __dir__)
+require_dependency File.expand_path('lib/cosmosys/ods_import_job', __dir__)
 require_dependency File.expand_path('lib/cosmosys/ods_project_materializer', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_settings_controller', __dir__)
 require_dependency File.expand_path('lib/cosmosys/performance_trace', __dir__)

@@ -791,7 +791,8 @@
     });
   }
 
-  function pollCosmosysOperation(statusUrl, onProgress) {
+  function pollCosmosysOperation(statusUrl, onProgress, terminalStates) {
+    terminalStates = terminalStates || ['applied'];
     return window.fetch(statusUrl, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(function(response) {
         if (!response.ok) throw new Error('Background operation status failed');
@@ -799,10 +800,10 @@
       })
       .then(function(status) {
         onProgress(status);
-        if (status.state === 'applied') return status;
+        if (terminalStates.indexOf(status.state) >= 0) return status;
         if (['failed', 'rejected'].indexOf(status.state) >= 0) throw new Error(status.phase_label || 'Background operation failed');
         return new Promise(function(resolve) { window.setTimeout(resolve, 750); })
-          .then(function() { return pollCosmosysOperation(statusUrl, onProgress); });
+          .then(function() { return pollCosmosysOperation(statusUrl, onProgress, terminalStates); });
       });
   }
 
@@ -819,12 +820,58 @@
     document.querySelectorAll('[data-cosmosys-ods-import-form]').forEach(function(form) {
       if (form.dataset.cosmosysBound === '1') return;
       form.dataset.cosmosysBound = '1';
-      form.addEventListener('submit', function() {
+      form.addEventListener('submit', function(event) {
+        event.preventDefault();
         var progress = form.querySelector('[data-cosmosys-ods-import-progress]');
+        var progressBar = progress && progress.querySelector('[data-cosmosys-operation-progress]');
+        var progressLabel = progress && progress.querySelector('[data-cosmosys-operation-label]');
         var submit = form.querySelector('[data-cosmosys-ods-import-submit], input[type="submit"], button[type="submit"]');
+        var token = document.querySelector('meta[name="csrf-token"]');
         if (progress) progress.hidden = false;
+        if (progressBar) progressBar.value = 0;
         if (submit) submit.disabled = true;
+        window.fetch(form.action, {
+          method: (form.method || 'post').toUpperCase(),
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: token ? { 'X-CSRF-Token': token.content, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } : { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+          .then(function(response) {
+            if (!response.ok) throw new Error('ODS import could not be started');
+            return response.json();
+          })
+          .then(function(operation) {
+            return pollCosmosysOperation(operation.status_url, function(status) {
+              if (progressBar) {
+                progressBar.value = status.progress || 0;
+                progressBar.textContent = (status.progress || 0) + '%';
+              }
+              if (progressLabel) progressLabel.textContent = status.phase_label || status.phase;
+            }, ['awaiting_confirmation', 'applied', 'rejected', 'failed']);
+          })
+          .then(function(status) {
+            window.location.assign(status.show_url);
+          })
+          .catch(function(error) {
+            window.alert(error.message);
+            if (submit) submit.disabled = false;
+            if (progress) progress.hidden = true;
+          });
       });
+    });
+
+    document.querySelectorAll('[data-cosmosys-ods-import-status]').forEach(function(progress) {
+      if (progress.dataset.cosmosysBound === '1') return;
+      progress.dataset.cosmosysBound = '1';
+      var progressBar = progress.querySelector('[data-cosmosys-operation-progress]');
+      var progressLabel = progress.querySelector('[data-cosmosys-operation-label]');
+      pollCosmosysOperation(progress.dataset.statusUrl, function(status) {
+        progressBar.value = status.progress || 0;
+        progressBar.textContent = (status.progress || 0) + '%';
+        progressLabel.textContent = status.phase_label || status.phase;
+      }, ['awaiting_confirmation', 'applied', 'rejected', 'failed'])
+        .then(function(status) { window.location.assign(status.show_url); })
+        .catch(function(error) { progressLabel.textContent = error.message; });
     });
   }
 

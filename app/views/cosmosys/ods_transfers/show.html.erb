@@ -4,7 +4,14 @@
   <% if @transfer.applicable? && @transfer.direction == 'materialize' && User.current.admin? %>
     <%= button_to l(:button_cosmosys_materialize_snapshot), materialize_project_cosmosys_ods_transfer_path(@project, @transfer), method: :post, class: 'icon icon-copy' %>
   <% elsif @transfer.applicable? && User.current.allowed_to?(:edit_project, @project) %>
-    <%= button_to l(:button_cosmosys_ods_apply), apply_project_cosmosys_ods_transfer_path(@project, @transfer), method: :post, class: 'icon icon-checked', form: { data: { cosmosys_ods_import_form: true } } %>
+    <%= form_tag apply_project_cosmosys_ods_transfer_path(@project, @transfer), method: :post, data: { cosmosys_ods_import_form: true }, class: 'cosmosys-inline-form' do %>
+      <%= submit_tag l(:button_cosmosys_ods_apply), class: 'icon icon-checked', data: { cosmosys_ods_import_submit: true } %>
+      <span class="cosmosys-report-export-progress" data-cosmosys-ods-import-progress hidden role="status" aria-live="polite">
+        <span class="cosmosys-report-spinner" data-cosmosys-operation-spinner aria-hidden="true"></span>
+        <span data-cosmosys-operation-label><%= l(:text_cosmosys_ods_apply_in_progress) %></span>
+        <progress value="0" max="100" data-cosmosys-operation-progress>0%</progress>
+      </span>
+    <% end %>
   <% end %>
   <% if @transfer.export_payload.present? %>
     <%= link_to l(@transfer.direction == 'export' ? :button_cosmosys_ods_download : :button_cosmosys_ods_download_reconciled), download_project_cosmosys_ods_transfer_path(@project, @transfer), class: 'icon icon-download' %>
@@ -12,6 +19,17 @@
 </div>
 
 <h2><%= l(:label_cosmosys_ods_transfer) %> #<%= @transfer.id %></h2>
+
+<% if @transfer.direction == 'import' && %w[uploaded analysing applying].include?(@transfer.state) %>
+  <div class="cosmosys-report-export-progress"
+       data-cosmosys-ods-import-status
+       data-status-url="<%= status_project_cosmosys_ods_transfer_path(@project, @transfer) %>"
+       role="status" aria-live="polite">
+    <span class="cosmosys-report-spinner" data-cosmosys-operation-spinner aria-hidden="true"></span>
+    <span data-cosmosys-operation-label><%= l(:text_cosmosys_ods_import_in_progress) %></span>
+    <progress value="<%= @transfer.summary['progress'].to_i %>" max="100" data-cosmosys-operation-progress><%= @transfer.summary['progress'].to_i %>%</progress>
+  </div>
+<% end %>
 
 <div class="box">
   <p><strong><%= l(:field_status) %>:</strong> <%= @transfer.state %></p>
