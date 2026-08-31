@@ -63,7 +63,9 @@ end
 # editing. Give it a distinct name so it cannot be mistaken for a second input
 # source for Items.subject.
 (1..128).find { |column| extra.cell(1, column).value.to_s == 'subject' }&.then do |column|
-  extra.cell(1, column).value = 'fsubject'
+  cell = extra.cell(1, column)
+  Rspreadsheet::Tools.remove_ns_attribute(cell.xmlnode, 'table', 'formula')
+  cell.value = 'fsubject'
 end
 
 # Native item fields that are intentionally round-trippable but do not belong
