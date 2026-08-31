@@ -35,12 +35,27 @@ extra_headers = {
   'csCollab' => nil
 }.freeze
 
+obsolete_columns = Hash.new { |hash, sheet| hash[sheet] = [] }
 [[items, item_headers], [extra, extra_headers]].each do |sheet, replacements|
   (1..128).each do |column|
     cell = sheet.cell(1, column)
     next unless replacements.key?(cell.value)
 
-    cell.value = replacements.fetch(cell.value)
+    replacement = replacements.fetch(cell.value)
+    obsolete_columns[sheet] << column if replacement.nil?
+    cell.value = replacement
+  end
+end
+
+# Removing an obsolete header is not enough: the legacy cell validation and
+# cached values would otherwise remain visible as an unexplained selector.
+obsolete_columns.each do |sheet, columns|
+  columns.each do |column|
+    (1..sheet.rowcount).each do |row|
+      cell = sheet.cell(row, column)
+      clear_cell.call(cell)
+      Rspreadsheet::Tools.remove_ns_attribute(cell.xmlnode, 'table', 'content-validation-name')
+    end
   end
 end
 
