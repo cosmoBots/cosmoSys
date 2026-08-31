@@ -62,9 +62,10 @@ end
 # This is a formula mirror used only to identify each ExtraFields row while
 # editing. Give it a distinct name so it cannot be mistaken for a second input
 # source for Items.subject.
-(1..128).find { |column| extra.cell(1, column).value.to_s == 'subject' }&.then do |column|
+(1..128).find { |column| %w[subject fsubject].include?(extra.cell(1, column).value.to_s) }&.then do |column|
   cell = extra.cell(1, column)
   Rspreadsheet::Tools.remove_ns_attribute(cell.xmlnode, 'table', 'formula')
+  Rspreadsheet::Tools.remove_ns_attribute(cell.xmlnode, 'office', 'string-value')
   cell.value = 'fsubject'
 end
 
