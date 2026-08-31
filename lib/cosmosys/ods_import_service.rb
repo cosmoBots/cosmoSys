@@ -112,6 +112,7 @@ module Cosmosys
 
     def read_workbook
       with_workbook do |workbook|
+        validate_item_sheet_columns!(workbook)
         {
           'manifest' => read_manifest(workbook),
           'items' => read_controlled_rows(workbook, 'Items', 'ItemsCtrl', ITEM_ID_HEADERS + %w[subject], 'csid'),
@@ -120,6 +121,17 @@ module Cosmosys
           'catalog' => read_controlled_rows(workbook, 'Catalog', 'CatalogCtrl', %w[item markdown_reference], 'markdown_reference')
         }
       end
+    end
+
+    def validate_item_sheet_columns!(workbook)
+      items = workbook.worksheets('Items') || raise(ImportError, 'Missing Items sheet')
+      extra = workbook.worksheets('ExtraFields')
+      return unless extra
+
+      duplicates = (sheet_headers(items).keys & sheet_headers(extra).keys) - ['csid']
+      return if duplicates.empty?
+
+      raise ImportError, "Items and ExtraFields repeat columns: #{duplicates.sort.join(', ')}"
     end
 
     def with_workbook
@@ -380,8 +392,9 @@ module Cosmosys
     def apply_item_hierarchy_and_relations!(rows, extra_rows, resolved)
       extras = extra_rows.index_by { |row| row['csid'] }
       rows.each do |item_row|
-        # Items remains authoritative for repeated columns, while ExtraFields
-        # contributes relations and other fields that are only present there.
+        # csid joins both sheets. Items remains authoritative while ExtraFields
+        # contributes fields absent from the visible grid (fsubject is merely
+        # a formula reference and therefore has a distinct name).
         row = (extras[item_row['csid']] || {}).merge(item_row)
         issue = resolved.fetch(row['csid']).reload
         if row.key?('parent')

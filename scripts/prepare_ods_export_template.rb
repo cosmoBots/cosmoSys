@@ -59,6 +59,13 @@ obsolete_columns.each do |sheet, columns|
   end
 end
 
+# This is a formula mirror used only to identify each ExtraFields row while
+# editing. Give it a distinct name so it cannot be mistaken for a second input
+# source for Items.subject.
+(1..128).find { |column| extra.cell(1, column).value.to_s == 'subject' }&.then do |column|
+  extra.cell(1, column).value = 'fsubject'
+end
+
 # Native item fields that are intentionally round-trippable but do not belong
 # in the visible planning grid live in ExtraFields. Keep this list in the base
 # transformer so specialised templates inherit the same generic contract.
