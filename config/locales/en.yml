@@ -446,3 +446,4 @@ en:
   label_cosmosys_modules_required_by_profile: "Modules required afterwards: %{modules}"
   label_cosmosys_confirm_project_profile_reconfiguration: "I authorize this project reconfiguration"
   error_cosmosys_project_profile_confirmation_required: "Review and authorize the project reconfiguration before changing its profile."
+  button_cosmosys_continue: "Continue"

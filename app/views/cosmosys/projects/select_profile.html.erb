@@ -11,6 +11,6 @@
       <%= select_tag :project_profile,
                      options_for_select(@cosmosys_project_profiles.map { |profile| [l(profile.label), profile.key] }, Cosmosys::ProjectProfileRegistry::DEFAULT_KEY) %>
     </p>
-    <p><%= submit_tag l(:button_continue) %></p>
+    <p><%= submit_tag l(:button_cosmosys_continue) %></p>
   <% end %>
 </div>
