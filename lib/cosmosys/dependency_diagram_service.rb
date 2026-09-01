@@ -229,7 +229,10 @@ module Cosmosys
       visible_relations_for(issue).filter_map do |relation, neighbor|
         relation_type = relation.relation_type.to_s
         if relation_type == 'relates'
-          next unless direction == :seed || direction == :related
+          # `relates` provides local context, not a transitive graph. Include
+          # only neighbors of the focal item; expanding through a related
+          # neighbor quickly pulls unrelated chains into the diagram.
+          next unless direction == :seed
 
           [relation, neighbor, :related]
         elsif relation.issue_from_id == issue.id
