@@ -4,7 +4,7 @@
     <%= l(:text_cosmosys_tree_health_warning_html,
           issue_ref: link_to_issue(problem.issue, project: true),
           reason: l("text_cosmosys_tree_problem_#{problem.reason}")).html_safe %>
-    <% if User.current.admin? %>
+    <% if User.current.admin? || User.current.allowed_to?(:edit_project, problem.issue.project) %>
       <span class="cosmosys-tree-warning-action">
         <%= button_to l(:button_cosmosys_rebuild_tree),
               { controller: 'cosmosys/items', action: 'rebuild_tree', project_id: problem.issue.project, issue_id: problem.issue },

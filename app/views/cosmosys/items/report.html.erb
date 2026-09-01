@@ -55,8 +55,9 @@
       data-export-error="<%= l(:text_cosmosys_report_export_failed) %>"
     ><%= l(:button_cosmosys_report_export) %></button>
     <span class="cosmosys-report-export-progress" data-cosmosys-report-export-progress hidden role="status" aria-live="polite">
-      <span class="cosmosys-report-spinner" aria-hidden="true"></span>
-      <%= l(:text_cosmosys_report_export_in_progress) %>
+      <span class="cosmosys-report-spinner" data-cosmosys-operation-spinner aria-hidden="true"></span>
+      <span data-cosmosys-operation-label><%= l(:text_cosmosys_report_export_in_progress) %></span>
+      <progress value="0" max="100" data-cosmosys-operation-progress>0%</progress>
     </span>
   </div>
   <div id="query_form_with_buttons" class="hide-when-print cosmosys-report-query-form-with-buttons">

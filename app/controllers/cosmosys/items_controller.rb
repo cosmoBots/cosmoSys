@@ -16,7 +16,7 @@ module Cosmosys
     before_action :find_tree_issue, only: :move
     before_action :authorize_tree_reorder, only: :move
     before_action :find_rebuild_issue, only: :rebuild_tree
-    before_action :require_admin_user, only: :rebuild_tree
+    before_action :authorize_tree_repair, only: :rebuild_tree
     before_action :find_detail_issue, only: :details
     around_action :use_project_language, only: :report_diagram
 
@@ -250,8 +250,9 @@ module Cosmosys
     end
 
     def rebuild_tree
-      Issue.rebuild_single_tree!(@issue.root_id.presence || @issue.id)
-      flash[:notice] = l(:notice_successful_update)
+      result = Cosmosys::IssueTreeOrderRepair.new(@project, user: User.current).call
+      flash[:notice] = l(:notice_cosmosys_tree_order_repaired,
+                         families: result.fetch(:families), items: result.fetch(:items))
       redirect_back fallback_location: issue_path(@issue)
     end
 
@@ -502,6 +503,10 @@ module Cosmosys
 
     def require_admin_user
       render_403 unless User.current.admin?
+    end
+
+    def authorize_tree_repair
+      deny_access unless User.current.admin? || User.current.allowed_to?(:edit_project, @project)
     end
 
     def authenticate_api_user!

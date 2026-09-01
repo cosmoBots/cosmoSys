@@ -949,6 +949,12 @@
   display: none;
 }
 
+.cosmosys-progress-running progress { accent-color: #169; }
+.cosmosys-progress-success progress { accent-color: #2e7d32; }
+.cosmosys-progress-failure progress { accent-color: #c62828; }
+.cosmosys-progress-success { color: #256b29; }
+.cosmosys-progress-failure { color: #8e1b1b; }
+
 .cosmosys-report-spinner {
   animation: cosmosys-report-spin 0.8s linear infinite;
   border: 2px solid #c7d2dd;

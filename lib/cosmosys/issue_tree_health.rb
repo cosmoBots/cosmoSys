@@ -21,6 +21,7 @@ module Cosmosys
       @root_issues = Issue.where(id: @root_ids).index_by(&:id)
       @duplicate_lft = duplicate_values_for(:lft)
       @duplicate_rgt = duplicate_values_for(:rgt)
+      @position_problem_by_issue_id = position_problems
     end
 
     def first_problem
@@ -33,6 +34,7 @@ module Cosmosys
     end
 
     def problem_for(issue)
+      return @position_problem_by_issue_id[issue.id] if @position_problem_by_issue_id.key?(issue.id)
       return Problem.new(issue: issue, reason: :missing_nested_set_values) if issue.root_id.blank? || issue.lft.blank? || issue.rgt.blank?
       return Problem.new(issue: issue, reason: :invalid_nested_set_interval) if issue.lft >= issue.rgt
       return Problem.new(issue: issue, reason: :duplicate_lft) if @duplicate_lft.include?([issue.root_id, issue.lft])
@@ -55,6 +57,24 @@ module Cosmosys
     end
 
     private
+
+    def position_problems
+      @issues.group_by { |issue| [issue.project_id, issue.parent_id] }.each_with_object({}) do |(_family, siblings), problems|
+        ordered = siblings.sort_by { |issue| [issue.lft.to_i, issue.id] }
+        positions = ordered.map { |issue| issue.csposition.to_i }
+        reason =
+          if positions.any? { |position| position <= 0 }
+            :invalid_sibling_position
+          elsif positions.uniq.length != positions.length
+            :duplicate_sibling_position
+          elsif positions.sort != (1..positions.length).to_a
+            :missing_sibling_position
+          elsif positions != (1..positions.length).to_a
+            :sibling_order_mismatch
+          end
+        problems[ordered.first.id] = Problem.new(issue: ordered.first, reason: reason) if reason
+      end
+    end
 
     def duplicate_values_for(column)
       @issues.

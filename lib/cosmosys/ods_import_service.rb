@@ -19,7 +19,14 @@ module Cosmosys
     DOCUMENT_FIELDS = %w[project title category external_code document_date document_version description].freeze
     CATALOG_FIELDS = %w[item family document sense location markdown_reference].freeze
 
-    class ImportError < StandardError; end
+    class ImportError < StandardError
+      attr_reader :context
+
+      def initialize(message, context = {})
+        super(message)
+        @context = context
+      end
+    end
 
     attr_reader :transfer, :project, :user
 
@@ -61,8 +68,10 @@ module Cosmosys
     rescue StandardError => error
       return transfer if transfer.reload.superseded?
 
-      event!('error', 'analysis_failed', message: error.message) unless transfer.events.where(code: 'analysis_failed').exists?
+      context = error.respond_to?(:context) ? error.context : {}
+      event!('error', 'analysis_failed', context.merge(message: error.message)) unless transfer.events.where(code: 'analysis_failed').exists?
       transfer.update!(state: 'failed', summary: transfer.summary.merge('blocking' => true, 'exception' => error.class.name,
+                                                                        'row_errors' => localized_error_summary,
                                                                         'progress_phase' => 'failed'))
       transfer
     end
@@ -107,8 +116,9 @@ module Cosmosys
     rescue StandardError => error
       return transfer if transfer.reload.superseded?
 
-      event!('error', 'application_failed', message: error.message)
+      event!('error', 'application_failed', (@application_error_context || {}).merge(message: error.message))
       transfer.update!(state: 'failed', summary: transfer.summary.merge('application_exception' => error.class.name,
+                                                                         'row_errors' => localized_error_summary,
                                                                          'progress_phase' => 'failed'))
       transfer
     end
@@ -207,7 +217,9 @@ module Cosmosys
         visible_identity = row[visible_key].to_s
         control_identity = normalize_cell(control.cell(number, headers.fetch('row_key')).value)
         unless control_identity == visible_identity
-          raise ImportError, "#{sheet_name} row #{number} no longer matches #{control_name}; rows must not be inserted, deleted or reordered"
+          raise ImportError.new("#{sheet_name} row #{number} no longer matches #{control_name}; rows must not be inserted, deleted or reordered",
+                                sheet: sheet_name, row_number: number, field_name: visible_key,
+                                entity_key: visible_identity.presence)
         end
         OdsExportService::CONTROL_HEADERS.drop(1).each do |field|
           row[field] = normalize_cell(control.cell(number, headers.fetch(field)).value)
@@ -319,18 +331,17 @@ module Cosmosys
     def apply_items!(rows, extra_rows, resolved, result)
       extras = extra_rows.index_by { |row| row['csid'] }
       rows.each do |row|
-        issue = resolve_item(row)
-        new_record = issue.nil?
-        issue ||= Issue.new(project: row_project(row), author: user)
-        # Items is authoritative when a template repeats a header in both sheets.
-        # ExtraFields only enriches the visible item row; it must never replace a
-        # populated Items value with an empty duplicate cell.
-        apply_item_fields(issue, (extras[row['csid']] || {}).merge(row), new_record: new_record)
-        issue.notify = false
-        issue.save! if new_record || issue.changed?
-        resolved[row['csid']] = issue
-        record_identity!(row, 'Issue', issue.id) if new_record
-        result[new_record ? 'created_items' : 'updated_items'] += 1
+        with_application_row(row, entity_type: 'Issue', entity_key: row['csid']) do
+          issue = resolve_item(row)
+          new_record = issue.nil?
+          issue ||= Issue.new(project: row_project(row), author: user)
+          apply_item_fields(issue, (extras[row['csid']] || {}).merge(row), new_record: new_record)
+          issue.notify = false
+          issue.save! if new_record || issue.changed?
+          resolved[row['csid']] = issue
+          record_identity!(row, 'Issue', issue.id) if new_record
+          result[new_record ? 'created_items' : 'updated_items'] += 1
+        end
       end
     end
 
@@ -405,6 +416,7 @@ module Cosmosys
     def apply_item_hierarchy_and_relations!(rows, extra_rows, resolved)
       extras = extra_rows.index_by { |row| row['csid'] }
       rows.each do |item_row|
+        with_application_row(item_row, entity_type: 'Issue', entity_key: item_row['csid']) do
         # csid joins both sheets. Items remains authoritative while ExtraFields
         # contributes fields absent from the visible grid (fsubject is merely
         # a formula reference and therefore has a distinct name).
@@ -422,6 +434,7 @@ module Cosmosys
           end
         end
         reconcile_relations!(issue, row, resolved)
+        end
       end
 
       restore_imported_sibling_order!(rows, resolved)
@@ -452,6 +465,7 @@ module Cosmosys
 
     def apply_documents!(rows, resolved, result)
       rows.each do |row|
+        with_application_row(row, entity_type: 'Document', entity_key: row['source_id']) do
         document = resolve_document(row)
         new_record = document.nil?
         document ||= Document.new(project: row_project(row))
@@ -476,11 +490,13 @@ module Cosmosys
         resolved["d#{document.id}"] = document
         record_identity!(row, 'Document', document.id) if new_record
         result[new_record ? 'created_documents' : 'updated_documents'] += 1
+        end
       end
     end
 
     def apply_catalog!(rows, items, documents, provisional, result)
       rows.each do |row|
+        with_application_row(row, entity_type: 'Cosmosys::CatalogRef', entity_key: row['markdown_reference']) do
         issue = items[row['item']] || resolve_item_by_key(row['item']) || raise(ImportError, "Unknown catalog item #{row['item']}")
         document = documents[row['document']] || resolve_document_by_key(row['document']) || raise(ImportError, "Unknown catalog document #{row['document']}")
         catalog_ref = resolve_catalog_ref(row)
@@ -498,6 +514,7 @@ module Cosmosys
         end
         record_identity!(row, 'Cosmosys::CatalogRef', catalog_ref.id) if new_record
         result[new_record ? 'created_catalog_refs' : 'updated_catalog_refs'] += 1
+        end
       end
     end
 
@@ -665,6 +682,20 @@ module Cosmosys
 
     def row_context(row)
       { sheet: row['_sheet'], row_number: row['_row'] }
+    end
+
+    def with_application_row(row, entity_type:, entity_key: nil)
+      yield
+    rescue StandardError
+      @application_error_context = row_context(row).merge(entity_type: entity_type, entity_key: entity_key.presence)
+      raise
+    end
+
+    def localized_error_summary
+      transfer.events.where(severity: 'error').where.not(sheet: nil).order(:id).map do |event|
+        { 'sheet' => event.sheet, 'row' => event.row_number, 'field' => event.field_name,
+          'entity_type' => event.entity_type, 'entity_key' => event.entity_key, 'message' => event.message }.compact
+      end
     end
 
     def event!(severity, code, attributes = {})

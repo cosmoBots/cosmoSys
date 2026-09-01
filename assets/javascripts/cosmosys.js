@@ -447,6 +447,7 @@
       progress.querySelector('progress').value = complete;
       if (complete === total) {
         progress.classList.add('cosmosys-page-diagram-progress-complete');
+        progress.classList.add('cosmosys-progress-success');
         window.setTimeout(function() { progress.remove(); }, 900);
       }
     }
@@ -605,9 +606,11 @@
       } else if (failed) {
         text = interpolate(report.dataset.diagramFailedText, { failed: failed, total: total });
         progress.classList.add('cosmosys-report-diagram-progress-failed');
+        progress.classList.add('cosmosys-progress-failure');
       } else {
         text = interpolate(report.dataset.diagramReadyText, { total: total });
         progress.classList.add('cosmosys-page-diagram-progress-complete');
+        progress.classList.add('cosmosys-progress-success');
         exportButtons.forEach(function(button) { button.disabled = false; });
         window.setTimeout(function() { progress.remove(); }, 1800);
       }
@@ -660,6 +663,19 @@
     return plainMatch ? plainMatch[1] : fallback;
   }
 
+  function setOperationProgressState(container, state, percent) {
+    if (!container) return;
+    container.classList.remove('cosmosys-progress-running', 'cosmosys-progress-success', 'cosmosys-progress-failure');
+    container.classList.add('cosmosys-progress-' + state);
+    var bar = container.querySelector('[data-cosmosys-operation-progress], progress');
+    if (bar && percent !== undefined && percent !== null) {
+      bar.value = percent;
+      bar.textContent = percent + '%';
+    }
+    var spinner = container.querySelector('[data-cosmosys-operation-spinner], .cosmosys-report-spinner, .cosmosys-spinner');
+    if (spinner) spinner.hidden = state !== 'running';
+  }
+
   function refreshOdsTransferHistory() {
     var currentTable = document.querySelector('[data-cosmosys-ods-transfer-history]');
     if (!currentTable) return Promise.resolve();
@@ -695,6 +711,7 @@
         button.disabled = true;
         formatControl.disabled = true;
         progress.hidden = false;
+        setOperationProgressState(progress, 'running', 0);
 
         var body = new FormData();
         body.append('format', format);
@@ -709,15 +726,17 @@
             return response.blob();
           })
           .then(function(blob) {
+            setOperationProgressState(progress, 'success', 100);
             downloadReportBlob(blob, button.dataset.exportTitle || 'cosmosys-report', format);
           })
           .catch(function(error) {
+            setOperationProgressState(progress, 'failure');
             window.alert(button.dataset.exportError || error.message);
           })
           .finally(function() {
             button.disabled = false;
             formatControl.disabled = false;
-            progress.hidden = true;
+            window.setTimeout(function() { progress.hidden = true; }, 1200);
           });
       });
     });
@@ -745,6 +764,7 @@
         progressBar.value = 0;
         progressSpinner.hidden = false;
         progress.hidden = false;
+        setOperationProgressState(progress, 'running', 0);
         window.fetch(exportUrl.toString(), {
           method: 'POST',
           credentials: 'same-origin',
@@ -763,8 +783,7 @@
           })
           .then(function(status) {
             completed = true;
-            progressBar.value = 100;
-            progressBar.textContent = '100%';
+            setOperationProgressState(progress, 'success', 100);
             progressLabel.textContent = status.completion_label || status.phase_label || status.phase;
             progressSpinner.hidden = true;
             return window.fetch(status.download_url, { credentials: 'same-origin' }).then(function(response) {
@@ -780,6 +799,7 @@
             });
           })
           .catch(function(error) {
+            setOperationProgressState(progress, 'failure', progressBar.value || 0);
             window.alert(button.dataset.exportError || error.message);
           })
           .finally(function() {
@@ -829,6 +849,7 @@
         var token = document.querySelector('meta[name="csrf-token"]');
         if (progress) progress.hidden = false;
         if (progressBar) progressBar.value = 0;
+        setOperationProgressState(progress, 'running', 0);
         if (submit) submit.disabled = true;
         window.fetch(form.action, {
           method: (form.method || 'post').toUpperCase(),
@@ -850,9 +871,11 @@
             }, ['awaiting_confirmation', 'applied', 'rejected', 'failed', 'superseded']);
           })
           .then(function(status) {
+            setOperationProgressState(progress, ['rejected', 'failed', 'superseded'].indexOf(status.state) >= 0 ? 'failure' : 'success', status.state === 'applied' ? 100 : (status.progress || 0));
             window.location.assign(status.show_url);
           })
           .catch(function(error) {
+            setOperationProgressState(progress, 'failure', progressBar ? progressBar.value : 0);
             window.alert(error.message);
             if (submit) submit.disabled = false;
             if (progress) progress.hidden = true;
@@ -870,8 +893,14 @@
         progressBar.textContent = (status.progress || 0) + '%';
         progressLabel.textContent = status.phase_label || status.phase;
       }, ['awaiting_confirmation', 'applied', 'rejected', 'failed', 'superseded'])
-        .then(function(status) { window.location.assign(status.show_url); })
-        .catch(function(error) { progressLabel.textContent = error.message; });
+        .then(function(status) {
+          setOperationProgressState(progress, ['rejected', 'failed', 'superseded'].indexOf(status.state) >= 0 ? 'failure' : 'success', status.state === 'applied' ? 100 : (status.progress || 0));
+          window.location.assign(status.show_url);
+        })
+        .catch(function(error) {
+          setOperationProgressState(progress, 'failure', progressBar.value || 0);
+          progressLabel.textContent = error.message;
+        });
     });
   }
 
