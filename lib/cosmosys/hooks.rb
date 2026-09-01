@@ -8,9 +8,8 @@ module Cosmosys
       { partial: 'hooks/cosmosys/issue_tree_warning' },
       { partial: 'hooks/cosmosys/issue_diagrams' },
       { partial: 'hooks/cosmosys/catalog_refs' }
-    render_on :view_issues_form_details_bottom, 
-      { partial: 'hooks/cosmosys/report_placeholder_field'},
-      { partial: 'hooks/cosmosys/preferred_report_diagram_field' }
+    render_on :view_issues_form_details_bottom, partial: 'hooks/cosmosys/report_placeholder_field'
+    render_on :view_issues_form_details_bottom, partial: 'hooks/cosmosys/preferred_report_diagram_field'
     render_on :view_issues_show_details_bottom, partial: 'hooks/cosmosys/preferred_report_diagram_detail'
     render_on :view_layouts_base_html_head, partial: 'hooks/cosmosys/html_head'
     render_on :view_layouts_base_body_bottom, partial: 'hooks/cosmosys/branding'
