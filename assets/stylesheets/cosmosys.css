@@ -1077,27 +1077,52 @@
 .cosmosys-document-catalog-table td:nth-child(7) {
   white-space: nowrap;
 }
+#header {
+  margin: 0;
+  background: #3a78a3;
+  color: var(--oc-white);
+  padding-block: 0.25rem 0;
+  padding-inline: 0;
+  position: relative;
+  overflow: visible;
+}
+
 .cosmosys-header-logo {
   position: absolute;
-  inset-inline-start: 0;
-  inset-block-start: 50%;
+  inset-inline-start: -6px;
+  inset-block-start: 41%;
   transform: translateY(-50%);
   display: block;
-  width: 32px;
-  height: 32px;
+  width: auto;
+  height: 106px;
   object-fit: contain;
+  filter: brightness(0) saturate(100%) invert(76%) sepia(18%) saturate(782%) hue-rotate(166deg) brightness(90%) contrast(94%);
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 #header > h1:has(.cosmosys-header-logo) {
   position: relative;
-  padding-inline-start: 42px;
+  min-height: 50px;
+  padding-inline-start: 105px;
+  overflow: visible;
 }
 
 .cosmosys-sidebar-brand {
-  margin-top: auto;
-  padding: 1.25rem 0.5rem 0.75rem;
-  border-top: 1px solid var(--border-color, #ddd);
+  position: absolute;
+  inset-inline-start: -140px;
+  inset-inline-end: auto;
+  inset-block-end: 1rem;
+  width: 360px;
+  z-index: 0;
+  padding: 0;
   text-align: center;
+  pointer-events: none;
+  clip-path: inset(0 0 0 0);
+}
+
+#main.collapsiblesidebar #sidebar-wrapper:has(.cosmosys-sidebar-brand) {
+  position: relative;
 }
 
 @media screen and (min-width: 900px) {
@@ -1128,14 +1153,23 @@
 
 .cosmosys-sidebar-logo {
   display: inline-block;
-  width: min(100%, 180px);
+  width: 360px;
+  max-width: none;
   height: auto;
-  opacity: 0.72;
+  opacity: 0.16;
+  mix-blend-mode: multiply;
 }
 
 @media screen and (max-width: 899px) {
   .cosmosys-sidebar-brand {
+    position: static;
+    width: auto;
     margin-top: 2rem;
+    clip-path: none;
+  }
+
+  .cosmosys-sidebar-logo {
+    width: min(92%, 230px);
   }
 }
 .cosmosys-dsm-help {
