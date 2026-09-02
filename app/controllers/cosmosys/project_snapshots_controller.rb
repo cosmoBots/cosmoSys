@@ -26,9 +26,9 @@ module Cosmosys
 
     def download
       send_data(
-        @snapshot.manifest_json,
-        filename: "#{@project.identifier}-snapshot-#{@snapshot.id}.json",
-        type: 'application/json',
+        Cosmosys::ProjectSnapshotPackage.new(@snapshot).data,
+        filename: "#{@project.identifier}-snapshot-#{@snapshot.id}.csys",
+        type: 'application/zip',
         disposition: 'attachment'
       )
     end

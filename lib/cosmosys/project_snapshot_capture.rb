@@ -26,17 +26,21 @@ module Cosmosys
         'content' => content
       }
 
-      Cosmosys::ProjectSnapshot.create!(
-        project: project,
-        created_by: user,
-        name: name,
-        schema_version: SCHEMA_VERSION,
-        content_sha256: digest,
-        manifest_json: CanonicalJson.generate(manifest),
-        item_count: content.fetch('items').length,
-        document_count: content.fetch('documents').length,
-        relation_count: content.fetch('relations').length
-      )
+      Cosmosys::ProjectSnapshot.transaction do
+        snapshot = Cosmosys::ProjectSnapshot.create!(
+          project: project,
+          created_by: user,
+          name: name,
+          schema_version: SCHEMA_VERSION,
+          content_sha256: digest,
+          manifest_json: CanonicalJson.generate(manifest),
+          item_count: content.fetch('items').length,
+          document_count: content.fetch('documents').length,
+          relation_count: content.fetch('relations').length
+        )
+        retain_attachment_payloads!(snapshot)
+        snapshot
+      end
     end
 
     private
@@ -50,6 +54,9 @@ module Cosmosys
       issue_ids = issues.map(&:id).to_set
       documents = project.documents.visible(user).includes(:category, :attachments).order(:id).to_a
       document_ids = documents.map(&:id).to_set
+      @source_attachments = (issues.flat_map { |issue| issue.attachments.to_a } +
+                             documents.flat_map { |document| document.attachments.to_a })
+                            .uniq(&:id)
 
       {
         'project' => project_payload,
@@ -162,6 +169,22 @@ module Cosmosys
           'byte_size' => attachment.filesize,
           'content_sha256' => attachment_sha256(attachment)
         }
+      end
+    end
+
+    def retain_attachment_payloads!(snapshot)
+      Array(@source_attachments).group_by { |attachment| attachment_sha256(attachment) }.each do |digest, matches|
+        source = matches.first
+        File.open(source.diskfile, 'rb') do |file|
+          Attachment.create!(
+            container: snapshot,
+            author: user,
+            file: file,
+            filename: "#{digest}.csys-asset",
+            content_type: 'application/octet-stream',
+            description: "cosmoSys snapshot asset #{digest}"
+          )
+        end
       end
     end
 

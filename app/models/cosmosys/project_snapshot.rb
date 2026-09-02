@@ -6,6 +6,7 @@ module Cosmosys
 
     belongs_to :project
     belongs_to :created_by, class_name: 'User'
+    has_many :attachments, as: :container, dependent: :destroy, inverse_of: :container
 
     validates :project, :created_by, :schema_version, :content_sha256, :manifest_json, presence: true
     validates :content_sha256, format: { with: /\A[0-9a-f]{64}\z/ }
@@ -22,6 +23,10 @@ module Cosmosys
 
     def readable_by?(user)
       user&.admin? || created_by_id == user&.id
+    end
+
+    def visible?(user = User.current)
+      readable_by?(user) && project.visible?(user)
     end
   end
 end
