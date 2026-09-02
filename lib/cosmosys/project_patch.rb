@@ -195,7 +195,10 @@ module Cosmosys
     end
 
     def tracker_ids=(ids)
-      requested_ids = Array(ids).map(&:to_i)
+      requested_ids = Array(ids).filter_map do |value|
+        parsed = value.to_i
+        parsed if parsed.positive?
+      end
       return super(requested_ids) if new_record?
 
       required_ids = cosmosys_required_trackers.pluck(:id)
