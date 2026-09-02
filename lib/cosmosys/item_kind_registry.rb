@@ -134,6 +134,7 @@ Cosmosys::ItemKindRegistry.register(
   description: :text_cosmosys_item_profile_info,
   provider: :cosmosys,
   diagram_shape: 'folder',
+  diagram_fill_color: 'white',
   reference_mode: 'chapter',
   dependency_rankdir: 'TB',
   diagram_visible: true,
