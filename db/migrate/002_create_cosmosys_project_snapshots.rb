@@ -7,7 +7,7 @@ class CreateCosmosysProjectSnapshots < ActiveRecord::Migration[6.1]
         t.string :schema_version, null: false
         t.string :content_sha256, null: false
         t.string :name
-        t.text :manifest_json, null: false
+        t.binary :manifest_gzip, null: false
         t.integer :item_count, null: false, default: 0
         t.integer :document_count, null: false, default: 0
         t.integer :relation_count, null: false, default: 0

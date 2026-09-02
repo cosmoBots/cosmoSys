@@ -1,4 +1,6 @@
 require 'digest'
+require 'stringio'
+require 'zlib'
 
 module Cosmosys
   class ProjectSnapshotCapture
@@ -33,13 +35,16 @@ module Cosmosys
           name: name,
           schema_version: SCHEMA_VERSION,
           content_sha256: digest,
-          manifest_json: CanonicalJson.generate(manifest),
+          manifest_gzip: gzip(CanonicalJson.generate(manifest)),
           item_count: content.fetch('items').length,
           document_count: content.fetch('documents').length,
           relation_count: content.fetch('relations').length
         )
         retain_attachment_payloads!(snapshot)
-        snapshot
+        # Attachment creation happens after the snapshot has been persisted.  A
+        # validation or callback may already have loaded the association, so
+        # return a fresh instance rather than exposing a stale empty cache.
+        snapshot.reload
       end
     end
 
@@ -186,6 +191,15 @@ module Cosmosys
           )
         end
       end
+    end
+
+    def gzip(content)
+      output = StringIO.new
+      writer = Zlib::GzipWriter.new(output)
+      writer.mtime = 0
+      writer.write(content)
+      writer.close
+      output.string
     end
 
     def attachment_sha256(attachment)

@@ -42,6 +42,9 @@ RedmineApp::Application.routes.draw do
     post 'cosmosys/snapshots', to: 'cosmosys/project_snapshots#create'
     get 'cosmosys/snapshots/:id', to: 'cosmosys/project_snapshots#show', as: :project_cosmosys_snapshot
     get 'cosmosys/snapshots/:id/download', to: 'cosmosys/project_snapshots#download', as: :download_project_cosmosys_snapshot
+    get 'cosmosys/snapshots/:id/materialize', to: 'cosmosys/project_snapshots#new_materialization', as: :materialize_project_cosmosys_snapshot
+    post 'cosmosys/snapshots/:id/materialize', to: 'cosmosys/project_snapshots#materialize'
+    delete 'cosmosys/snapshots/:id', to: 'cosmosys/project_snapshots#destroy'
     get 'cosmosys/templates/profile', to: 'cosmosys/project_templates#profile', as: :project_cosmosys_profile_template
     get 'cosmosys/templates/effective', to: 'cosmosys/project_templates#effective', as: :project_cosmosys_effective_template
     get 'cosmosys/templates/report/profile', to: 'cosmosys/project_templates#report_profile', as: :project_cosmosys_profile_report_template

@@ -1,4 +1,3 @@
-require 'stringio'
 require 'zip'
 require 'digest'
 
@@ -10,8 +9,8 @@ module Cosmosys
       @snapshot = snapshot
     end
 
-    def data
-      Zip::OutputStream.write_buffer do |archive|
+    def write(path)
+      Zip::OutputStream.open(path.to_s) do |archive|
         archive.put_next_entry(MANIFEST_PATH)
         archive.write(snapshot.manifest_json)
 
@@ -20,7 +19,8 @@ module Cosmosys
           archive.put_next_entry("assets/sha256/#{attachment.digest}")
           File.open(attachment.diskfile, 'rb') { |file| IO.copy_stream(file, archive) }
         end
-      end.string
+      end
+      path
     end
 
     private

@@ -1,0 +1,13 @@
+<%= render partial: 'cosmosys/items/nav', locals: { current: :snapshots } %>
+
+<h2><%= l(:label_cosmosys_materialize_project_snapshot) %></h2>
+
+<div class="box tabular">
+  <%= form_tag materialize_project_cosmosys_snapshot_path(@project, @snapshot), method: :post do %>
+    <p><%= label_tag 'destination_name', l(:field_name) %><%= text_field_tag 'destination[name]', @destination['name'], required: true, size: 60 %></p>
+    <p><%= label_tag 'destination_identifier', l(:field_identifier) %><%= text_field_tag 'destination[identifier]', @destination['identifier'], required: true, size: 60 %></p>
+    <p><%= label_tag 'destination_cscode', 'cscode' %><%= text_field_tag 'destination[cscode]', @destination['cscode'], required: true, size: 20 %></p>
+    <p><%= label_tag 'destination_parent_id', l(:field_parent) %><%= select_tag 'destination[parent_id]', options_from_collection_for_select(@parent_projects, :id, :name, @destination['parent_id']), include_blank: l(:label_none) %></p>
+    <p><%= submit_tag l(:button_cosmosys_materialize_project_snapshot), class: 'button-positive' %></p>
+  <% end %>
+</div>
