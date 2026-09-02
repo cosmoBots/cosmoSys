@@ -1,0 +1,12 @@
+<%= render partial: 'cosmosys/items/nav', locals: { current: :snapshots } %>
+
+<h2><%= @snapshot.name.presence || l(:label_cosmosys_project_snapshot) %></h2>
+
+<div class="box">
+  <p><strong><%= l(:field_created_on) %>:</strong> <%= format_time(@snapshot.created_at) %></p>
+  <p><strong><%= l(:label_user) %>:</strong> <%= link_to_user @snapshot.created_by %></p>
+  <p><strong><%= l(:label_cosmosys_snapshot_contents) %>:</strong> <%= l(:text_cosmosys_snapshot_counts, items: @snapshot.item_count, documents: @snapshot.document_count, relations: @snapshot.relation_count) %></p>
+  <p><strong>SHA-256:</strong> <code><%= @snapshot.content_sha256 %></code></p>
+</div>
+
+<p><%= link_to l(:button_download), download_project_cosmosys_snapshot_path(@project, @snapshot), class: 'icon icon-download' %></p>

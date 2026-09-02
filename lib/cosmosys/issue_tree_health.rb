@@ -59,15 +59,17 @@ module Cosmosys
     private
 
     def position_problems
-      family_keys = @issues.map { |issue| [issue.project_id, issue.parent_id] }.uniq.to_set
-      project_ids = family_keys.map(&:first).uniq
-      complete_families = Issue.where(project_id: project_ids).to_a.
-        group_by { |issue| [issue.project_id, issue.parent_id] }.
-        select { |family, _siblings| family_keys.include?(family) }
+      family_keys = @issues.map { |issue| sibling_family_key(issue) }.uniq.to_set
+      parent_ids = @issues.filter_map(&:parent_id).uniq
+      root_project_ids = @issues.select { |issue| issue.parent_id.blank? }.map(&:project_id).uniq
+      complete_issues = []
+      complete_issues.concat(Issue.where(parent_id: parent_ids).to_a) if parent_ids.any?
+      complete_issues.concat(Issue.where(project_id: root_project_ids, parent_id: nil).to_a) if root_project_ids.any?
+      complete_families = complete_issues.group_by { |issue| sibling_family_key(issue) }
+                                         .select { |family, _siblings| family_keys.include?(family) }
 
       complete_families.each_with_object({}) do |(_family, siblings), problems|
-        ordered = siblings.sort_by { |issue| [issue.lft.to_i, issue.id] }
-        positions = ordered.map { |issue| issue.csposition.to_i }
+        positions = siblings.map { |issue| issue.csposition.to_i }
         reason =
           if positions.any? { |position| position <= 0 }
             :invalid_sibling_position
@@ -75,11 +77,16 @@ module Cosmosys
             :duplicate_sibling_position
           elsif positions.sort != (1..positions.length).to_a
             :missing_sibling_position
-          elsif positions != (1..positions.length).to_a
-            :sibling_order_mismatch
           end
-        problems[ordered.first.id] = Problem.new(issue: ordered.first, reason: reason) if reason
+        if reason
+          representative = siblings.min_by { |issue| [issue.csposition.to_i, issue.lft.to_i, issue.id] }
+          problems[representative.id] = Problem.new(issue: representative, reason: reason)
+        end
       end
+    end
+
+    def sibling_family_key(issue)
+      issue.parent_id.present? ? [:parent, issue.parent_id] : [:project_roots, issue.project_id]
     end
 
     def duplicate_values_for(column)

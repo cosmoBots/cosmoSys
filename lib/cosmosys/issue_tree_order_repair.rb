@@ -14,8 +14,11 @@ module Cosmosys
         root_ids = issues.map(&:root_id).compact.uniq
         root_ids.each { |root_id| Issue.rebuild_single_tree!(root_id) }
         issues = scope.reload.to_a
-        issues.group_by { |issue| [issue.project_id, issue.parent_id] }.each_value do |siblings|
-          ordered = siblings.sort_by { |issue| [issue.lft.to_i, issue.id] }
+        issues.group_by { |issue| sibling_family_key(issue) }.each_value do |siblings|
+          positions = siblings.map { |issue| issue.csposition.to_i }
+          next if positions.sort == (1..positions.length).to_a
+
+          ordered = siblings.sort_by { |issue| [issue.csposition.to_i, issue.lft.to_i, issue.id] }
           changed = ordered.each_with_index.count do |issue, index|
             next false if issue.csposition == index + 1
 
@@ -37,6 +40,10 @@ module Cosmosys
 
     def scope
       Issue.where(project_id: @project.project_root.self_and_descendants.select(:id)).order(:root_id, :lft, :id)
+    end
+
+    def sibling_family_key(issue)
+      issue.parent_id.present? ? [:parent, issue.parent_id] : [:project_roots, issue.project_id]
     end
   end
 end

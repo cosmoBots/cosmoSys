@@ -1,0 +1,29 @@
+<%= render partial: 'cosmosys/items/nav', locals: { current: :snapshots } %>
+
+<h2><%= l(:label_cosmosys_project_snapshots) %></h2>
+
+<% if User.current.admin? || User.current.allowed_to?(:edit_project, @project) %>
+  <div class="box tabular">
+    <%= form_tag project_cosmosys_snapshots_path(@project), method: :post do %>
+      <p><%= label_tag :name, l(:field_name) %><%= text_field_tag :name, nil, size: 50 %></p>
+      <p><%= submit_tag l(:button_cosmosys_create_snapshot), class: 'button-positive' %></p>
+    <% end %>
+  </div>
+<% end %>
+
+<p class="info"><%= l(:text_cosmosys_project_snapshot_v1_scope) %></p>
+
+<table class="list">
+  <thead><tr><th><%= l(:field_created_on) %></th><th><%= l(:field_name) %></th><th><%= l(:label_user) %></th><th><%= l(:label_cosmosys_snapshot_contents) %></th><th>SHA-256</th></tr></thead>
+  <tbody>
+    <% @snapshots.each do |snapshot| %>
+      <tr>
+        <td><%= link_to format_time(snapshot.created_at), project_cosmosys_snapshot_path(@project, snapshot) %></td>
+        <td><%= snapshot.name.presence || '-' %></td>
+        <td><%= link_to_user snapshot.created_by %></td>
+        <td><%= l(:text_cosmosys_snapshot_counts, items: snapshot.item_count, documents: snapshot.document_count, relations: snapshot.relation_count) %></td>
+        <td><code><%= snapshot.content_sha256.first(12) %></code></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

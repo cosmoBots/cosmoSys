@@ -38,6 +38,10 @@ RedmineApp::Application.routes.draw do
     post 'cosmosys/transfers/:id/apply', to: 'cosmosys/ods_transfers#apply', as: :apply_project_cosmosys_ods_transfer
     post 'cosmosys/transfers/:id/materialize', to: 'cosmosys/ods_transfers#materialize', as: :materialize_project_cosmosys_ods_transfer
     get 'cosmosys/transfers/:id/reconciled', to: 'cosmosys/ods_transfers#download', as: :download_project_cosmosys_ods_transfer
+    get 'cosmosys/snapshots', to: 'cosmosys/project_snapshots#index', as: :project_cosmosys_snapshots
+    post 'cosmosys/snapshots', to: 'cosmosys/project_snapshots#create'
+    get 'cosmosys/snapshots/:id', to: 'cosmosys/project_snapshots#show', as: :project_cosmosys_snapshot
+    get 'cosmosys/snapshots/:id/download', to: 'cosmosys/project_snapshots#download', as: :download_project_cosmosys_snapshot
     get 'cosmosys/templates/profile', to: 'cosmosys/project_templates#profile', as: :project_cosmosys_profile_template
     get 'cosmosys/templates/effective', to: 'cosmosys/project_templates#effective', as: :project_cosmosys_effective_template
     get 'cosmosys/templates/report/profile', to: 'cosmosys/project_templates#report_profile', as: :project_cosmosys_profile_report_template

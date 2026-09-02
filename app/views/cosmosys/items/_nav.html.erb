@@ -6,5 +6,6 @@
     <li><%= link_to l(:label_cosmosys_dsm), project_cosmosys_dsm_path(@project), class: (local_assigns[:current] == :dsm ? 'selected' : nil) %></li>
     <li><%= link_to l(:label_cosmosys_document_catalog), project_cosmosys_document_catalog_path(@project), class: (local_assigns[:current] == :document_catalog ? 'selected' : nil) %></li>
     <li><%= link_to l(:label_cosmosys_ods_transfer_history), project_cosmosys_ods_transfers_path(@project), class: (local_assigns[:current] == :ods_transfers ? 'selected' : nil) %></li>
+    <li><%= link_to l(:label_cosmosys_project_snapshots), project_cosmosys_snapshots_path(@project), class: (local_assigns[:current] == :snapshots ? 'selected' : nil) %></li>
   </ul>
 </div>
