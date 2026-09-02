@@ -8,11 +8,12 @@ module Cosmosys
     def update
       return unless update_project_profile!
       query = Cosmosys::MainReportFieldRegistry.query_for_project(@project, user: User.current)
-      available_names = query.available_inline_columns.map { |column| column.name.to_s }
+      available_names = Cosmosys::MainReportFieldRegistry.available_column_names_for_project(@project, user: User.current)
+      available_item_list_names = query.available_columns.reject(&:frozen?).map { |column| column.name.to_s }
       selected_names = Array(params.dig(:cosmosys_setting, :column_names)).map(&:to_s)
       sanitized_names = selected_names.select { |name| available_names.include?(name) }
       selected_item_list_names = Array(params.dig(:cosmosys_setting, :item_list_column_names)).map(&:to_s)
-      sanitized_item_list_names = selected_item_list_names.select { |name| available_names.include?(name) }
+      sanitized_item_list_names = selected_item_list_names.select { |name| available_item_list_names.include?(name) }
       raw_presentations_param = params.dig(:cosmosys_setting, :field_presentations)
       raw_presentations =
         case raw_presentations_param
