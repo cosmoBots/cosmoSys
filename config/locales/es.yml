@@ -253,6 +253,7 @@ es:
   label_cosmosys_drag_handle: "Arrastrar para reorganizar"
   label_cosmosys_drop_here: "Soltar aqui para hacerlo hijo"
   button_cosmosys_rebuild_tree: "Reconstruir arbol"
+  label_cosmosys_warning: "Aviso"
   text_cosmosys_move_across_trees_forbidden: "Los items con CSID no se pueden mover a otro arbol de proyecto."
   text_cosmosys_invalid_parent_scope: "El padre solo puede pertenecer al mismo proyecto o a un proyecto ancestro."
   text_cosmosys_project_code_help: "Obligatorio. Solo letras y numeros. No se puede cambiar despues de crear el proyecto."

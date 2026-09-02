@@ -253,6 +253,7 @@ en:
   label_cosmosys_drag_handle: "Drag to reorganize"
   label_cosmosys_drop_here: "Drop here to make it a child"
   button_cosmosys_rebuild_tree: "Rebuild tree"
+  label_cosmosys_warning: "Warning"
   text_cosmosys_move_across_trees_forbidden: "Items with CSID cannot be moved to a different project tree."
   text_cosmosys_invalid_parent_scope: "The parent item must belong to the same project or to an ancestor project."
   text_cosmosys_project_code_help: "Required. Letters and digits only. It cannot be changed after project creation."

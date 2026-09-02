@@ -59,7 +59,13 @@ module Cosmosys
     private
 
     def position_problems
-      @issues.group_by { |issue| [issue.project_id, issue.parent_id] }.each_with_object({}) do |(_family, siblings), problems|
+      family_keys = @issues.map { |issue| [issue.project_id, issue.parent_id] }.uniq.to_set
+      project_ids = family_keys.map(&:first).uniq
+      complete_families = Issue.where(project_id: project_ids).to_a.
+        group_by { |issue| [issue.project_id, issue.parent_id] }.
+        select { |family, _siblings| family_keys.include?(family) }
+
+      complete_families.each_with_object({}) do |(_family, siblings), problems|
         ordered = siblings.sort_by { |issue| [issue.lft.to_i, issue.id] }
         positions = ordered.map { |issue| issue.csposition.to_i }
         reason =
