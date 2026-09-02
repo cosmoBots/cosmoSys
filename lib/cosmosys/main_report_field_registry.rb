@@ -27,11 +27,11 @@ module Cosmosys
     end
 
     def self.available_inline_columns(user:)
-      query(user: user).available_inline_columns.reject(&:frozen?)
+      report_eligible_columns(query(user: user).available_columns)
     end
 
     def self.available_inline_columns_for_project(project, user:)
-      query_for_project(project, user: user).available_inline_columns.reject(&:frozen?)
+      report_eligible_columns(query_for_project(project, user: user).available_columns)
     end
 
     def self.available_column_names(user:)
@@ -65,6 +65,12 @@ module Cosmosys
 
       default_core_names = DEFAULT_CORE_COLUMN_NAMES.reject { |name| DEFAULT_HIDDEN_COLUMN_NAMES.include?(name) }
       (default_core_names.select { |name| available_names.include?(name) } + custom_names).uniq
+    end
+
+    def self.report_eligible_columns(columns)
+      columns.select do |column|
+        !column.frozen? && (column.inline? || (column.respond_to?(:cosmosys_report_rich_text?) && column.cosmosys_report_rich_text?))
+      end
     end
 
     def fields_for(issue)
