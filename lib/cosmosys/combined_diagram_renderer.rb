@@ -251,7 +251,7 @@ module Cosmosys
         color: issue.cosmosys_hierarchy_cluster_color,
         pencolor: issue.cosmosys_hierarchy_cluster_color,
         penwidth: issue.cosmosys_hierarchy_cluster_penwidth,
-        margin: '4',
+        margin: '2',
         style: 'solid',
         URL: issue_url(issue),
         tooltip: issue.description.to_s
