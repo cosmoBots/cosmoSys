@@ -47,12 +47,7 @@ module Cosmosys
 
     def build_dot
       renderer.build_graph(title: 'cosmosys_project_combined') do |lines|
-        project_roots.each do |issue|
-          lines.concat(renderer.build_tree(build_project_subtree_entry(issue)))
-        end
-        dependency_boundary_issues.each do |issue|
-          lines.concat(renderer.build_standalone_node(issue, boundary: true))
-        end
+        all_entry_roots.each { |entry| lines.concat(renderer.build_tree(entry)) }
         visible_relations.each do |relation|
           lines.concat(renderer.build_edge(relation))
         end
@@ -116,10 +111,22 @@ module Cosmosys
       end
     end
 
+    def primary_tree_issues
+      @primary_tree_issues ||= begin
+        issues = []
+        project_roots.each { |issue| collect_project_entry_issues(build_project_subtree_entry(issue), issues) }
+        issues.uniq(&:id)
+      end
+    end
+
+    def primary_tree_issue_ids
+      @primary_tree_issue_ids ||= primary_tree_issues.map(&:id).to_set
+    end
+
     def tree_issues
       @tree_issues ||= begin
         issues = []
-        project_roots.each { |issue| collect_project_entry_issues(build_project_subtree_entry(issue), issues) }
+        all_entry_roots.each { |entry| collect_project_entry_issues(entry, issues) }
         issues.uniq(&:id)
       end
     end
@@ -139,14 +146,14 @@ module Cosmosys
 
     def build_dependency_component
       if @mode == :full
-        components = tree_issues.map do |issue|
+        components = primary_tree_issues.map do |issue|
           Cosmosys::DependencyDiagramService.component_for(
             issue, mode: :full, scope: :self, relation_types: @relation_types
           )
         end
         return {
           relations: components.flat_map { |component| component[:relations] }.uniq(&:id).sort_by(&:id),
-          boundary_issues: components.flat_map { |component| component[:issues] }.reject { |issue| tree_issue_ids.include?(issue.id) }.uniq(&:id).sort_by(&:id)
+          boundary_issues: components.flat_map { |component| component[:issues] }.reject { |issue| primary_tree_issue_ids.include?(issue.id) }.uniq(&:id).sort_by(&:id)
         }
       end
 
@@ -154,17 +161,17 @@ module Cosmosys
       relations = []
       boundary_issues = []
 
-      tree_issues.each do |issue|
+      primary_tree_issues.each do |issue|
         visible_relations_for(issue).each do |relation, neighbor|
           next unless relation.issue_from && relation.issue_to
-          next unless tree_issue_ids.include?(relation.issue_from_id) || tree_issue_ids.include?(relation.issue_to_id)
+          next unless primary_tree_issue_ids.include?(relation.issue_from_id) || primary_tree_issue_ids.include?(relation.issue_to_id)
 
           unless relation_ids.include?(relation.id)
             relation_ids << relation.id
             relations << relation
           end
 
-          next if tree_issue_ids.include?(neighbor.id)
+          next if primary_tree_issue_ids.include?(neighbor.id)
           next if boundary_issues.any? { |candidate| candidate.id == neighbor.id }
 
           boundary_issues << neighbor
@@ -253,8 +260,7 @@ module Cosmosys
       payload << "layout_mode:#{@layout_mode}"
       payload << "document_refs:#{@include_document_references ? 1 : 0}"
       payload << "relations:#{@relation_types.sort.join(',')}"
-      project_roots.each { |issue| append_entry_signature(build_project_subtree_entry(issue), payload) }
-      payload.concat(dependency_boundary_issues.map { |issue| renderer.node_signature(issue, boundary: true, container: false) })
+      all_entry_roots.each { |entry| append_entry_signature(entry, payload) }
       payload.concat(visible_relations.filter_map { |relation| renderer.edge_signature(relation) })
       payload.concat(visible_document_references.map { |catalog_ref| renderer.document_reference_signature(catalog_ref) }) if @include_document_references
       Digest::SHA256.hexdigest(payload.join('|'))
@@ -286,7 +292,7 @@ module Cosmosys
     def container_issue_ids
       @container_issue_ids ||= begin
         ids = Set.new
-        project_entry_roots.each { |entry| collect_container_issue_ids(entry, ids) }
+        all_entry_roots.each { |entry| collect_container_issue_ids(entry, ids) }
         ids
       end
     end
@@ -300,7 +306,7 @@ module Cosmosys
     def ancestor_ids_by_issue
       @ancestor_ids_by_issue ||= begin
         mapping = {}
-        project_entry_roots.each { |entry| collect_ancestor_ids(entry, mapping, Set.new) }
+        all_entry_roots.each { |entry| collect_ancestor_ids(entry, mapping, Set.new) }
         mapping
       end
     end
@@ -318,6 +324,42 @@ module Cosmosys
 
     def project_entry_roots
       @project_entry_roots ||= project_roots.map { |issue| build_project_subtree_entry(issue) }
+    end
+
+    def all_entry_roots
+      @all_entry_roots ||= project_entry_roots + dependency_context_entry_roots
+    end
+
+    def dependency_context_entry_roots
+      @dependency_context_entry_roots ||= begin
+        selected = dependency_boundary_issues.index_by(&:id)
+        dependency_boundary_issues.each do |issue|
+          issue.ancestors.visible(User.current).includes(:project, :tracker).each do |ancestor|
+            next unless ancestor.cosmosys_diagram_visible?
+            next unless ancestor.project_id == issue.project_id
+            next if primary_tree_issue_ids.include?(ancestor.id)
+
+            selected[ancestor.id] = ancestor
+          end
+        end
+        included_by_id = selected.values.index_by(&:id)
+        selected.values
+          .sort_by { |issue| [issue.csposition || 0, issue.lft || 0, issue.id] }
+          .select { |issue| !included_by_id.key?(issue.parent_issue_id) }
+          .map { |issue| build_context_subtree_entry(issue, included_by_id) }
+      end
+    end
+
+    def build_context_subtree_entry(issue, included_by_id)
+      children = issue.children.visible(User.current)
+                      .where(id: included_by_id.keys)
+                      .includes(:project, :tracker)
+                      .order(:csposition, :lft, :id)
+                      .to_a
+                      .select(&:cosmosys_diagram_visible?)
+                      .map { |child| build_context_subtree_entry(child, included_by_id) }
+      children = reorder_entries_for_variant(children)
+      { issue: issue, boundary: issue.project_id != @project.id, children: children }
     end
 
     def reorder_entries_for_variant(children)

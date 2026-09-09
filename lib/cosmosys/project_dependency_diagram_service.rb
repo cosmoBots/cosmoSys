@@ -104,7 +104,9 @@ module Cosmosys
       {
         issues: components.flat_map { |component| component[:issues] }.select { |issue| involved_ids.include?(issue.id) }.uniq(&:id).sort_by(&:id),
         relations: relations,
-        boundary_issue_ids: Set.new
+        boundary_issue_ids: components.flat_map { |component| component[:issues] }
+                                      .select { |issue| involved_ids.include?(issue.id) && issue.project_id != @project.id }
+                                      .map(&:id).to_set
       }
     end
 

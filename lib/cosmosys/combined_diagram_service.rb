@@ -49,9 +49,6 @@ module Cosmosys
     def build_dot
       renderer.build_graph(title: 'cosmosys_combined') do |lines|
         root_entries.each { |entry| lines.concat(renderer.build_tree(entry)) }
-        dependency_boundary_issues.each do |issue|
-          lines.concat(renderer.build_standalone_node(issue, boundary: issue.project_id != @issue.project_id))
-        end
         visible_relations.each do |relation|
           lines.concat(renderer.build_edge(relation))
         end
@@ -218,28 +215,41 @@ module Cosmosys
     end
 
     def root_entries
-      @root_entries ||= @mode == :full ? [full_root_entry] : scoped_root_entries
+      @root_entries ||= selected_root_entries(contextualized_issue_ids)
     end
 
-    def full_root_entry
-      chain = @issue.self_and_ancestors.to_a.select(&:cosmosys_diagram_visible?)
-      entry = build_full_subtree_entry(@issue)
-      chain[0..-2].reverse_each do |ancestor|
-        entry = { issue: ancestor, boundary: false, children: [entry] }
+    def contextualized_issue_ids
+      @contextualized_issue_ids ||= begin
+        selected = primary_hierarchy_issues.index_by(&:id)
+        dependency_component[:issues].each { |issue| selected[issue.id] = issue }
+
+        selected.values.each do |issue|
+          issue.ancestors.visible(User.current).includes(:project, :tracker).each do |ancestor|
+            next unless ancestor.cosmosys_diagram_visible?
+            next unless primary_hierarchy_issue_ids.include?(ancestor.id) || ancestor.project_id == issue.project_id
+
+            selected[ancestor.id] = ancestor
+          end
+        end
+        selected.keys.to_set
       end
-      entry
     end
 
-    def build_full_subtree_entry(issue)
-      { issue: issue, boundary: false, children: full_visible_children(issue).map { |child| build_full_subtree_entry(child) } }
+    def primary_hierarchy_issues
+      @primary_hierarchy_issues ||= if @mode == :full
+                                      issues = []
+                                      collect_entry_issues(full_root_entry, issues)
+                                      issues.uniq(&:id)
+                                    else
+                                      scoped_base_subtree_issues
+                                    end
     end
 
-    def full_visible_children(issue)
-      issue.children.visible(User.current).includes(:project, :tracker).order(:csposition, :lft, :id).to_a.select(&:cosmosys_diagram_visible?)
+    def primary_hierarchy_issue_ids
+      @primary_hierarchy_issue_ids ||= primary_hierarchy_issues.map(&:id).to_set
     end
 
-    def scoped_root_entries
-      included_ids = scoped_included_issue_ids
+    def selected_root_entries(included_ids)
       included_issues = Issue.visible(User.current)
                              .where(id: included_ids)
                              .includes(:project, :tracker)
@@ -247,8 +257,34 @@ module Cosmosys
                              .to_a
                              .select(&:cosmosys_diagram_visible?)
       included_by_id = included_issues.index_by(&:id)
-      roots = included_issues.select { |issue| !included_by_id.key?(issue.parent_issue_id) }
-      roots.map { |issue| build_selected_subtree_entry(issue, included_by_id) }
+      included_issues
+        .select { |issue| !included_by_id.key?(issue.parent_issue_id) }
+        .map { |issue| build_selected_subtree_entry(issue, included_by_id) }
+    end
+
+    def full_root_entry
+      chain = @issue.self_and_ancestors.to_a.select(&:cosmosys_diagram_visible?)
+      entry = build_full_subtree_entry(@issue)
+      chain[0..-2].reverse_each do |ancestor|
+        entry = { issue: ancestor, boundary: ancestor.project_id != @issue.project_id, children: [entry] }
+      end
+      entry
+    end
+
+    def build_full_subtree_entry(issue)
+      {
+        issue: issue,
+        boundary: issue.project_id != @issue.project_id,
+        children: full_visible_children(issue).map { |child| build_full_subtree_entry(child) }
+      }
+    end
+
+    def full_visible_children(issue)
+      issue.children.visible(User.current).includes(:project, :tracker).order(:csposition, :lft, :id).to_a.select(&:cosmosys_diagram_visible?)
+    end
+
+    def scoped_root_entries
+      selected_root_entries(scoped_included_issue_ids)
     end
 
     def build_selected_subtree_entry(issue, included_by_id)
@@ -268,14 +304,12 @@ module Cosmosys
         base_issues = scoped_base_subtree_issues
         selected = base_issues.index_by(&:id)
 
-        dependency_component[:issues].each do |issue|
-          selected[issue.id] = issue if issue.project_id == @issue.project_id
-        end
+        dependency_component[:issues].each { |issue| selected[issue.id] = issue }
 
         selected.values.each do |issue|
           issue.ancestors.visible(User.current).includes(:project, :tracker).each do |ancestor|
             next unless ancestor.cosmosys_diagram_visible?
-            next unless ancestor.project_id == @issue.project_id || issue.id == @issue.id
+            next unless ancestor.project_id == issue.project_id || issue.id == @issue.id
 
             selected[ancestor.id] = ancestor
           end

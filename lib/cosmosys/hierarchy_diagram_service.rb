@@ -78,13 +78,17 @@ module Cosmosys
       chain = @issue.self_and_ancestors.to_a.select(&:cosmosys_diagram_visible?)
       entry = build_full_subtree_entry(@issue)
       chain[0..-2].reverse_each do |ancestor|
-        entry = { issue: ancestor, boundary: false, children: [entry] }
+        entry = { issue: ancestor, boundary: ancestor.project_id != @issue.project_id, children: [entry] }
       end
       entry
     end
 
     def build_full_subtree_entry(issue)
-      { issue: issue, boundary: false, children: full_visible_children(issue).map { |child| build_full_subtree_entry(child) } }
+      {
+        issue: issue,
+        boundary: issue.project_id != @issue.project_id,
+        children: full_visible_children(issue).map { |child| build_full_subtree_entry(child) }
+      }
     end
 
     def full_visible_children(issue)

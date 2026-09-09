@@ -221,7 +221,7 @@ module Cosmosys
       {
         issues: issues.uniq(&:id).sort_by(&:id),
         relations: relations.uniq(&:id).sort_by(&:id),
-        boundary_issue_ids: boundary_ids
+        boundary_issue_ids: project_boundary ? boundary_ids : issues.select { |issue| issue.project_id != project_id }.map(&:id).to_set
       }
     end
 
