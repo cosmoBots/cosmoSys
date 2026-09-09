@@ -92,7 +92,7 @@ module Cosmosys
     end
 
     def full_visible_children(issue)
-      issue.children.visible(User.current).includes(:project, :tracker).order(:csposition, :lft, :id).to_a.select(&:cosmosys_diagram_visible?)
+      issue.children.visible(User.current).includes(:project, :tracker).reorder(:csposition, :lft, :id).to_a.select(&:cosmosys_diagram_visible?)
     end
 
     def scoped_root_entry
@@ -131,7 +131,7 @@ module Cosmosys
     end
 
     def scoped_visible_children(issue)
-      issue.children.visible(User.current).includes(:project, :tracker).order(:csposition, :lft, :id).to_a.select(&:cosmosys_diagram_visible?)
+      issue.children.visible(User.current).includes(:project, :tracker).reorder(:csposition, :lft, :id).to_a.select(&:cosmosys_diagram_visible?)
     end
 
     def renderer

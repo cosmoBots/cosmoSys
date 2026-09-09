@@ -280,7 +280,7 @@ module Cosmosys
     end
 
     def full_visible_children(issue)
-      issue.children.visible(User.current).includes(:project, :tracker).order(:csposition, :lft, :id).to_a.select(&:cosmosys_diagram_visible?)
+      issue.children.visible(User.current).includes(:project, :tracker).reorder(:csposition, :lft, :id).to_a.select(&:cosmosys_diagram_visible?)
     end
 
     def scoped_root_entries
@@ -291,7 +291,7 @@ module Cosmosys
       children = issue.children.visible(User.current)
                       .where(id: included_by_id.keys)
                       .includes(:project, :tracker)
-                      .order(:csposition, :lft, :id)
+                      .reorder(:csposition, :lft, :id)
                       .to_a
                       .select(&:cosmosys_diagram_visible?)
                       .map { |child| build_selected_subtree_entry(child, included_by_id) }
@@ -407,7 +407,7 @@ module Cosmosys
     end
 
     def scoped_visible_children(issue)
-      issue.children.visible(User.current).includes(:project, :tracker).order(:csposition, :lft, :id).to_a.select(&:cosmosys_diagram_visible?)
+      issue.children.visible(User.current).includes(:project, :tracker).reorder(:csposition, :lft, :id).to_a.select(&:cosmosys_diagram_visible?)
     end
 
     def container_issue_ids

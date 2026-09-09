@@ -78,7 +78,7 @@ module Cosmosys
     end
 
     def project_visible_children(issue)
-      issue.children.visible(User.current).includes(:project, :tracker).order(:csposition, :lft, :id).to_a.select do |child|
+      issue.children.visible(User.current).includes(:project, :tracker).reorder(:csposition, :lft, :id).to_a.select do |child|
         next false unless child.cosmosys_diagram_visible?
 
         if @mode == :full

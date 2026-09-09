@@ -63,7 +63,7 @@ module Cosmosys
       issue.children.visible(@user)
         .where(project_id: @project.id)
         .includes(:project, :tracker, :parent)
-        .order(:csposition, :lft, :id)
+        .reorder(:csposition, :lft, :id)
         .to_a
     end
 
