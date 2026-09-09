@@ -198,6 +198,7 @@ es:
   label_cosmosys_tree_root: "Raiz"
   label_cosmosys_selected_item: "Item seleccionado"
   label_cosmosys_hierarchy_diagram: "Jerarquia"
+  label_cosmosys_diagram_cross_project_boundaries: "Continuar a traves de las fronteras de proyecto"
   label_cosmosys_project_hierarchy_diagram: "Jerarquia del proyecto"
   label_cosmosys_project_hierarchy_signature: "Firma de jerarquia"
   label_cosmosys_project_dependency_diagram: "Dependencias del proyecto"

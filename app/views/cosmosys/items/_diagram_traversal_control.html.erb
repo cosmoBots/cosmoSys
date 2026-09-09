@@ -1,0 +1,6 @@
+<label class="cosmosys-diagram-traversal-control">
+  <%= check_box_tag 'visible_layers[]', Cosmosys::DiagramRelationOptions::FULL_TRAVERSAL,
+                    relation_options.full_traversal?, disabled: !can_edit_layout,
+                    data: { cosmosys_diagram_control: 'full_traversal' } %>
+  <%= l(:label_cosmosys_diagram_cross_project_boundaries) %>
+</label>

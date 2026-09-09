@@ -93,16 +93,20 @@ module Cosmosys
         case kind
         when 'combined'
           options = Cosmosys::CombinedDiagramOptions.resolve(user: User.current, project: @report_diagram_issue.project, issue: @report_diagram_issue)
+          relation_options = resolve_diagram_relation_options_for(@report_diagram_issue, kind: 'combined')
           Cosmosys::CombinedDiagramService.fetch(
             @report_diagram_issue,
+            mode: relation_options.mode,
             render_variant: options.render_variant,
             layout_mode: options.layout_mode,
             include_document_references: false
           )
         when 'hierarchy'
-          Cosmosys::HierarchyDiagramService.fetch(@report_diagram_issue)
+          traversal = resolve_diagram_relation_options_for(@report_diagram_issue, kind: 'hierarchy')
+          Cosmosys::HierarchyDiagramService.fetch(@report_diagram_issue, mode: traversal.mode)
         when 'dependency'
-          Cosmosys::DependencyDiagramService.fetch(@report_diagram_issue, include_document_references: false)
+          relations = resolve_diagram_relation_options_for(@report_diagram_issue, kind: 'dependency')
+          Cosmosys::DependencyDiagramService.fetch(@report_diagram_issue, mode: relations.mode, include_document_references: false, relation_types: relations.relation_types)
         else
           return render_404
         end
@@ -207,9 +211,11 @@ module Cosmosys
     def diagram_panel
       case params[:kind].to_s
       when 'hierarchy'
-        hierarchy_diagram = @export_issue ? Cosmosys::HierarchyDiagramService.fetch(@export_issue) : Cosmosys::ProjectHierarchyDiagramService.fetch(@project)
+        relation_options = resolve_diagram_relation_options(kind: 'hierarchy', persist: true)
+        hierarchy_diagram = @export_issue ? Cosmosys::HierarchyDiagramService.fetch(@export_issue, mode: relation_options.mode) : Cosmosys::ProjectHierarchyDiagramService.fetch(@project, mode: relation_options.mode)
         render partial: 'cosmosys/items/hierarchy_diagram_panel', locals: {
-          project: @project, issue: @export_issue, hierarchy_diagram: hierarchy_diagram
+          project: @project, issue: @export_issue, hierarchy_diagram: hierarchy_diagram,
+          relation_options: relation_options, can_edit_layout: diagram_layout_editable?
         }
       when 'combined'
         relation_options = resolve_diagram_relation_options(kind: 'combined', persist: true)
@@ -270,16 +276,20 @@ module Cosmosys
       case kind
       when 'combined'
         options = Cosmosys::CombinedDiagramOptions.resolve(user: User.current, project: issue.project, issue: issue)
+        relation_options = resolve_diagram_relation_options_for(issue, kind: 'combined')
         Cosmosys::CombinedDiagramService.fetch(
           issue,
+          mode: relation_options.mode,
           render_variant: options.render_variant,
           layout_mode: options.layout_mode,
           include_document_references: false
         )
       when 'hierarchy'
-        Cosmosys::HierarchyDiagramService.fetch(issue)
+        traversal = resolve_diagram_relation_options_for(issue, kind: 'hierarchy')
+        Cosmosys::HierarchyDiagramService.fetch(issue, mode: traversal.mode)
       when 'dependency'
-        Cosmosys::DependencyDiagramService.fetch(issue, include_document_references: false)
+        relations = resolve_diagram_relation_options_for(issue, kind: 'dependency')
+        Cosmosys::DependencyDiagramService.fetch(issue, mode: relations.mode, include_document_references: false, relation_types: relations.relation_types)
       end
     end
 
@@ -431,7 +441,8 @@ module Cosmosys
     def fetch_export_diagram
       case params[:kind].to_s
       when 'hierarchy'
-        @export_issue ? Cosmosys::HierarchyDiagramService.fetch(@export_issue) : Cosmosys::ProjectHierarchyDiagramService.fetch(@project)
+        traversal = resolve_diagram_relation_options(kind: 'hierarchy')
+        @export_issue ? Cosmosys::HierarchyDiagramService.fetch(@export_issue, mode: traversal.mode) : Cosmosys::ProjectHierarchyDiagramService.fetch(@project, mode: traversal.mode)
       when 'dependency'
         fetch_dependency_diagram(resolve_diagram_relation_options(kind: 'dependency'))
       when 'combined'
@@ -467,8 +478,15 @@ module Cosmosys
       )
     end
 
+    def resolve_diagram_relation_options_for(issue, kind:)
+      Cosmosys::DiagramRelationOptions.resolve(
+        user: User.current, project: issue.project, issue: issue, kind: kind
+      )
+    end
+
     def fetch_dependency_diagram(options)
       arguments = {
+        mode: options.mode,
         relation_types: options.relation_types,
         include_document_references: options.include_document_references?
       }
@@ -477,6 +495,7 @@ module Cosmosys
 
     def fetch_combined_diagram(options, relation_options)
       arguments = {
+        mode: relation_options.mode,
         render_variant: options.render_variant,
         layout_mode: options.layout_mode,
         relation_types: relation_options.relation_types,

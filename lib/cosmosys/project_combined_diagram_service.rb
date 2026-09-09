@@ -1,6 +1,7 @@
 require 'digest'
 require 'set'
 require_relative 'document_reference_diagram_support'
+require_relative 'dependency_diagram_service'
 
 module Cosmosys
   class ProjectCombinedDiagramService
@@ -8,14 +9,16 @@ module Cosmosys
     include Cosmosys::DocumentReferenceDiagramSupport
 
     KIND = 'project_combined'.freeze
+    FULL_KIND = 'project_combined_full'.freeze
     SUPPORTED_RELATION_TYPES = %w[blocks precedes relates].freeze
 
-    def self.fetch(project, render_variant: nil, layout_mode: nil, include_document_references: true, relation_types: SUPPORTED_RELATION_TYPES)
-      new(project, render_variant: render_variant, layout_mode: layout_mode, include_document_references: include_document_references, relation_types: relation_types).fetch
+    def self.fetch(project, mode: :project_boundary, render_variant: nil, layout_mode: nil, include_document_references: true, relation_types: SUPPORTED_RELATION_TYPES)
+      new(project, mode: mode, render_variant: render_variant, layout_mode: layout_mode, include_document_references: include_document_references, relation_types: relation_types).fetch
     end
 
-    def initialize(project, render_variant: nil, layout_mode: nil, include_document_references: true, relation_types: SUPPORTED_RELATION_TYPES)
+    def initialize(project, mode: :project_boundary, render_variant: nil, layout_mode: nil, include_document_references: true, relation_types: SUPPORTED_RELATION_TYPES)
       @project = project
+      @mode = mode
       @include_document_references = include_document_references
       @relation_types = Array(relation_types).map(&:to_s) & SUPPORTED_RELATION_TYPES
       @render_variant = Cosmosys::CombinedDiagramRenderer.valid_render_variant?(render_variant) ? render_variant.to_s : @project.cosmosys_combined_diagram_render_variant
@@ -23,12 +26,12 @@ module Cosmosys
     end
 
     def fetch
-      discovery = Cosmosys::PerformanceTrace.measure('diagram.discovery', project_id: @project.id, kind: KIND) do
+      discovery = Cosmosys::PerformanceTrace.measure('diagram.discovery', project_id: @project.id, kind: diagram_kind) do
         { signature: combined_signature, empty: all_rendered_issues.empty? }
       end
       fetch_cached_diagram(
         scope_attrs: { project_id: @project.id },
-        kind: KIND,
+        kind: diagram_kind,
         empty: discovery[:empty],
         signature: discovery[:signature],
         render_variant: @render_variant,
@@ -37,6 +40,10 @@ module Cosmosys
     end
 
     private
+
+    def diagram_kind
+      @mode == :full ? FULL_KIND : KIND
+    end
 
     def build_dot
       renderer.build_graph(title: 'cosmosys_project_combined') do |lines|
@@ -84,7 +91,7 @@ module Cosmosys
 
     def build_project_subtree_entry(issue)
       children = project_visible_children(issue).map do |child|
-        if child.project_id == @project.id
+        if @mode == :full || child.project_id == @project.id
           build_project_subtree_entry(child)
         else
           { issue: child, boundary: true, children: [] }
@@ -99,7 +106,9 @@ module Cosmosys
       issue.children.visible(User.current).includes(:project, :tracker).order(:csposition, :lft, :id).to_a.select do |child|
         next false unless child.cosmosys_diagram_visible?
 
-        if issue.project_id == @project.id
+        if @mode == :full
+          true
+        elsif issue.project_id == @project.id
           true
         else
           child.project_id == @project.id
@@ -129,6 +138,18 @@ module Cosmosys
     end
 
     def build_dependency_component
+      if @mode == :full
+        components = tree_issues.map do |issue|
+          Cosmosys::DependencyDiagramService.component_for(
+            issue, mode: :full, scope: :self, relation_types: @relation_types
+          )
+        end
+        return {
+          relations: components.flat_map { |component| component[:relations] }.uniq(&:id).sort_by(&:id),
+          boundary_issues: components.flat_map { |component| component[:issues] }.reject { |issue| tree_issue_ids.include?(issue.id) }.uniq(&:id).sort_by(&:id)
+        }
+      end
+
       relation_ids = Set.new
       relations = []
       boundary_issues = []
@@ -227,6 +248,7 @@ module Cosmosys
 
     def combined_signature
       payload = []
+      payload << "mode:#{@mode}"
       payload << "render_variant:#{@render_variant}"
       payload << "layout_mode:#{@layout_mode}"
       payload << "document_refs:#{@include_document_references ? 1 : 0}"

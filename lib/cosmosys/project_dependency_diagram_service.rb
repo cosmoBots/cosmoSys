@@ -1,6 +1,7 @@
 require 'digest'
 require 'set'
 require_relative 'document_reference_diagram_support'
+require_relative 'dependency_diagram_service'
 
 module Cosmosys
   class ProjectDependencyDiagramService
@@ -93,19 +94,16 @@ module Cosmosys
     end
 
     def build_full_component
-      relations = []
-      visible_issues.each do |issue|
-        issue.relations_from.includes(:issue_to, :issue_from).each do |relation|
-          next unless supported_relation?(issue, relation)
-          next unless visible_issue_ids.include?(relation.issue_to_id)
-
-          relations << relation
-        end
+      components = visible_issues.map do |issue|
+        Cosmosys::DependencyDiagramService.component_for(
+          issue, mode: :full, scope: :self, relation_types: @relation_types
+        )
       end
-
+      relations = components.flat_map { |component| component[:relations] }.uniq(&:id).sort_by(&:id)
+      involved_ids = relations.flat_map { |relation| [relation.issue_from_id, relation.issue_to_id] }.to_set
       {
-        issues: issues_for_relations(relations),
-        relations: relations.uniq(&:id).sort_by(&:id),
+        issues: components.flat_map { |component| component[:issues] }.select { |issue| involved_ids.include?(issue.id) }.uniq(&:id).sort_by(&:id),
+        relations: relations,
         boundary_issue_ids: Set.new
       }
     end

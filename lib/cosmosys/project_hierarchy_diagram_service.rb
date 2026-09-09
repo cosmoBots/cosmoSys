@@ -5,28 +5,34 @@ module Cosmosys
     include Cosmosys::DiagramCacheSupport
 
     KIND = 'project_hierarchy'.freeze
+    FULL_KIND = 'project_hierarchy_full'.freeze
 
-    def self.fetch(project)
-      new(project).fetch
+    def self.fetch(project, mode: :project_boundary)
+      new(project, mode: mode).fetch
     end
 
-    def initialize(project)
+    def initialize(project, mode: :project_boundary)
       @project = project
+      @mode = mode
     end
 
     def fetch
-      discovery = Cosmosys::PerformanceTrace.measure('diagram.discovery', project_id: @project.id, kind: KIND) do
+      discovery = Cosmosys::PerformanceTrace.measure('diagram.discovery', project_id: @project.id, kind: diagram_kind) do
         { signature: project_signature, empty: visible_issues.empty? }
       end
       fetch_cached_diagram(
         scope_attrs: { project_id: @project.id },
-        kind: KIND,
+        kind: diagram_kind,
         empty: discovery[:empty],
         signature: discovery[:signature]
       ) { build_dot }
     end
 
     private
+
+    def diagram_kind
+      @mode == :full ? FULL_KIND : KIND
+    end
 
     def build_dot
       renderer.build_graph(title: 'cosmosys_project_hierarchy') do |lines|
@@ -61,7 +67,7 @@ module Cosmosys
 
     def build_project_subtree_entry(issue)
       children = project_visible_children(issue).map do |child|
-        if child.project_id == @project.id
+        if @mode == :full || child.project_id == @project.id
           build_project_subtree_entry(child)
         else
           { issue: child, boundary: true, children: [] }
@@ -75,7 +81,9 @@ module Cosmosys
       issue.children.visible(User.current).includes(:project, :tracker).order(:csposition, :lft, :id).to_a.select do |child|
         next false unless child.cosmosys_diagram_visible?
 
-        if issue.project_id == @project.id
+        if @mode == :full
+          true
+        elsif issue.project_id == @project.id
           true
         else
           child.project_id == @project.id
@@ -84,7 +92,7 @@ module Cosmosys
     end
 
     def project_signature
-      payload = []
+      payload = ["mode:#{@mode}"]
       payload.concat(project_root_dependencies)
       payload.concat(project_rendered_visual_dependencies)
       Digest::SHA256.hexdigest(payload.join('|'))
@@ -118,7 +126,7 @@ module Cosmosys
 
       rendered << issue
       project_visible_children(issue).each do |child|
-        collect_rendered_issues(child, rendered) if child.project_id == @project.id
+        collect_rendered_issues(child, rendered) if @mode == :full || child.project_id == @project.id
         rendered << child unless rendered.any? { |candidate| candidate.id == child.id }
       end
     end

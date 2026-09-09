@@ -198,6 +198,7 @@ en:
   label_cosmosys_tree_root: "Root"
   label_cosmosys_selected_item: "Selected item"
   label_cosmosys_hierarchy_diagram: "Hierarchy"
+  label_cosmosys_diagram_cross_project_boundaries: "Continue across project boundaries"
   label_cosmosys_project_hierarchy_diagram: "Project hierarchy"
   label_cosmosys_project_hierarchy_signature: "Hierarchy signature"
   label_cosmosys_project_dependency_diagram: "Project dependencies"

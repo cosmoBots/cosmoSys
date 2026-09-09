@@ -1,6 +1,7 @@
 module Cosmosys
   class DiagramRelationOptions
-    LAYERS = %w[blocks precedes relates document_references].freeze
+    FULL_TRAVERSAL = 'cross_project_boundaries'.freeze
+    LAYERS = %W[blocks precedes relates document_references #{FULL_TRAVERSAL}].freeze
     DEFAULT_LAYERS = %w[blocks precedes].freeze
 
     attr_reader :issue, :project, :user, :kind, :visible_layers
@@ -38,6 +39,14 @@ module Cosmosys
 
     def include_document_references?
       visible_layers.include?('document_references')
+    end
+
+    def full_traversal?
+      visible_layers.include?(FULL_TRAVERSAL)
+    end
+
+    def mode
+      full_traversal? ? :full : :project_boundary
     end
 
     private

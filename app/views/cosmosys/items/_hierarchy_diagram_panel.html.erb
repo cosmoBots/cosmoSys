@@ -1,8 +1,14 @@
-<div class="cosmosys-diagram-panel" data-cosmosys-diagram-panel="hierarchy">
+<% export_params = { visible_layers_present: 1, visible_layers: relation_options.visible_layers } %>
+<% panel_path = cosmosys_diagram_panel_path(project_id: project.identifier, kind: 'hierarchy', issue_id: issue&.id) %>
+<div class="cosmosys-diagram-panel" data-cosmosys-diagram-panel="hierarchy" data-panel-url="<%= panel_path %>">
   <h4>
     <%= issue.present? ? l(:label_cosmosys_hierarchy_diagram) : l(:label_cosmosys_project_hierarchy_diagram) %>
-    <%= render partial: 'cosmosys/items/diagram_export_links', locals: { project: project, issue: issue, kind: 'hierarchy' } %>
+    <%= render partial: 'cosmosys/items/diagram_export_links', locals: { project: project, issue: issue, kind: 'hierarchy', extra_params: export_params } %>
   </h4>
+  <form class="cosmosys-diagram-controls" data-cosmosys-diagram-options>
+    <%= render partial: 'cosmosys/items/diagram_traversal_control', locals: { relation_options: relation_options, can_edit_layout: can_edit_layout } %>
+    <% if can_edit_layout %><button type="submit"><%= l(:button_apply) %></button><% end %>
+  </form>
   <% if hierarchy_diagram.svg_body.present? %>
     <p class="cosmosys-diagram-metadata">
       <% if issue.present? %>
