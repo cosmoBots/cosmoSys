@@ -84,6 +84,7 @@ module Cosmosys
         ).build
       end
       @tree_health_problem = Cosmosys::IssueTreeHealth.first_problem(@report.local_issues)
+      @report_placeholder_diagnostics = Cosmosys::ReportPlaceholderDiagnostics.new(@project, user: User.current).call
     end
     private :prepare_report_view
 

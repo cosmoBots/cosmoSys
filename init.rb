@@ -103,6 +103,7 @@ require_dependency File.expand_path('lib/cosmosys/main_report_text_normalizer', 
 require_dependency File.expand_path('lib/cosmosys/main_report_field_registry', __dir__)
 require_dependency File.expand_path('lib/cosmosys/main_report_service', __dir__)
 require_dependency File.expand_path('lib/cosmosys/report_placeholder_installer', __dir__)
+require_dependency File.expand_path('lib/cosmosys/report_placeholder_diagnostics', __dir__)
 require_dependency File.expand_path('lib/cosmosys/report_export_service', __dir__)
 require_dependency File.expand_path('lib/cosmosys/ods_items', __dir__)
 require_dependency File.expand_path('lib/cosmosys/odf_package_normalizer', __dir__)

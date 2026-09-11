@@ -1,5 +1,15 @@
 <%= render partial: 'nav', locals: { current: :report } %>
 <%= render partial: 'tree_health_warning', locals: { problem: @tree_health_problem } %>
+<% if @report.toc_entries.none?(&:report_placeholder) && @report_placeholder_diagnostics.present? %>
+  <div class="warning cosmosys-report-placeholder-diagnostics">
+    <strong><%= l(:label_cosmosys_report_placeholder_diagnostics) %></strong>
+    <ul>
+      <% @report_placeholder_diagnostics.each do |diagnostic| %>
+        <li><%= l("text_cosmosys_report_placeholder_diagnostic_#{diagnostic.code}", details: Array(diagnostic.details).join(', ')) %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
 
 <% content_for :sidebar do %>
   <div class="cosmosys-report-sidebar">
