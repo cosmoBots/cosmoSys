@@ -8,3 +8,10 @@
                  ], issue_status.csys_closed_outcome),
                  id: 'issue_status_csys_closed_outcome' %>
 </p>
+<p>
+  <%= label_tag 'issue_status_csys_maturity', l(:label_cosmosys_status_maturity) %>
+  <%= number_field_tag 'issue_status[csys_maturity]',
+                       issue_status.csys_maturity,
+                       id: 'issue_status_csys_maturity', min: 0, step: 1 %>
+  <em class="info"><%= l(:text_cosmosys_status_maturity_help) %></em>
+</p>

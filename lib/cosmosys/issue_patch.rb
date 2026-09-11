@@ -222,14 +222,12 @@ module Cosmosys
     end
 
     def cosmosys_diagram_border_color(_kind = 'hierarchy')
+      return 'red' unless cosmosys_diagram_valid?
+
       profile_value = cosmosys_item_kind.value(:diagram_border_color, self, kind: _kind)
       return profile_value if profile_value.present?
 
-      if cosmosys_diagram_valid?
-        assigned_to_id.present? && assigned_to_id == User.current&.id ? 'blue' : 'black'
-      else
-        'red'
-      end
+      assigned_to_id.present? && assigned_to_id == User.current&.id ? 'blue' : 'black'
     end
 
     def cosmosys_diagram_font_color(_kind = 'hierarchy')
@@ -257,7 +255,7 @@ module Cosmosys
     end
 
     def cosmosys_hierarchy_cluster_color
-      'black'
+      cosmosys_diagram_valid? ? 'black' : 'red'
     end
 
     def cosmosys_hierarchy_cluster_font_name(boundary: false)
@@ -370,9 +368,30 @@ module Cosmosys
       end
     end
 
+    public
+
     def cosmosys_diagram_valid?
-      true
+      return true unless cosmosys_item_kind.validate_blocking_maturity
+
+      cosmosys_blocking_maturity_consistent?
     end
+
+    def cosmosys_blocking_maturity_consistent?(visited = Set.new)
+      return true if id.blank? || visited.include?(id)
+
+      maturity = status&.cosmosys_maturity_level
+      return true if maturity.nil?
+
+      branch = visited.dup.add(id)
+      relations_to.includes(issue_from: [:status, :tracker]).where(relation_type: 'blocks').all? do |relation|
+        blocker = relation.issue_from
+        blocker_maturity = blocker.status&.cosmosys_maturity_level
+        maturity_ok = blocker_maturity.to_i >= maturity
+        maturity_ok && blocker.cosmosys_blocking_maturity_consistent?(branch)
+      end
+    end
+
+    private
 
     def cosmosys_wrapped_diagram_text(text, max_width: 42)
       normalized = text.to_s.gsub(/\s+/, ' ').strip

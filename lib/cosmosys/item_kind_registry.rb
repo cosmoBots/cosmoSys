@@ -24,6 +24,7 @@ module Cosmosys
       :reference_tracker,
       :closed_presentation,
       :allow_unsuccessful_closure_when_blocked,
+      :validate_blocking_maturity,
       keyword_init: true
     ) do
       def value(attribute, issue, **context)
@@ -54,7 +55,8 @@ module Cosmosys
       { key: :dsm_mode, label: :label_cosmosys_item_profile_dsm_mode, scope: :text_cosmosys_item_profile_scope_dsm_mode },
       { key: :reference_tracker, label: :label_cosmosys_item_profile_reference_tracker, scope: :text_cosmosys_item_profile_scope_reference_tracker },
       { key: :closed_presentation, label: :label_cosmosys_item_profile_closed_presentation, scope: :text_cosmosys_item_profile_scope_closed_presentation },
-      { key: :allow_unsuccessful_closure_when_blocked, label: :label_cosmosys_item_profile_unsuccessful_closure, scope: :text_cosmosys_item_profile_scope_unsuccessful_closure }
+      { key: :allow_unsuccessful_closure_when_blocked, label: :label_cosmosys_item_profile_unsuccessful_closure, scope: :text_cosmosys_item_profile_scope_unsuccessful_closure },
+      { key: :validate_blocking_maturity, label: :label_cosmosys_item_profile_maturity_validation, scope: :text_cosmosys_item_profile_scope_maturity_validation }
     ].map { |effect| effect.freeze }.freeze
 
     def register(key, label: nil, description: nil, provider:, **attributes)
@@ -114,7 +116,8 @@ module Cosmosys
           aggregate_children: true,
           dsm_mode: 'leaves',
           closed_presentation: 'struck',
-          allow_unsuccessful_closure_when_blocked: false
+          allow_unsuccessful_closure_when_blocked: false,
+          validate_blocking_maturity: false
         )
       }
     end
@@ -128,7 +131,8 @@ module Cosmosys
         dsm_mode: 'leaves',
         reference_tracker: true,
         closed_presentation: 'struck',
-        allow_unsuccessful_closure_when_blocked: false
+        allow_unsuccessful_closure_when_blocked: false,
+        validate_blocking_maturity: false
       }.merge(attributes)
       immutable_attributes = attributes.transform_values { |value| value.nil? || value.frozen? ? value : value.freeze }
       Profile.new(**immutable_attributes).freeze
