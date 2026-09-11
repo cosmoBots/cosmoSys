@@ -1310,6 +1310,7 @@ a.issue.closed.cosmosys-closure-successful,
 a.issue.closed.cosmosys-closure-successful:link,
 a.issue.closed.cosmosys-closure-successful:visited {
   text-decoration: none;
+  font-weight: 700;
 }
 
 .cosmosys-tree-item-successful > .cosmosys-tree-node .closed,
