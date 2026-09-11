@@ -49,7 +49,7 @@ module Cosmosys
                 dependent: :destroy
         safe_attributes 'csys_report_placeholder_kind'
         safe_attributes 'csys_preferred_report_diagram'
-        safe_attributes 'csys_negative_status_id', if: :cosmosys_negative_item?
+        safe_attributes 'csys_negative_status_id'
         validates :csys_preferred_report_diagram,
                   inclusion: { in: PREFERRED_REPORT_DIAGRAMS }
         validate :cosmosys_validate_negative_status
