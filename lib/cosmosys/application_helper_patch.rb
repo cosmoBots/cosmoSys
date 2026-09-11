@@ -75,7 +75,7 @@ module Cosmosys
       }
       issue_href = Rails.application.routes.url_helpers.issue_path(issue)
         reference_element = if reference.present?
-                              content_tag(:span, reference, class: ['cosmosys-tree-ref', (boundary ? 'cosmosys-tree-ref-boundary' : nil)].compact.join(' '))
+                              content_tag(:span, reference, class: ['cosmosys-tree-ref', issue.css_classes, (boundary ? 'cosmosys-tree-ref-boundary' : nil)].compact.join(' '))
                             end
         subject_element = link_to(issue.subject, issue_href, link_options.merge(class: [link_options[:class], 'cosmosys-tree-subject'].join(' ')))
 
