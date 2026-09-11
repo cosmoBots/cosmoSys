@@ -1,3 +1,4 @@
+<% if section.numbered %>
 <article id="<%= section.anchor %>" class="cosmosys-report-section cosmosys-report-depth-<%= section.depth %>" data-cosmosys-report-item data-cosmosys-report-text="<%= [section.chapter, section.issue.csid, section.issue.subject, section.issue.description].compact.join(' ').downcase %>">
   <% heading_tag = "h#{section.heading_level}" %>
   <<%= heading_tag %> class="cosmosys-report-heading">
@@ -68,3 +69,24 @@
     <%= render partial: 'cosmosys/items/report_section', locals: { section: child, server_export: local_assigns.fetch(:server_export, false) } %>
   <% end %>
 </article>
+<% else %>
+<article id="<%= section.anchor %>" class="cosmosys-report-negative-item" data-cosmosys-report-item data-cosmosys-report-text="<%= [section.issue.csid, section.issue.subject, section.issue.description].compact.join(' ').downcase %>">
+  <div class="cosmosys-report-negative-heading">
+    <%= link_to section.issue.csid, issue_path(section.issue), class: 'cosmosys-report-negative-csid closed' %>
+    <strong><%= section.issue.subject %></strong>
+    <% if section.issue.cosmosys_closure_outcome == :unsuccessful %><span class="cosmosys-report-negative-label"><%= section.issue.status.name.to_s.casecmp('erased').zero? ? 'ERASED' : section.issue.status.name.upcase %></span><% end %>
+  </div>
+  <% if section.issue.description.present? %>
+    <div class="wiki cosmosys-report-description">
+      <%= textilizable(
+            Cosmosys::MainReportTextNormalizer.normalize(section.issue.description),
+            object: section.issue,
+            attachments: section.issue.attachments
+          ) %>
+    </div>
+  <% end %>
+  <% section.children.each do |child| %>
+    <%= render partial: 'cosmosys/items/report_section', locals: { section: child, server_export: local_assigns.fetch(:server_export, false) } %>
+  <% end %>
+</article>
+<% end %>

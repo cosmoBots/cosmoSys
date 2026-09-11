@@ -10,7 +10,8 @@ module Cosmosys
         'hierarchy_diagram' => '0',
         'dependency_diagram' => '0',
         'item_url_link' => '0',
-        'info_url_link' => '0'
+        'info_url_link' => '0',
+        'include_negative_items' => '0'
       }
     }.freeze
 

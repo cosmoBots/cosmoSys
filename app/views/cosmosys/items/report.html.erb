@@ -85,7 +85,12 @@
 
             <div class="cosmosys-report-options-selection">
               <h4><%= l(:label_cosmosys_report_contents) %></h4>
+              <label class="block">
+                <%= check_box_tag 'include_negative_items', '1', @report_options['include_negative_items'] %>
+                <%= l(:label_cosmosys_report_include_negative_items) %>
+              </label>
               <% Cosmosys::MainReportSettings::OPTION_NAMES.each do |option_name| %>
+                <% next if option_name == 'include_negative_items' %>
                 <%= hidden_field_tag "report_options[#{option_name}]", '0', id: nil %>
                 <label class="block">
                   <%= check_box_tag "report_options[#{option_name}]", '1', @report_options[option_name] %>

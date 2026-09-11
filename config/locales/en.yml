@@ -483,3 +483,5 @@ en:
   label_cosmosys_closed_outcome_unsuccessful: "Unsuccessful"
   label_cosmosys_item_profile_closed_presentation: "Closed item presentation"
   text_cosmosys_item_profile_scope_closed_presentation: "Controls how successfully closed items appear in trees."
+  label_cosmosys_tree_include_negative_items: "Show negative items in their position"
+  label_cosmosys_report_include_negative_items: "Show negative items in their position"

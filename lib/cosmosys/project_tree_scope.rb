@@ -4,9 +4,10 @@ module Cosmosys
   class ProjectTreeScope
     Entry = Struct.new(:issue, :boundary, :children, keyword_init: true)
 
-    def initialize(project, user: User.current)
+    def initialize(project, user: User.current, include_negative: false)
       @project = project
       @user = user
+      @include_negative = include_negative
     end
 
     def entries
@@ -28,11 +29,23 @@ module Cosmosys
     private
 
     def visible_local_issues
-      @visible_local_issues ||= Issue.visible(@user)
+      issues = Issue.visible(@user)
         .where(project_id: @project.id)
         .includes(:project, :tracker, :parent)
         .order(:csposition, :lft, :id)
         .to_a
+      return issues if @include_negative
+
+      issues_by_id = issues.index_by(&:id)
+      @visible_local_issues = issues.reject do |issue|
+        ancestor = issues_by_id[issue.parent_id]
+        while ancestor
+          break true unless ancestor.cosmosys_positive?
+
+          ancestor = issues_by_id[ancestor.parent_id]
+        end
+        !issue.cosmosys_positive?
+      end
     end
 
     def local_issue_ids

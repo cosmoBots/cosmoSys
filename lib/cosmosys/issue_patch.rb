@@ -92,6 +92,10 @@ module Cosmosys
       :unspecified
     end
 
+    def cosmosys_positive?
+      !status&.is_closed? || cosmosys_closure_outcome == :successful
+    end
+
     def csys_report_placeholder_kind
       return @csys_report_placeholder_kind if instance_variable_defined?(:@csys_report_placeholder_kind)
 

@@ -1,7 +1,7 @@
 module Cosmosys
   class MainReportService
     Report = Struct.new(:project, :sections, :toc_entries, :local_issues, :options, keyword_init: true)
-    Section = Struct.new(:issue, :depth, :heading_level, :chapter, :anchor, :metadata_fields, :body_fields, :children, :report_placeholder, :document_catalog_entries, :document_references, keyword_init: true)
+    Section = Struct.new(:issue, :depth, :heading_level, :chapter, :anchor, :metadata_fields, :body_fields, :children, :report_placeholder, :document_catalog_entries, :document_references, :numbered, keyword_init: true)
     OutlineEntry = Struct.new(:issue, :chapter, keyword_init: true)
 
     def initialize(project, user:, column_names: nil, field_presentations: nil, options: nil)
@@ -43,7 +43,11 @@ module Cosmosys
     end
 
     def tree_scope
-      @tree_scope ||= Cosmosys::ProjectTreeScope.new(@project, user: @user)
+      @tree_scope ||= Cosmosys::ProjectTreeScope.new(
+        @project,
+        user: @user,
+        include_negative: Cosmosys::MainReportSettings.normalize_options(@options)['include_negative_items']
+      )
     end
 
     def field_registry
@@ -83,7 +87,7 @@ module Cosmosys
     end
 
     def assign_chapters(issues, prefix, map)
-      issues.each_with_index do |issue, index|
+      issues.select(&:cosmosys_positive?).each_with_index do |issue, index|
         chapter = [prefix, index + 1].compact.join('.')
         map[issue.id] = chapter
         assign_chapters(ordered_children(issue.id), chapter, map)
@@ -106,7 +110,8 @@ module Cosmosys
         children: children,
         report_placeholder: placeholder,
         document_catalog_entries: document_catalog_entries_for(placeholder),
-        document_references: document_references_for(issue)
+        document_references: document_references_for(issue),
+        numbered: issue.cosmosys_positive?
       )
     end
 

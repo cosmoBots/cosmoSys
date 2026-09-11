@@ -309,7 +309,11 @@ module Cosmosys
 
     def prepare_tree_view
       @scope = @project.cosmosys_scope
-      @tree_scope = Cosmosys::ProjectTreeScope.new(@project, user: User.current)
+      @tree_scope = Cosmosys::ProjectTreeScope.new(
+        @project,
+        user: User.current,
+        include_negative: ActiveModel::Type::Boolean.new.cast(params[:include_negative_items])
+      )
       @tree_entries = @tree_scope.entries
       @tree_issues = @tree_scope.rendered_issues
       @local_tree_issues = @tree_scope.local_issues
@@ -361,6 +365,9 @@ module Cosmosys
 
       requested_options = params[:report_options]
       options = requested_options.present? ? Cosmosys::MainReportSettings.normalize_options(requested_options) : @project.cosmosys_report_options
+      if params.key?(:include_negative_items)
+        options['include_negative_items'] = ActiveModel::Type::Boolean.new.cast(params[:include_negative_items])
+      end
 
       [selected_names, field_presentations, options]
     end

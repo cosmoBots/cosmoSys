@@ -1,4 +1,8 @@
 <div class="cosmosys-tree-toolbar">
   <%= button_tag l(:button_expand_all), type: 'button', class: 'icon icon-expanded cosmosys-tree-expand-all', data: { tree_target: 'expand-all' } %>
   <%= button_tag l(:button_collapse_all), type: 'button', class: 'icon icon-collapsed cosmosys-tree-collapse-all', data: { tree_target: 'collapse-all' } %>
+  <%= form_tag({ action: :tree, project_id: @project }, method: :get, class: 'cosmosys-tree-negative-form') do %>
+    <%= check_box_tag 'include_negative_items', '1', ActiveModel::Type::Boolean.new.cast(params[:include_negative_items]), id: 'cosmosys-tree-include-negative-items' %>
+    <%= label_tag 'cosmosys-tree-include-negative-items', l(:label_cosmosys_tree_include_negative_items) %>
+  <% end %>
 </div>

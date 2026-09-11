@@ -33,7 +33,7 @@ module Cosmosys
       current = issue
 
       while current.present?
-        sibling_ids = sibling_scope_for(current).reorder(:csposition, :lft, :id).pluck(:id)
+        sibling_ids = sibling_scope_for(current).select(&:cosmosys_positive?).map(&:id)
         sibling_index = sibling_ids.index(current.id)
         return nil unless sibling_index
 
@@ -68,7 +68,7 @@ module Cosmosys
     end
 
     def ordered_children(parent_id)
-      Array(@children_by_parent_id[parent_id]).sort_by do |issue|
+      Array(@children_by_parent_id[parent_id]).select(&:cosmosys_positive?).sort_by do |issue|
         [issue.csposition || 0, issue.lft || 0, issue.id]
       end
     end
@@ -77,7 +77,7 @@ module Cosmosys
       if issue.parent_id.present?
         issue.parent.children.reorder(:csposition, :lft, :id)
       else
-        Issue.where(project_id: issue.project_id, parent_id: nil).reorder(:csposition, :lft, :id)
+        Issue.where(project_id: issue.project_id, parent_id: nil).reorder(:csposition, :lft, :id).select(&:cosmosys_positive?)
       end
     end
   end

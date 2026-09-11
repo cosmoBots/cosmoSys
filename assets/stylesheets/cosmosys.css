@@ -1322,3 +1322,26 @@ a.issue.closed.cosmosys-closure-successful:visited {
 .cosmosys-tree-item-unsuccessful > .cosmosys-tree-node {
   opacity: 0.65;
 }
+
+.cosmosys-report-negative-item {
+  margin: 1em 0;
+  padding: 0.75em 1em;
+  border-left: 4px solid #b94a48;
+  background: #fdf3f3;
+}
+
+.cosmosys-report-negative-heading {
+  display: flex;
+  gap: 0.5em;
+  align-items: baseline;
+}
+
+.cosmosys-report-negative-csid {
+  text-decoration: line-through;
+}
+
+.cosmosys-report-negative-label {
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
