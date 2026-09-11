@@ -1306,6 +1306,12 @@ table.cosmosys-dsm-table {
 .cosmosys-dsm-dragging {
   opacity: 0.45;
 }
+a.issue.closed.cosmosys-closure-successful,
+a.issue.closed.cosmosys-closure-successful:link,
+a.issue.closed.cosmosys-closure-successful:visited {
+  text-decoration: none;
+}
+
 .cosmosys-tree-item-successful > .cosmosys-tree-node .closed,
 .cosmosys-tree-item-successful > .cosmosys-tree-node .cosmosys-tree-subject {
   text-decoration: none;
