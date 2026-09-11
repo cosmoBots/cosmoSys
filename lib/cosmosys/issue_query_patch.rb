@@ -2,6 +2,8 @@ require_dependency 'issue_query'
 
 module Cosmosys
   module IssueQueryPatch
+    POSITIVE_FILTER = 'cosmosys_positive'.freeze
+
     def self.prepended(base)
       column = QueryColumn.new(
         :csid,
@@ -30,6 +32,26 @@ module Cosmosys
     def initialize_available_filters
       super
       add_available_filter('csid', type: :string, name: :label_cosmosys_csid) unless available_filters.key?('csid')
+      if IssueStatus.column_names.include?('csys_closed_outcome') && !available_filters.key?(POSITIVE_FILTER)
+        add_available_filter(
+          POSITIVE_FILTER,
+          type: :list,
+          name: :label_cosmosys_positive,
+          values: lambda { [[l(:label_cosmosys_positive_yes), '1'], [l(:label_cosmosys_positive_no), '0']] }
+        )
+      end
+    end
+
+    def sql_for_field(field, operator, value, db_table, db_field, is_custom_filter = false)
+      return super unless field == POSITIVE_FILTER
+
+      positive = "(#{IssueStatus.table_name}.is_closed = #{self.class.connection.quoted_false} OR #{IssueStatus.table_name}.csys_closed_outcome = 'successful')"
+      return positive if operator == '=' && value.include?('1')
+      return "NOT #{positive}" if operator == '!' && value.include?('1')
+      return "NOT #{positive}" if operator == '=' && value.include?('0')
+      return positive if operator == '!' && value.include?('0')
+
+      '1=0'
     end
 
     def initialize(attributes = nil, *args)
