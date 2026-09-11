@@ -6,7 +6,7 @@
 <% profile = issue.cosmosys_item_kind %>
 <% parent_profile = issue.parent&.cosmosys_item_kind %>
 <% node_depth = [local_assigns.fetch(:depth, 0).to_i, 5].min %>
-<% closure_class = "cosmosys-tree-item-#{issue.cosmosys_closure_outcome}" if profile.closed_presentation == 'consolidated' && issue.cosmosys_closure_outcome != :unspecified %>
+<% closure_class = "cosmosys-tree-item-#{issue.cosmosys_closure_outcome}" if issue.cosmosys_closure_outcome == :unsuccessful || (profile.closed_presentation == 'consolidated' && issue.cosmosys_closure_outcome != :unspecified) %>
 <li class="cosmosys-tree-item cosmosys-dnd-item <%= children.any? ? 'cosmosys-tree-item-branch' : 'cosmosys-tree-item-leaf' %> <%= boundary ? 'cosmosys-tree-item-boundary' : 'cosmosys-tree-item-local' %> <%= closure_class %>"
     data-issue-id="<%= issue.id %>"
     data-issue-sidebar-url="<%= cosmosys_tree_details_path(project_id: project, issue_id: issue) %>"

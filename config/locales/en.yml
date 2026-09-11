@@ -487,4 +487,6 @@ en:
   button_cosmosys_apply_tree_options: "Apply"
   label_cosmosys_item_profile_negative: "Negative items"
   text_cosmosys_item_profile_negative: "Placeholder for negative item sections."
+  label_cosmosys_negative_statuses: "Included negative statuses"
+  text_cosmosys_negative_statuses_help: "Leave empty to include all statuses with an unsuccessful outcome."
   label_cosmosys_report_include_negative_items: "Show negative items in their position"

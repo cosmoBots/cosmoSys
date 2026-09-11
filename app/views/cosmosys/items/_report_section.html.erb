@@ -70,11 +70,12 @@
   <% end %>
 </article>
 <% else %>
-<article id="<%= section.anchor %>" class="cosmosys-report-negative-item" data-cosmosys-report-item data-cosmosys-report-text="<%= [section.issue.csid, section.issue.subject, section.issue.description].compact.join(' ').downcase %>">
-  <div class="cosmosys-report-negative-heading">
-    <%= link_to section.issue.csid, issue_path(section.issue), class: 'cosmosys-report-negative-csid closed' %>
-    <strong><%= section.issue.subject %></strong>
-    <% if section.issue.cosmosys_closure_outcome == :unsuccessful %><span class="cosmosys-report-negative-label"><%= section.issue.status.name.to_s.casecmp('erased').zero? ? 'ERASED' : section.issue.status.name.upcase %></span><% end %>
+<p class="cosmosys-report-negative-spacer" style="margin: 1em 0 0 0; line-height: 1;">&nbsp;</p>
+<article id="<%= section.anchor %>" class="cosmosys-report-negative-item" style="margin: 0.5em 0 1em 0; padding: 0.75em 1em; border-left: 4px solid #b94a48; background-color: #fdf3f3;" data-cosmosys-report-item data-cosmosys-report-text="<%= [section.issue.csid, section.issue.subject, section.issue.description].compact.join(' ').downcase %>">
+  <div class="cosmosys-report-negative-heading" style="margin: 0 0 0.5em 0;">
+    <%= link_to section.issue.csid, issue_path(section.issue), class: 'cosmosys-report-negative-csid closed', style: 'text-decoration: line-through;' %>
+    <strong style="font-weight: 700;"><%= section.issue.subject %></strong>
+    <% if section.issue.cosmosys_closure_outcome == :unsuccessful %><span class="cosmosys-report-negative-label" style="font-weight: 700; letter-spacing: 0.05em; margin-left: 0.5em;"><%= section.issue.status.name.to_s.casecmp('erased').zero? ? 'ERASED' : section.issue.status.name.upcase %></span><% end %>
   </div>
   <% if section.issue.description.present? %>
     <div class="wiki cosmosys-report-description">

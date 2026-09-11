@@ -1,9 +1,11 @@
 require_dependency 'tracker'
+require 'json'
 
 module Cosmosys
   module TrackerPatch
     def self.included(base)
       base.class_eval do
+        safe_attributes 'csys_negative_status_ids', if: :cosmosys_negative_tracker?
         validates :csys_item_kind, format: { with: /\A[a-z][a-z0-9_]*\z/ }, if: :cosmosys_kind_columns_available?
         before_validation :cosmosys_normalize_item_kind
         after_commit :cosmosys_invalidate_kind_diagrams, on: :update, if: :saved_change_to_csys_item_kind?
@@ -18,6 +20,23 @@ module Cosmosys
 
     def cosmosys_item_kind_registered?
       Cosmosys::ItemKindRegistry.registered?(csys_item_kind)
+    end
+
+    def cosmosys_negative_tracker?
+      csys_item_kind.to_s == 'negative'
+    end
+
+    def csys_negative_status_ids
+      return [] unless has_attribute?(:csys_negative_status_ids)
+
+      JSON.parse(self[:csys_negative_status_ids].presence || '[]').map(&:to_i)
+    rescue JSON::ParserError
+      []
+    end
+
+    def csys_negative_status_ids=(value)
+      values = Array(value).flat_map { |entry| entry.to_s.split(',') }.filter_map(&:presence).map(&:to_i).uniq
+      self[:csys_negative_status_ids] = values.to_json
     end
 
     private

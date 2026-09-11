@@ -1323,6 +1323,10 @@ a.issue.closed.cosmosys-closure-successful:visited {
   opacity: 0.65;
 }
 
+.cosmosys-tree-item-unsuccessful > .cosmosys-tree-node a.closed {
+  text-decoration: line-through;
+}
+
 .cosmosys-report-negative-item {
   margin: 1em 0;
   padding: 0.75em 1em;
