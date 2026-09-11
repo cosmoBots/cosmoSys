@@ -1,7 +1,7 @@
 module Cosmosys
   class MainReportService
     Report = Struct.new(:project, :sections, :toc_entries, :local_issues, :options, keyword_init: true)
-    Section = Struct.new(:issue, :depth, :heading_level, :chapter, :anchor, :metadata_fields, :body_fields, :children, :report_placeholder, :document_catalog_entries, :document_references, :numbered, keyword_init: true)
+    Section = Struct.new(:issue, :depth, :heading_level, :chapter, :anchor, :metadata_fields, :body_fields, :children, :report_placeholder, :document_catalog_entries, :document_references, :negative_items, :numbered, keyword_init: true)
     OutlineEntry = Struct.new(:issue, :chapter, keyword_init: true)
 
     def initialize(project, user:, column_names: nil, field_presentations: nil, options: nil)
@@ -111,8 +111,21 @@ module Cosmosys
         report_placeholder: placeholder,
         document_catalog_entries: document_catalog_entries_for(placeholder),
         document_references: document_references_for(issue),
+        negative_items: negative_items_for(issue),
         numbered: issue.cosmosys_positive?
       )
+    end
+
+    def negative_items_for(issue)
+      return [] unless issue.cosmosys_item_kind_key == 'negative'
+
+      scope = Issue.visible(@user)
+                     .where(project_id: @project.id)
+                     .where(issue_statuses: { csys_closed_outcome: 'unsuccessful' })
+                     .joins(:status)
+                     .includes(:status)
+      scope = scope.where(status_id: issue.csys_negative_status_id) if issue.csys_negative_status_id.present?
+      scope.order(:root_id, :lft, :csposition, :id).to_a
     end
 
     def document_references_for(issue)

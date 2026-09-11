@@ -490,4 +490,5 @@ es:
   label_cosmosys_negative_status: "Estado negativo incluido"
   label_cosmosys_all_negative_statuses: "Todos los estados negativos"
   text_cosmosys_negative_status_help: "Selecciona un estado o deja todos los estados negativos."
+  text_cosmosys_report_negative_items_empty: "No hay elementos negativos visibles para esta sección."
   label_cosmosys_report_include_negative_items: "Mostrar elementos negativos en su ubicación"

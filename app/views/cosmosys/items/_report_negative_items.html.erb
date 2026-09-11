@@ -1,0 +1,24 @@
+<section class="cosmosys-report-negative-items">
+  <% if section.negative_items.present? %>
+    <table class="list cosmosys-report-negative-items-table">
+      <thead>
+        <tr>
+          <th><%= l(:label_cosmosys_csid) %></th>
+          <th><%= l(:label_issue_status) %></th>
+          <th><%= l(:field_subject) %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% section.negative_items.each do |issue| %>
+          <tr>
+            <td><%= link_to issue.csid, issue_path(issue), class: 'closed' %></td>
+            <td><%= issue.status.name %></td>
+            <td><%= link_to issue.subject, issue_path(issue) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="nodata"><%= l(:text_cosmosys_report_negative_items_empty) %></p>
+  <% end %>
+</section>

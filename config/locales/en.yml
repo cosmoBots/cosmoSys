@@ -490,4 +490,5 @@ en:
   label_cosmosys_negative_status: "Included negative status"
   label_cosmosys_all_negative_statuses: "All negative statuses"
   text_cosmosys_negative_status_help: "Select one status or leave all negative statuses included."
+  text_cosmosys_report_negative_items_empty: "There are no visible negative items for this section."
   label_cosmosys_report_include_negative_items: "Show negative items in their position"
