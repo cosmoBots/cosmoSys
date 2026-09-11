@@ -9,7 +9,7 @@ class AddCosmosysIssueStatusOutcome < ActiveRecord::Migration[6.1]
   def up
     add_column :issue_statuses, :csys_closed_outcome, :string unless column_exists?(:issue_statuses, :csys_closed_outcome)
     add_index :issue_statuses, :csys_closed_outcome unless index_exists?(:issue_statuses, :csys_closed_outcome)
-    add_column :trackers, :csys_negative_status_ids, :text unless column_exists?(:trackers, :csys_negative_status_ids)
+    add_column :issues, :csys_negative_status_id, :integer unless column_exists?(:issues, :csys_negative_status_id)
 
     OUTCOMES_BY_NAME.each do |name, outcome|
       execute <<~SQL.squish
@@ -48,7 +48,7 @@ class AddCosmosysIssueStatusOutcome < ActiveRecord::Migration[6.1]
       execute "DELETE FROM trackers WHERE id = #{tracker_id}"
     end
     remove_index :issue_statuses, :csys_closed_outcome if index_exists?(:issue_statuses, :csys_closed_outcome)
-    remove_column :trackers, :csys_negative_status_ids if column_exists?(:trackers, :csys_negative_status_ids)
+    remove_column :issues, :csys_negative_status_id if column_exists?(:issues, :csys_negative_status_id)
     remove_column :issue_statuses, :csys_closed_outcome if column_exists?(:issue_statuses, :csys_closed_outcome)
   end
 end

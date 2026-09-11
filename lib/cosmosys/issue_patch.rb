@@ -49,8 +49,10 @@ module Cosmosys
                 dependent: :destroy
         safe_attributes 'csys_report_placeholder_kind'
         safe_attributes 'csys_preferred_report_diagram'
+        safe_attributes 'csys_negative_status_id', if: :cosmosys_negative_item?
         validates :csys_preferred_report_diagram,
                   inclusion: { in: PREFERRED_REPORT_DIAGRAMS }
+        validate :cosmosys_validate_negative_status
         validate :cosmosys_validate_report_placeholder
         after_save :cosmosys_sync_report_placeholder
       end
@@ -79,6 +81,19 @@ module Cosmosys
 
     def cosmosys_item_kind
       tracker&.cosmosys_item_kind_profile || Cosmosys::ItemKindRegistry.fetch('normal')
+    end
+
+    def cosmosys_negative_item?
+      cosmosys_item_kind_key == 'negative'
+    end
+
+    def cosmosys_validate_negative_status
+      return unless cosmosys_negative_item? && csys_negative_status_id.present?
+
+      status = IssueStatus.find_by(id: csys_negative_status_id)
+      return if status&.is_closed? && status.csys_closed_outcome == 'unsuccessful'
+
+      errors.add(:csys_negative_status_id, :invalid)
     end
 
     def cosmosys_item_kind_key

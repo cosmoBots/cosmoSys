@@ -13,6 +13,7 @@ module Cosmosys
       { partial: 'hooks/cosmosys/catalog_refs' }
     render_on :view_issues_form_details_bottom,
       { partial: 'hooks/cosmosys/report_placeholder_field' },
+      { partial: 'hooks/cosmosys/negative_status_field' },
       { partial: 'hooks/cosmosys/preferred_report_diagram_field' }
     render_on :view_issues_show_details_bottom,
       { partial: 'hooks/cosmosys/preferred_report_diagram_detail' }

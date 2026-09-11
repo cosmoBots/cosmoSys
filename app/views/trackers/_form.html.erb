@@ -38,21 +38,6 @@
 <%= hidden_field_tag 'tracker[custom_field_ids][]', '' %>
 <% end %>
 
-<% if @tracker.cosmosys_negative_tracker? %>
-  <% negative_statuses = IssueStatus.where(is_closed: true, csys_closed_outcome: 'unsuccessful').order(:position, :id) %>
-  <p>
-    <%= label_tag 'tracker_csys_negative_status_ids', l(:label_cosmosys_negative_statuses) %>
-    <%= select_tag(
-          'tracker[csys_negative_status_ids][]',
-          options_from_collection_for_select(negative_statuses, :id, :name, @tracker.csys_negative_status_ids),
-          multiple: true,
-          id: 'tracker_csys_negative_status_ids'
-        ) %>
-    <%= hidden_field_tag 'tracker[csys_negative_status_ids][]', '' %>
-    <em class="info"><%= l(:text_cosmosys_negative_statuses_help) %></em>
-  </p>
-<% end %>
-
 <% if @tracker.new_record? && @trackers.any? %>
 <p><label for="copy_workflow_from"><%= l(:label_copy_workflow_from) %></label>
 <%= select_tag(:copy_workflow_from, content_tag("option") + options_from_collection_for_select(@trackers, :id, :name, params[:copy_workflow_from] || @copy_from.try(:id))) %></p>
