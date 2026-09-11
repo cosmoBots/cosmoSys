@@ -484,4 +484,7 @@ en:
   label_cosmosys_item_profile_closed_presentation: "Closed item presentation"
   text_cosmosys_item_profile_scope_closed_presentation: "Controls how successfully closed items appear in trees."
   label_cosmosys_tree_include_negative_items: "Show negative items in their position"
+  button_cosmosys_apply_tree_options: "Apply"
+  label_cosmosys_item_profile_negative: "Negative items"
+  text_cosmosys_item_profile_negative: "Placeholder for negative item sections."
   label_cosmosys_report_include_negative_items: "Show negative items in their position"

@@ -73,11 +73,14 @@ module Cosmosys
     end
 
     def project_visible_children(issue)
-      issue.children.visible(@user)
+      children = issue.children.visible(@user)
         .where(project_id: @project.id)
         .includes(:project, :tracker, :parent)
         .reorder(:csposition, :lft, :id)
         .to_a
+      return children if @include_negative
+
+      children.select(&:cosmosys_positive?)
     end
 
     def boundary_parent_for(issue)

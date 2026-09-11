@@ -170,6 +170,23 @@ Cosmosys::ItemKindRegistry.register(
 )
 
 Cosmosys::ItemKindRegistry.register(
+  'negative',
+  label: :label_cosmosys_item_profile_negative,
+  description: :text_cosmosys_item_profile_negative,
+  provider: :cosmosys,
+  diagram_visible: false,
+  report_diagrams: false,
+  report_metadata: false,
+  can_have_children: false,
+  can_split: false,
+  aggregate_children: false,
+  allowed_parent_profiles: %w[info].freeze,
+  dsm_mode: 'none',
+  reference_mode: 'chapter',
+  reference_tracker: false
+)
+
+Cosmosys::ItemKindRegistry.register(
   'alternate_1',
   label: 'Alternate 1',
   description: :text_cosmosys_item_profile_alternate_1,
