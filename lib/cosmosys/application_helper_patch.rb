@@ -69,27 +69,20 @@ module Cosmosys
         end
       reference_mode = issue.respond_to?(:cosmosys_preferred_reference_mode) ? issue.cosmosys_preferred_reference_mode : 'csid'
       reference = reference_mode == 'chapter' ? chapter : (issue.respond_to?(:cosmosys_display_ref) ? issue.cosmosys_display_ref : issue.id.to_s)
-      show_tracker = !issue.respond_to?(:cosmosys_item_kind) || issue.cosmosys_item_kind.value(:reference_tracker, issue) != false
       link_options = {
         class: [issue.css_classes, (boundary ? 'cosmosys-tree-boundary-link' : nil)].compact.join(' '),
         title: issue.subject
       }
       issue_href = Rails.application.routes.url_helpers.issue_path(issue)
-      issue_link = if show_tracker
-                     text = reference_mode == 'chapter' ? "#{issue.tracker}:" : [issue.tracker, reference].compact_blank.join(':')
-                     link_to(text, issue_href, link_options)
-                   end
-      subject_element = if issue_link
-                          content_tag(:span, issue.subject, class: ['cosmosys-tree-subject', (boundary ? 'cosmosys-tree-subject-boundary' : nil)].compact.join(' '))
-                        else
-                          link_to(issue.subject, issue_href, link_options.merge(class: [link_options[:class], 'cosmosys-tree-subject'].join(' ')))
-                        end
+        reference_element = if reference.present?
+                              content_tag(:span, reference, class: ['cosmosys-tree-ref', (boundary ? 'cosmosys-tree-ref-boundary' : nil)].compact.join(' '))
+                            end
+        subject_element = link_to(issue.subject, issue_href, link_options.merge(class: [link_options[:class], 'cosmosys-tree-subject'].join(' ')))
 
       safe_join(
         [
           (boundary ? content_tag(:span, '+', class: 'cosmosys-tree-boundary-prefix') : nil),
-          (reference_mode == 'chapter' && reference.present? ? content_tag(:span, reference, class: ['cosmosys-tree-ref', (boundary ? 'cosmosys-tree-ref-boundary' : nil)].compact.join(' ')) : nil),
-          issue_link,
+            reference_element,
           subject_element
         ].compact,
         ' '
