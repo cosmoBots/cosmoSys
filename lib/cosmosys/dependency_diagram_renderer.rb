@@ -167,7 +167,7 @@ module Cosmosys
 
       if @current_issue && issue.id == @current_issue.id
         attrs[:penwidth] = issue.cosmosys_diagram_penwidth('dependency', selected: true)
-        attrs[:color] = CURRENT_ISSUE_HIGHLIGHT
+        attrs[:color] = issue.cosmosys_diagram_valid? ? CURRENT_ISSUE_HIGHLIGHT : 'red'
       end
 
       attrs

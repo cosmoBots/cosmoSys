@@ -103,7 +103,7 @@ module Cosmosys
 
       if @current_issue && issue.id == @current_issue.id
         attrs[:penwidth] = issue.cosmosys_diagram_penwidth('hierarchy', selected: true)
-        attrs[:color] = CURRENT_ISSUE_HIGHLIGHT
+        attrs[:color] = issue.cosmosys_diagram_valid? ? CURRENT_ISSUE_HIGHLIGHT : 'red'
       end
 
       attrs
@@ -124,8 +124,9 @@ module Cosmosys
       }
 
       if @current_issue && issue.id == @current_issue.id
-        attrs[:color] = CURRENT_ISSUE_HIGHLIGHT
-        attrs[:pencolor] = CURRENT_ISSUE_HIGHLIGHT
+        highlight = issue.cosmosys_diagram_valid? ? CURRENT_ISSUE_HIGHLIGHT : 'red'
+        attrs[:color] = highlight
+        attrs[:pencolor] = highlight
         attrs[:penwidth] = issue.cosmosys_hierarchy_cluster_penwidth(selected: true)
       end
 
