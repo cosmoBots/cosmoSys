@@ -1323,7 +1323,7 @@ a.issue.closed.cosmosys-closure-successful:visited {
   opacity: 0.65;
 }
 
-.cosmosys-tree-item-unsuccessful > .cosmosys-tree-node a.closed {
+.cosmosys-tree-item-unsuccessful > .cosmosys-tree-node .closed {
   text-decoration: line-through;
 }
 
