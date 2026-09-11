@@ -17,8 +17,8 @@ module Cosmosys
       results << Result.new(code: :info_tracker_disabled) unless info_tracker
       results << Result.new(code: :document_tracker_disabled) unless document_tracker
 
-      if document_tracker && document_tracker.cosmosys_item_kind.report_placeholder_kinds.to_a.sort != ReportPlaceholder::KINDS.keys.sort
-        results << Result.new(code: :document_profile_invalid, details: document_tracker.cosmosys_item_kind_key)
+      if document_tracker && document_tracker.cosmosys_item_kind_profile.report_placeholder_kinds.to_a.sort != ReportPlaceholder::KINDS.keys.sort
+        results << Result.new(code: :document_profile_invalid, details: document_tracker.csys_item_kind)
       end
 
       placeholders = ReportPlaceholder.where(project_id: project.id).includes(:issue).index_by(&:kind)
