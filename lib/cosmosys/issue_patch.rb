@@ -68,6 +68,13 @@ module Cosmosys
       csid || id.to_s
     end
 
+    def css_classes
+      classes = super
+      return classes unless cosmosys_closure_outcome == :successful
+
+      [classes, 'cosmosys-closure-successful'].compact.join(' ')
+    end
+
     def cosmosys_item_kind
       tracker&.cosmosys_item_kind_profile || Cosmosys::ItemKindRegistry.fetch('normal')
     end

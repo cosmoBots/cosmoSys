@@ -49,7 +49,7 @@ module Cosmosys
           link_to(
             "##{issue.csid}",
             url,
-            class: cosmosys_issue_css_classes(issue),
+            class: issue.css_classes,
             title: "#{issue.tracker.name}: #{issue.subject.truncate(100)} (#{issue.status.name})"
           )
         end
@@ -71,7 +71,7 @@ module Cosmosys
       reference = reference_mode == 'chapter' ? chapter : (issue.respond_to?(:cosmosys_display_ref) ? issue.cosmosys_display_ref : issue.id.to_s)
       show_tracker = !issue.respond_to?(:cosmosys_item_kind) || issue.cosmosys_item_kind.value(:reference_tracker, issue) != false
       link_options = {
-        class: [cosmosys_issue_css_classes(issue), (boundary ? 'cosmosys-tree-boundary-link' : nil)].compact.join(' '),
+        class: [issue.css_classes, (boundary ? 'cosmosys-tree-boundary-link' : nil)].compact.join(' '),
         title: issue.subject
       }
       issue_href = Rails.application.routes.url_helpers.issue_path(issue)
@@ -118,20 +118,12 @@ module Cosmosys
       result = link_to(
         text,
         issue_url(issue, only_path: only_path),
-        class: cosmosys_issue_css_classes(issue),
+        class: issue.css_classes,
         title: title
       )
       result << h(": #{subject}") if subject
       result = h("#{issue.project} - ") + result if options[:project]
       result
-    end
-
-    def cosmosys_issue_css_classes(issue)
-      classes = issue.css_classes.to_s
-      if issue.respond_to?(:cosmosys_closure_outcome) && issue.cosmosys_closure_outcome == :successful
-        classes = [classes, 'cosmosys-closure-successful'].reject { |value| value.to_s.empty? }.join(' ')
-      end
-      classes
     end
   end
 end
