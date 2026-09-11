@@ -53,6 +53,7 @@ require_dependency 'issue'
 require_dependency 'issue_relation'
 require_dependency 'document'
 require_dependency 'tracker'
+require_dependency 'issue_status'
 require_dependency 'project_query'
 require_dependency 'issue_query'
 require_dependency 'application_helper'
@@ -82,6 +83,7 @@ require_dependency File.expand_path('lib/cosmosys/report_template_catalog', __di
 require_dependency File.expand_path('lib/cosmosys/report_template_inspector', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_profile_registry', __dir__)
 require_dependency File.expand_path('lib/cosmosys/tracker_patch', __dir__)
+require_dependency File.expand_path('lib/cosmosys/issue_status_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issues_controller_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/documents_controller_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/item_resolver', __dir__)
@@ -157,6 +159,7 @@ patch_cosmosys_models = proc do
   Issue.prepend Cosmosys::IssueCopyPatch unless Issue < Cosmosys::IssueCopyPatch
   Document.include Cosmosys::DocumentPatch unless Document < Cosmosys::DocumentPatch
   Tracker.include Cosmosys::TrackerPatch unless Tracker < Cosmosys::TrackerPatch
+  IssueStatus.include Cosmosys::IssueStatusPatch unless IssueStatus < Cosmosys::IssueStatusPatch
   IssuesController.prepend Cosmosys::IssuesControllerPatch unless IssuesController < Cosmosys::IssuesControllerPatch
   DocumentsController.prepend Cosmosys::DocumentsControllerPatch unless DocumentsController < Cosmosys::DocumentsControllerPatch
   ProjectQuery.prepend Cosmosys::ProjectQueryPatch unless ProjectQuery < Cosmosys::ProjectQueryPatch

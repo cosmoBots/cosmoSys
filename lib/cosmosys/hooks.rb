@@ -22,6 +22,8 @@ module Cosmosys
       { partial: 'hooks/cosmosys/branding' }
     render_on :view_settings_general_form,
       { partial: 'hooks/cosmosys/text_formatting_support' }
+    render_on :view_issue_statuses_form,
+      { partial: 'hooks/cosmosys/issue_status_outcome' }
 
     def model_project_copy_before_save(context = {})
       copy_context = Cosmosys::ProjectCopyContext.current

@@ -76,6 +76,13 @@ module Cosmosys
       cosmosys_item_kind.key
     end
 
+    def cosmosys_closure_outcome
+      return :unsuccessful if status&.respond_to?(:cosmosys_unsuccessfully_closed?) && status.cosmosys_unsuccessfully_closed?
+      return :successful if status&.respond_to?(:cosmosys_successfully_closed?) && status.cosmosys_successfully_closed?
+
+      :unspecified
+    end
+
     def csys_report_placeholder_kind
       return @csys_report_placeholder_kind if instance_variable_defined?(:@csys_report_placeholder_kind)
 

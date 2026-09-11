@@ -22,6 +22,7 @@ module Cosmosys
       :allowed_parent_profiles,
       :dsm_mode,
       :reference_tracker,
+      :closed_presentation,
       keyword_init: true
     ) do
       def value(attribute, issue, **context)
@@ -50,7 +51,8 @@ module Cosmosys
       { key: :aggregate_children, label: :label_cosmosys_item_profile_aggregate_children, scope: :text_cosmosys_item_profile_scope_aggregate_children },
       { key: :allowed_parent_profiles, label: :label_cosmosys_item_profile_allowed_parents, scope: :text_cosmosys_item_profile_scope_allowed_parents },
       { key: :dsm_mode, label: :label_cosmosys_item_profile_dsm_mode, scope: :text_cosmosys_item_profile_scope_dsm_mode },
-      { key: :reference_tracker, label: :label_cosmosys_item_profile_reference_tracker, scope: :text_cosmosys_item_profile_scope_reference_tracker }
+      { key: :reference_tracker, label: :label_cosmosys_item_profile_reference_tracker, scope: :text_cosmosys_item_profile_scope_reference_tracker },
+      { key: :closed_presentation, label: :label_cosmosys_item_profile_closed_presentation, scope: :text_cosmosys_item_profile_scope_closed_presentation }
     ].map { |effect| effect.freeze }.freeze
 
     def register(key, label: nil, description: nil, provider:, **attributes)
@@ -108,7 +110,8 @@ module Cosmosys
           can_have_children: true,
           can_split: true,
           aggregate_children: true,
-          dsm_mode: 'leaves'
+          dsm_mode: 'leaves',
+          closed_presentation: 'struck'
         )
       }
     end
@@ -120,7 +123,8 @@ module Cosmosys
         aggregate_children: true,
         allowed_parent_profiles: nil,
         dsm_mode: 'leaves',
-        reference_tracker: true
+        reference_tracker: true,
+        closed_presentation: 'struck'
       }.merge(attributes)
       immutable_attributes = attributes.transform_values { |value| value.nil? || value.frozen? ? value : value.freeze }
       Profile.new(**immutable_attributes).freeze

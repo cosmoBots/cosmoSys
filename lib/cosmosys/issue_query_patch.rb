@@ -32,6 +32,11 @@ module Cosmosys
       add_available_filter('csid', type: :string, name: :label_cosmosys_csid) unless available_filters.key?('csid')
     end
 
+    def initialize(attributes = nil, *args)
+      super
+      cosmosys_apply_project_profile_default_status_filter
+    end
+
     def default_columns_names
       names = project.present? ? project.cosmosys_item_list_column_names.map(&:to_sym) : []
       (names.presence || super.dup) - [:csid]
@@ -52,6 +57,18 @@ module Cosmosys
       end
 
       cols
+    end
+
+    private
+
+    def cosmosys_apply_project_profile_default_status_filter
+      return unless project&.respond_to?(:cosmosys_project_profile_definition)
+      return unless project.cosmosys_project_profile_definition.key == 'requirements'
+      return unless filters == { 'status_id' => { operator: 'o', values: [''] } }
+      return unless IssueStatus.column_names.include?('csys_closed_outcome')
+
+      unsuccessful_ids = IssueStatus.where(csys_closed_outcome: 'unsuccessful').pluck(:id).map(&:to_s)
+      self.filters = { 'status_id' => { operator: '!', values: unsuccessful_ids } } if unsuccessful_ids.any?
     end
   end
 end

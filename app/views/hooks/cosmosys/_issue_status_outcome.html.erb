@@ -1,0 +1,10 @@
+<p>
+  <%= label_tag 'issue_status_csys_closed_outcome', l(:label_cosmosys_closed_outcome) %>
+  <%= select_tag 'issue_status[csys_closed_outcome]',
+                 options_for_select([
+                   [l(:label_cosmosys_closed_outcome_unspecified), ''],
+                   [l(:label_cosmosys_closed_outcome_successful), 'successful'],
+                   [l(:label_cosmosys_closed_outcome_unsuccessful), 'unsuccessful']
+                 ], issue_status.csys_closed_outcome),
+                 id: 'issue_status_csys_closed_outcome' %>
+</p>
