@@ -48,6 +48,7 @@
           multiple: true,
           id: 'tracker_csys_negative_status_ids'
         ) %>
+    <%= hidden_field_tag 'tracker[csys_negative_status_ids][]', '' %>
     <em class="info"><%= l(:text_cosmosys_negative_statuses_help) %></em>
   </p>
 <% end %>
