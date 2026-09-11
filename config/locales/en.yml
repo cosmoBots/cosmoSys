@@ -483,6 +483,8 @@ en:
   label_cosmosys_closed_outcome_unsuccessful: "Unsuccessful"
   label_cosmosys_item_profile_closed_presentation: "Closed item presentation"
   text_cosmosys_item_profile_scope_closed_presentation: "Controls how successfully closed items appear in trees."
+  label_cosmosys_item_profile_unsuccessful_closure: "Unsuccessful closure while blocked"
+  text_cosmosys_item_profile_scope_unsuccessful_closure: "Allows workflow-authorized unsuccessful closures while blockers remain open."
   label_cosmosys_tree_include_negative_items: "Show negative items in their position"
   button_cosmosys_apply_tree_options: "Apply"
   label_cosmosys_item_profile_negative: "Negative items"

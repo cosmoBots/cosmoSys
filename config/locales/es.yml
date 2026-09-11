@@ -483,6 +483,8 @@ es:
   label_cosmosys_closed_outcome_unsuccessful: "Insatisfactorio"
   label_cosmosys_item_profile_closed_presentation: "Presentación de ítems cerrados"
   text_cosmosys_item_profile_scope_closed_presentation: "Controla cómo aparecen en los árboles los ítems cerrados satisfactoriamente."
+  label_cosmosys_item_profile_unsuccessful_closure: "Cierre insatisfactorio mientras está bloqueado"
+  text_cosmosys_item_profile_scope_unsuccessful_closure: "Permite cierres insatisfactorios autorizados por el workflow aunque haya bloqueadores abiertos."
   label_cosmosys_tree_include_negative_items: "Mostrar elementos negativos en su ubicación"
   button_cosmosys_apply_tree_options: "Aplicar"
   label_cosmosys_item_profile_negative: "Negativos"

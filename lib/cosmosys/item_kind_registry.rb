@@ -23,6 +23,7 @@ module Cosmosys
       :dsm_mode,
       :reference_tracker,
       :closed_presentation,
+      :allow_unsuccessful_closure_when_blocked,
       keyword_init: true
     ) do
       def value(attribute, issue, **context)
@@ -52,7 +53,8 @@ module Cosmosys
       { key: :allowed_parent_profiles, label: :label_cosmosys_item_profile_allowed_parents, scope: :text_cosmosys_item_profile_scope_allowed_parents },
       { key: :dsm_mode, label: :label_cosmosys_item_profile_dsm_mode, scope: :text_cosmosys_item_profile_scope_dsm_mode },
       { key: :reference_tracker, label: :label_cosmosys_item_profile_reference_tracker, scope: :text_cosmosys_item_profile_scope_reference_tracker },
-      { key: :closed_presentation, label: :label_cosmosys_item_profile_closed_presentation, scope: :text_cosmosys_item_profile_scope_closed_presentation }
+      { key: :closed_presentation, label: :label_cosmosys_item_profile_closed_presentation, scope: :text_cosmosys_item_profile_scope_closed_presentation },
+      { key: :allow_unsuccessful_closure_when_blocked, label: :label_cosmosys_item_profile_unsuccessful_closure, scope: :text_cosmosys_item_profile_scope_unsuccessful_closure }
     ].map { |effect| effect.freeze }.freeze
 
     def register(key, label: nil, description: nil, provider:, **attributes)
@@ -111,7 +113,8 @@ module Cosmosys
           can_split: true,
           aggregate_children: true,
           dsm_mode: 'leaves',
-          closed_presentation: 'struck'
+          closed_presentation: 'struck',
+          allow_unsuccessful_closure_when_blocked: false
         )
       }
     end
@@ -124,7 +127,8 @@ module Cosmosys
         allowed_parent_profiles: nil,
         dsm_mode: 'leaves',
         reference_tracker: true,
-        closed_presentation: 'struck'
+        closed_presentation: 'struck',
+        allow_unsuccessful_closure_when_blocked: false
       }.merge(attributes)
       immutable_attributes = attributes.transform_values { |value| value.nil? || value.frozen? ? value : value.freeze }
       Profile.new(**immutable_attributes).freeze
