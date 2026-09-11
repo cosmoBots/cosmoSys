@@ -2,6 +2,15 @@ require 'set'
 require_dependency 'issue'
 
 module Cosmosys
+  module IssuePresentationPatch
+    def css_classes
+      classes = super
+      return classes unless cosmosys_closure_outcome == :successful
+
+      [classes, 'cosmosys-closure-successful'].compact.join(' ')
+    end
+  end
+
   module IssuePatch
     PREFERRED_REPORT_DIAGRAMS = %w[combined dependency hierarchy no_diagram].freeze
 
@@ -66,13 +75,6 @@ module Cosmosys
 
     def cosmosys_display_ref
       csid || id.to_s
-    end
-
-    def css_classes
-      classes = super
-      return classes unless cosmosys_closure_outcome == :successful
-
-      [classes, 'cosmosys-closure-successful'].compact.join(' ')
     end
 
     def cosmosys_item_kind

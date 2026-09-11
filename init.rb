@@ -155,6 +155,7 @@ patch_cosmosys_models = proc do
   Project.include Cosmosys::ProjectPatch unless Project < Cosmosys::ProjectPatch
   Project.prepend Cosmosys::ProjectNativeCopyPatch unless Project < Cosmosys::ProjectNativeCopyPatch
   Issue.include Cosmosys::IssuePatch unless Issue < Cosmosys::IssuePatch
+  Issue.prepend Cosmosys::IssuePresentationPatch unless Issue < Cosmosys::IssuePresentationPatch
   IssueRelation.include Cosmosys::IssueRelationPatch unless IssueRelation < Cosmosys::IssueRelationPatch
   Issue.prepend Cosmosys::IssueCopyPatch unless Issue < Cosmosys::IssueCopyPatch
   Document.include Cosmosys::DocumentPatch unless Document < Cosmosys::DocumentPatch
