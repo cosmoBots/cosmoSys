@@ -18,6 +18,7 @@ module Cosmosys
       apply_identity_policy!
       apply_mode!
       reconcile_external_relations!
+      reconcile_pending_relations!
       copy_document_references!
       rewrite_internal_references!
       copy_report_settings!
@@ -124,6 +125,19 @@ module Cosmosys
       restored = Hash.new(0)
       Array(effective_copy_plan.external_relations).each do |entry|
         classification = entry.fetch(:classification)
+        if classification == 'pending' && entry[:external_csid].present?
+          local_issue = context.issue_map.fetch(entry.fetch(:local_source_id))
+          Cosmosys::PendingRelation.find_or_create_by!(
+            root_project_id: destination.root.id,
+            local_issue_id: local_issue.id,
+            external_csid: entry.fetch(:external_csid),
+            relation_type: entry.fetch(:relation_type),
+            local_side: entry.fetch(:local_side)
+          ) do |pending|
+            pending.delay = entry[:delay]
+            pending.source_relation_id = entry[:source_relation_id]
+          end
+        end
         unless %w[retain_original remap_by_csid].include?(classification)
           restored[classification] += 1
           next
@@ -142,6 +156,11 @@ module Cosmosys
       end
       context.summary[:external_relations_removed_from_native_copy] = removed
       context.summary[:external_relations] = restored
+    end
+
+    def reconcile_pending_relations!
+      context.summary[:pending_relation_reconciliation] =
+        Cosmosys::PendingRelationReconciler.new(destination.root).call
     end
 
     def effective_copy_plan

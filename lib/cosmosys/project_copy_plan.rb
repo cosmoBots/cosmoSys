@@ -110,7 +110,7 @@ module Cosmosys
     def classify_external(external)
       return ['pending', nil] unless parent
       return ['retain_original', external.id] if external.project.root.id == parent.root.id
-      return ['pending', nil] if external.csid.blank?
+      return ['lost', nil] if external.csid.blank?
 
       matches = Issue.where(project_id: parent.root.self_and_descendants.select(:id))
                      .where('LOWER(csid) = ?', external.csid.downcase).pluck(:id)

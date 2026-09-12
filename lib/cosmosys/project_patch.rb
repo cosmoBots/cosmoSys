@@ -6,6 +6,10 @@ module Cosmosys
 
     included do
       has_one :cosmosys_report_setting_record, class_name: 'Cosmosys::ProjectReportSetting', foreign_key: :project_id, dependent: :destroy
+      has_many :cosmosys_pending_relations,
+               class_name: 'Cosmosys::PendingRelation',
+               foreign_key: :root_project_id,
+               dependent: :destroy
       belongs_to :cosmosys_ods_template_asset,
                  class_name: 'Cosmosys::TemplateAsset',
                  foreign_key: :csys_ods_template_asset_id,
