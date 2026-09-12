@@ -8,10 +8,6 @@
     <%= l(:label_cosmosys_copy_mode_faithful) %>
   </p>
   <p>
-    <label><%= l(:label_cosmosys_project_profile) %></label>
-    <%= select_tag 'cosmosys_copy[project_profile]', options_for_select(Cosmosys::ProjectProfileRegistry.all.map { |profile| [l(profile.label), profile.key] }, @source_project.csys_project_profile) %>
-  </p>
-  <p>
     <label><%= l(:field_cosmosys_archive_baseline) %></label>
     <%= check_box_tag 'cosmosys_copy[archive]', '1', false %>
     <em class="info"><%= l(:text_cosmosys_archive_baseline_help) %></em>
