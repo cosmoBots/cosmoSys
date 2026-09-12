@@ -34,7 +34,7 @@ module Cosmosys
       Cosmosys::ProjectCopyContext.with(context) { super }
       if context.destination_project&.persisted?
         context.destination_project.archive! if context.archive?
-        flash[:notice] = I18n.t(:notice_cosmosys_project_copy_complete, summary: context.summary.to_json)
+        flash[:notice] = Cosmosys::ProjectCopySummary.new(context).message
       end
     rescue Cosmosys::ProjectCopyError => error
       cleanup_cosmosys_copy_destination(context, source)

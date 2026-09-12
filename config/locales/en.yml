@@ -24,7 +24,7 @@ en:
   field_cosmosys_archive_baseline: Archive after copying
   text_cosmosys_archive_baseline_help: Applies only to faithful baselines.
   text_cosmosys_project_copy_preflight: "Preflight source: %{items} items, %{documents} documents and %{members} memberships. Structural copy failures roll back the destination."
-  notice_cosmosys_project_copy_complete: "cosmoSys project copy completed: %{summary}"
+  notice_cosmosys_project_copy_complete: "Project %{project} copied: %{items} items, %{documents} documents and %{references} document references. External relations: %{retained} retained, %{remapped} remapped, %{pending} pending and %{resolved} previously pending resolved."
   label_cosmosys_copy_preflight_review: Review project copy
   text_cosmosys_copy_preflight_confirmation: "Nothing has been copied yet. Review this plan and confirm to create the destination project."
   label_cosmosys_copy_preflight_content: Content
