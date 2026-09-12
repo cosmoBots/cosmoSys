@@ -151,9 +151,42 @@ module Cosmosys
         identity_mode: context.identity_mode,
         selected_parts: context.selected_parts.sort,
         counts: counts,
+        source_revisions: source_revisions,
         identity_collisions: identity_collisions.sort,
         external_relations: external_relations
       }
+    end
+
+    def source_revisions
+      revisions = {}
+      if context.copying?('issues')
+        revisions[:items] = source.issues.reorder(:id).pluck(:id, :lock_version, :updated_on).map do |id, lock_version, updated_on|
+          [id, lock_version, updated_on&.utc&.iso8601(6)]
+        end
+        revisions[:relations] = IssueRelation
+          .where('issue_from_id IN (?) OR issue_to_id IN (?)', source_issue_ids, source_issue_ids)
+          .order(:id).pluck(:id, :issue_from_id, :issue_to_id, :relation_type, :delay)
+      end
+      revisions[:documents] = document_revisions if context.copying?('documents')
+      revisions[:members] = member_revisions if context.copying?('members')
+      revisions
+    end
+
+    def document_revisions
+      source.documents.order(:id).map do |document|
+        attachments = document.attachments.order(:id).map do |attachment|
+          [attachment.id, attachment.digest, attachment.filesize, attachment.created_on&.utc&.iso8601(6)]
+        end
+        [document.id, document.category_id, document.title, document.description,
+         document.respond_to?(:updated_on) ? document.updated_on&.utc&.iso8601(6) : nil,
+         attachments]
+      end
+    end
+
+    def member_revisions
+      source.members.includes(:member_roles).order(:id).map do |member|
+        [member.id, member.user_id, member.member_roles.map(&:role_id).sort]
+      end
     end
   end
 end
