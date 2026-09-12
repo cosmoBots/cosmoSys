@@ -6,8 +6,7 @@ es:
   field_cosmosys_identity_mode: Identificadores de los items
   label_cosmosys_identity_mode_new: Generar CSID nuevos
   label_cosmosys_identity_mode_preserve: Conservar los CSID de origen
-  text_cosmosys_identity_mode_help: "La conservación exige el mismo código de proyecto y un árbol de destino sin colisiones; de lo contrario el preflight cancela la copia."
-  error_cosmosys_preserve_csid_project_code: "No se pueden conservar los CSID de origen después de cambiar el código de proyecto."
+  text_cosmosys_identity_mode_help: "La conservación exige un árbol de destino sin colisiones de CSID; de lo contrario el preflight cancela la copia. Sólo los CSID conservados que coincidan con el código del proyecto destino avanzan su contador local."
   error_cosmosys_preserve_csid_collision: "Hay CSID de origen que colisionan en el árbol de proyecto de destino: %{csids}"
   error_cosmosys_snapshot_identifier_taken: "El identificador del proyecto de destino ya está en uso."
   button_cosmosys_import_snapshot: Importar snapshot .csys

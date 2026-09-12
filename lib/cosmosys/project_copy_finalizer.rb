@@ -76,8 +76,7 @@ module Cosmosys
           position: source_issue.csposition }
       end
       ProjectMaterializationIdentity.new(
-        mode: context.identity_mode, source_cscode: source.cscode,
-        destination: destination, entries: entries
+        mode: context.identity_mode, destination: destination, entries: entries
       ).apply!
     end
 

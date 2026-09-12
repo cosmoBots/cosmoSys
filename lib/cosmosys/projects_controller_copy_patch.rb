@@ -37,11 +37,6 @@ module Cosmosys
       return unless context.identity_mode == 'preserve' && context.copying?('issues')
 
       attributes = params[:project] || {}
-      destination_cscode = attributes[:cscode].to_s
-      unless destination_cscode.casecmp(context.source_project.cscode.to_s).zero?
-        raise Cosmosys::ProjectCopyError, I18n.t(:error_cosmosys_preserve_csid_project_code)
-      end
-
       parent = Project.find_by(id: attributes[:parent_id].presence)
       return unless parent
 

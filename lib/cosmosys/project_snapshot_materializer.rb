@@ -41,9 +41,6 @@ module Cosmosys
       raise ProjectCopyError, I18n.t(:error_cosmosys_snapshot_identifier_taken) if Project.exists?(identifier: attributes.fetch('identifier'))
 
       return unless identity_mode == 'preserve'
-      if destination_cscode(project).casecmp(project.fetch('cscode').to_s) != 0
-        raise ProjectCopyError, I18n.t(:error_cosmosys_preserve_csid_project_code)
-      end
       parent = attributes['parent_id'].present? ? Project.find(attributes['parent_id']) : nil
       return unless parent
 
@@ -115,7 +112,6 @@ module Cosmosys
       end
       ProjectMaterializationIdentity.new(
         mode: identity_mode,
-        source_cscode: source.manifest.fetch('content').fetch('project').fetch('cscode'),
         destination: project,
         entries: entries
       ).apply!

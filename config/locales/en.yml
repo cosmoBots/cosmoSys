@@ -6,8 +6,7 @@ en:
   field_cosmosys_identity_mode: Item identifiers
   label_cosmosys_identity_mode_new: Generate new CSIDs
   label_cosmosys_identity_mode_preserve: Preserve source CSIDs
-  text_cosmosys_identity_mode_help: "Preservation requires the same project code and a destination tree without collisions; otherwise preflight cancels the copy."
-  error_cosmosys_preserve_csid_project_code: "Source CSIDs cannot be preserved after changing the project code."
+  text_cosmosys_identity_mode_help: "Preservation requires a destination tree without CSID collisions; otherwise preflight cancels the copy. Only preserved CSIDs matching the destination project code advance its local counter."
   error_cosmosys_preserve_csid_collision: "Source CSIDs collide in the destination project tree: %{csids}"
   error_cosmosys_snapshot_identifier_taken: "The destination project identifier is already in use."
   button_cosmosys_import_snapshot: Import .csys snapshot

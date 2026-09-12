@@ -2,9 +2,8 @@ module Cosmosys
   class ProjectMaterializationIdentity
     MODES = %w[new preserve].freeze
 
-    def initialize(mode:, source_cscode:, destination:, entries:)
+    def initialize(mode:, destination:, entries:)
       @mode = MODES.include?(mode.to_s) ? mode.to_s : 'new'
-      @source_cscode = source_cscode.to_s
       @destination = destination
       @entries = entries
     end
@@ -12,7 +11,6 @@ module Cosmosys
     def apply!
       return destination if mode == 'new'
 
-      validate_project_code!
       validate_collisions!
       entries.each do |entry|
         issue = entry.fetch(:issue)
@@ -29,13 +27,7 @@ module Cosmosys
 
     private
 
-    attr_reader :mode, :source_cscode, :destination, :entries
-
-    def validate_project_code!
-      return if destination.cscode.to_s.casecmp(source_cscode).zero?
-
-      raise ProjectCopyError, I18n.t(:error_cosmosys_preserve_csid_project_code)
-    end
+    attr_reader :mode, :destination, :entries
 
     def validate_collisions!
       csids = entries.map { |entry| entry.fetch(:csid) }
