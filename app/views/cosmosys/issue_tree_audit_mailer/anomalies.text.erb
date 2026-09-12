@@ -1,0 +1,8 @@
+<%= l(:mail_body_cosmosys_issue_tree_audit,
+      roots: @summary.fetch(:checked_roots),
+      items: @summary.fetch(:checked_items),
+      inconsistent: @summary.fetch(:inconsistent_roots)) %>
+
+<%= @lines.join("\n") %>
+
+<%= l(:mail_body_cosmosys_issue_tree_audit_repair_warning) %>

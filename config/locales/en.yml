@@ -1,4 +1,7 @@
 en:
+  mail_subject_cosmosys_issue_tree_audit: Item-tree anomalies detected
+  mail_body_cosmosys_issue_tree_audit: "The read-only cosmoSys audit checked %{roots} project trees and %{items} items, and found anomalies in %{inconsistent} trees."
+  mail_body_cosmosys_issue_tree_audit_repair_warning: "No data was changed. Review the reported trees and run the explicit administrator repair only after confirming the anomaly."
   label_summary: Summary
   text_cosmosys_text_formatting_support: "cosmoSys currently supports CommonMark Markdown. Textile remains selectable in Redmine, but its cosmoSys report and document-reference compatibility is not supported yet. Textile support is planned."
   label_cosmosys_project_copy_policy: cosmoSys copy policy
