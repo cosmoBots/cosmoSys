@@ -15,6 +15,22 @@
       <%= radio_button_tag 'destination[identity_mode]', 'new', @destination['identity_mode'].to_s == 'new' %> <%= l(:label_cosmosys_identity_mode_new) %>
       <em class="info"><%= l(:text_cosmosys_identity_mode_help) %></em>
     </p>
+    <% if @materialization_plan %>
+      <div class="cosmosys-project-copy-preflight">
+        <h3><%= l(:label_cosmosys_snapshot_materialization_preflight) %></h3>
+        <p class="warning"><%= l(:text_cosmosys_snapshot_materialization_confirmation) %></p>
+        <%= hidden_field_tag :confirmed_plan, @materialization_plan.confirmation_token %>
+        <table class="list">
+          <thead><tr><th><%= l(:label_cosmosys_copy_preflight_content) %></th><th><%= l(:label_cosmosys_copy_count) %></th></tr></thead>
+          <tbody>
+            <% @materialization_plan.counts.each do |kind, count| %>
+              <tr><td><%= l("label_cosmosys_snapshot_count_#{kind}") %></td><td><%= count %></td></tr>
+            <% end %>
+          </tbody>
+        </table>
+        <p class="info"><%= l(:text_cosmosys_snapshot_internal_relations_only) %></p>
+      </div>
+    <% end %>
     <p><%= submit_tag l(:button_cosmosys_materialize_project_snapshot), class: 'button-positive' %></p>
   <% end %>
 </div>

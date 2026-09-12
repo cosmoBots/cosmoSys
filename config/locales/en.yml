@@ -22,6 +22,17 @@ en:
   error_cosmosys_snapshot_asset_missing: "The .csys package is missing asset %{digest}."
   error_cosmosys_snapshot_asset_digest: "The .csys asset digest is invalid: %{digest}."
   error_cosmosys_snapshot_custom_field_missing: "Required issue custom field is unavailable: %{field}."
+  error_cosmosys_snapshot_trackers_missing: "Required trackers are unavailable: %{trackers}."
+  error_cosmosys_snapshot_custom_fields_missing: "Required item custom fields are unavailable: %{fields}."
+  error_cosmosys_snapshot_assets_missing: "%{count} required snapshot assets are unavailable."
+  label_cosmosys_snapshot_materialization_preflight: Review snapshot materialization
+  text_cosmosys_snapshot_materialization_confirmation: "Nothing has been created yet. Review this plan and confirm to create the destination project."
+  text_cosmosys_snapshot_internal_relations_only: "Snapshot relations are self-contained: only relations whose two endpoints were captured will be restored."
+  label_cosmosys_snapshot_count_items: Items
+  label_cosmosys_snapshot_count_documents: Documents
+  label_cosmosys_snapshot_count_internal_relations: Internal relations
+  label_cosmosys_snapshot_count_attachments: Unique attachment contents
+  notice_cosmosys_project_snapshot_materialized_summary: "Project %{project} created from the snapshot: %{items} items, %{documents} documents, %{relations} internal relations and %{attachments} unique attachment contents."
   label_cosmosys_copy_mode_clean: Clean working copy
   label_cosmosys_copy_mode_faithful: Faithful baseline
   field_cosmosys_archive_baseline: Archive after copying

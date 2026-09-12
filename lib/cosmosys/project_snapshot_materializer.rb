@@ -29,28 +29,10 @@ module Cosmosys
     attr_reader :source, :user, :attributes
 
     def preflight!
-      manifest = source.manifest
-      unless manifest['schema'] == 'cosmosys-project-snapshot' &&
-             manifest['schema_version'].to_s == ProjectSnapshotCapture::SCHEMA_VERSION
-        raise ProjectSnapshotPackageError, I18n.t(:error_cosmosys_snapshot_schema)
-      end
-      content = manifest.fetch('content')
-      project = content.fetch('project')
-      profile = project.fetch('profile')
-      raise ProjectCopyError, "Unknown project profile #{profile}" unless ProjectProfileRegistry.registered?(profile)
-      raise ProjectCopyError, I18n.t(:error_cosmosys_snapshot_identifier_taken) if Project.exists?(identifier: attributes.fetch('identifier'))
+      plan = ProjectSnapshotMaterializationPlan.new(source: source, attributes: attributes)
+      return if plan.blocking_messages.empty?
 
-      return unless identity_mode == 'preserve'
-      parent = attributes['parent_id'].present? ? Project.find(attributes['parent_id']) : nil
-      return unless parent
-
-      project_ids = parent.root.self_and_descendants.pluck(:id)
-      csids = content.fetch('items').map { |row| row.fetch('csid').downcase }
-      collisions = Issue.where(project_id: project_ids).where('LOWER(csid) IN (?)', csids).pluck(:csid)
-      return if collisions.empty?
-
-      raise ProjectCopyError,
-            I18n.t(:error_cosmosys_preserve_csid_collision, csids: collisions.sort.join(', '))
+      raise ProjectCopyError, plan.blocking_messages.join(' ')
     end
 
     def create_project!(source)

@@ -22,6 +22,17 @@ es:
   error_cosmosys_snapshot_asset_missing: "Falta el asset %{digest} en el paquete .csys."
   error_cosmosys_snapshot_asset_digest: "La huella del asset .csys no es válida: %{digest}."
   error_cosmosys_snapshot_custom_field_missing: "No está disponible el campo personalizado de item requerido: %{field}."
+  error_cosmosys_snapshot_trackers_missing: "No están disponibles los trackers requeridos: %{trackers}."
+  error_cosmosys_snapshot_custom_fields_missing: "No están disponibles los campos personalizados de item requeridos: %{fields}."
+  error_cosmosys_snapshot_assets_missing: "No están disponibles %{count} assets requeridos por el snapshot."
+  label_cosmosys_snapshot_materialization_preflight: Revisar la materialización del snapshot
+  text_cosmosys_snapshot_materialization_confirmation: "Todavía no se ha creado nada. Revise este plan y confirme para crear el proyecto destino."
+  text_cosmosys_snapshot_internal_relations_only: "Las relaciones del snapshot son autocontenidas: sólo se restaurarán aquellas cuyos dos extremos fueron capturados."
+  label_cosmosys_snapshot_count_items: Items
+  label_cosmosys_snapshot_count_documents: Documentos
+  label_cosmosys_snapshot_count_internal_relations: Relaciones internas
+  label_cosmosys_snapshot_count_attachments: Contenidos de adjunto únicos
+  notice_cosmosys_project_snapshot_materialized_summary: "Proyecto %{project} creado desde el snapshot: %{items} items, %{documents} documentos, %{relations} relaciones internas y %{attachments} contenidos de adjunto únicos."
   label_cosmosys_copy_mode_clean: Copia de trabajo limpia
   label_cosmosys_copy_mode_faithful: Baseline fiel
   field_cosmosys_archive_baseline: Archivar después de copiar

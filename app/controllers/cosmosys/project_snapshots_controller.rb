@@ -65,14 +65,29 @@ module Cosmosys
 
     def materialize
       deny_access unless User.current.admin?
+      attributes = params.require(:destination).permit(:name, :identifier, :cscode, :parent_id, :identity_mode)
+      plan = Cosmosys::ProjectSnapshotMaterializationPlan.new(source: @snapshot, attributes: attributes)
+      raise ProjectCopyError, plan.blocking_messages.join(' ') if plan.blocking_messages.any?
+
+      confirmed_digest = Cosmosys::ProjectSnapshotMaterializationPlan.verified_digest(params[:confirmed_plan])
+      unless confirmed_digest && ActiveSupport::SecurityUtils.secure_compare(confirmed_digest, plan.digest)
+        @destination = attributes.to_h
+        @parent_projects = Project.visible(User.current).order(:name)
+        @materialization_plan = plan
+        return render :new_materialization
+      end
+
       destination = Cosmosys::ProjectSnapshotMaterializer.new(
         @snapshot, user: User.current,
-        attributes: params.require(:destination).permit(:name, :identifier, :cscode, :parent_id, :identity_mode)
+        attributes: attributes
       ).call
-      redirect_to project_path(destination), notice: l(:notice_cosmosys_project_snapshot_materialized)
-    rescue ProjectCopyError, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound, KeyError => error
+      notice = Cosmosys::ProjectSnapshotMaterializationSummary.new(project: destination, plan: plan).message
+      redirect_to project_path(destination), notice: notice
+    rescue ProjectSnapshotPackageError, ProjectCopyError, ActiveRecord::RecordInvalid,
+           ActiveRecord::RecordNotFound, ActionController::ParameterMissing, KeyError => error
       flash.now[:error] = error.message
-      @destination = params.fetch(:destination, {}).to_unsafe_h
+      raw_destination = params.fetch(:destination, {})
+      @destination = raw_destination.respond_to?(:to_unsafe_h) ? raw_destination.to_unsafe_h : {}
       @parent_projects = Project.visible(User.current).order(:name)
       render :new_materialization, status: :unprocessable_entity
     end
