@@ -17,7 +17,7 @@ module Cosmosys
       restore_deferred_issue_references!
       apply_identity_policy!
       apply_mode!
-      remove_external_relations!
+      reconcile_external_relations!
       copy_document_references!
       rewrite_internal_references!
       copy_report_settings!
@@ -112,7 +112,7 @@ module Cosmosys
       end
     end
 
-    def remove_external_relations!
+    def reconcile_external_relations!
       copied_ids = context.issue_map.values.map(&:id).to_set
       removed = 0
       IssueRelation.where('issue_from_id IN (?) OR issue_to_id IN (?)', copied_ids, copied_ids).find_each do |relation|
@@ -120,7 +120,42 @@ module Cosmosys
         relation.destroy!
         removed += 1
       end
-      context.summary[:external_relations_omitted] = removed
+
+      restored = Hash.new(0)
+      Array(effective_copy_plan.external_relations).each do |entry|
+        classification = entry.fetch(:classification)
+        unless %w[retain_original remap_by_csid].include?(classification)
+          restored[classification] += 1
+          next
+        end
+
+        local_issue = context.issue_map.fetch(entry.fetch(:local_source_id))
+        target_issue = Issue.find(entry.fetch(:target_id))
+        attributes = { relation_type: entry.fetch(:relation_type), delay: entry[:delay] }
+        relation = if entry.fetch(:local_side) == 'from'
+                     IssueRelation.new(attributes.merge(issue_from: local_issue, issue_to: target_issue))
+                   else
+                     IssueRelation.new(attributes.merge(issue_from: target_issue, issue_to: local_issue))
+                   end
+        relation.save!
+        restored[classification] += 1
+      end
+      context.summary[:external_relations_removed_from_native_copy] = removed
+      context.summary[:external_relations] = restored
+    end
+
+    def effective_copy_plan
+      context.copy_plan ||= ProjectCopyPlan.new(
+        source: source,
+        user: context.user,
+        context: context,
+        destination_attributes: {
+          'name' => destination.name,
+          'identifier' => destination.identifier,
+          'cscode' => destination.cscode,
+          'parent_id' => destination.parent_id
+        }
+      )
     end
 
     def rewrite_internal_references!

@@ -17,8 +17,9 @@
   </p>
   <p>
     <label><%= l(:field_cosmosys_archive_baseline) %></label>
-    <%= check_box_tag 'cosmosys_copy[archive]', '1', false %>
+    <%= check_box_tag 'cosmosys_copy[archive]', '1', params.dig(:cosmosys_copy, :archive).present? %>
     <em class="info"><%= l(:text_cosmosys_archive_baseline_help) %></em>
   </p>
   <p><em class="info"><%= l(:text_cosmosys_project_copy_preflight, items: @source_project.issues.count, documents: @source_project.documents.count, members: @source_project.members.count) %></em></p>
+  <%= render partial: 'hooks/cosmosys/project_copy_preflight', locals: { plan: @cosmosys_copy_plan } if @cosmosys_copy_plan %>
 </fieldset>

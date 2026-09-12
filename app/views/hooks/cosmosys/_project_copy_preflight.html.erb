@@ -1,0 +1,53 @@
+<div class="cosmosys-project-copy-preflight">
+  <h3><%= l(:label_cosmosys_copy_preflight_review) %></h3>
+  <p class="warning"><%= l(:text_cosmosys_copy_preflight_confirmation) %></p>
+  <%= hidden_field_tag 'cosmosys_copy[confirmed_plan]', plan.confirmation_token %>
+
+  <table class="list">
+    <thead>
+      <tr>
+        <th><%= l(:label_cosmosys_copy_preflight_content) %></th>
+        <th><%= l(:label_cosmosys_copy_count) %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% plan.counts.each do |kind, count| %>
+        <tr><td><%= l("label_cosmosys_copy_count_#{kind}") %></td><td><%= count %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <% if plan.external_relations.any? %>
+    <h4><%= l(:label_cosmosys_copy_external_relations) %></h4>
+    <table class="list">
+      <thead>
+        <tr>
+          <th><%= l(:label_cosmosys_copy_relation_type) %></th>
+          <th><%= l(:label_cosmosys_copy_external_item) %></th>
+          <th><%= l(:field_project) %></th>
+          <th><%= l(:field_status) %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% plan.external_relations.each do |relation| %>
+          <tr>
+            <td><%= relation[:relation_type] %></td>
+            <td><%= relation[:external_csid].presence || "##{relation[:external_source_id]}" %> <%= relation[:external_subject] %></td>
+            <td><%= relation[:external_project] %></td>
+            <td><%= l("label_cosmosys_copy_relation_#{relation[:classification]}") %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p><%= l(:text_cosmosys_copy_no_external_relations) %></p>
+  <% end %>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var confirmation = document.querySelector('.cosmosys-project-copy-preflight');
+    var submit = confirmation && confirmation.closest('form').querySelector('input[type="submit"]');
+    if (submit) submit.value = <%= l(:button_cosmosys_confirm_copy).to_json.html_safe %>;
+  });
+</script>

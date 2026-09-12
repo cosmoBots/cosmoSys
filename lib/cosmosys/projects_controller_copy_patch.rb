@@ -16,7 +16,21 @@ module Cosmosys
         identity_mode: copy_params[:identity_mode],
         archive: copy_params[:archive]
       )
-      preflight_cosmosys_copy_identity!(context)
+      plan = Cosmosys::ProjectCopyPlan.new(
+        source: source,
+        user: User.current,
+        context: context,
+        destination_attributes: params[:project] || {}
+      )
+      raise Cosmosys::ProjectCopyError, plan.blocking_messages.join(' ') if plan.blocking_messages.any?
+
+      confirmed_digest = Cosmosys::ProjectCopyPlan.verified_digest(copy_params[:confirmed_plan])
+      unless confirmed_digest && ActiveSupport::SecurityUtils.secure_compare(confirmed_digest, plan.digest)
+        prepare_cosmosys_copy_review(source, plan)
+        return render action: :copy
+      end
+
+      context.copy_plan = plan
       Cosmosys::ProjectCopyContext.with(context) { super }
       if context.destination_project&.persisted?
         context.destination_project.archive! if context.archive?
@@ -33,35 +47,32 @@ module Cosmosys
 
     private
 
-    def preflight_cosmosys_copy_identity!(context)
-      return unless context.identity_mode == 'preserve' && context.copying?('issues')
-
-      attributes = params[:project] || {}
-      parent = Project.find_by(id: attributes[:parent_id].presence)
-      return unless parent
-
-      source_csids = context.source_project.issues.where.not(csid: nil).pluck(:csid)
-      collisions = Issue.where(project_id: parent.root.self_and_descendants.select(:id))
-                        .where('LOWER(csid) IN (?)', source_csids.map(&:downcase)).pluck(:csid)
-      return if collisions.empty?
-
-      raise Cosmosys::ProjectCopyError,
-            I18n.t(:error_cosmosys_preserve_csid_collision, csids: collisions.sort.join(', '))
-    end
-
     def cleanup_cosmosys_copy_destination(context, source)
       candidate = context&.destination_project || @project
       candidate.destroy if candidate&.persisted? && candidate.id != source&.id
     end
 
     def prepare_cosmosys_copy_form_after_error(source, error)
+      prepare_cosmosys_copy_form(source)
+      @project.errors.add(:base, error.message)
+      flash.now[:error] = error.message
+    end
+
+    def prepare_cosmosys_copy_review(source, plan)
+      prepare_cosmosys_copy_form(source)
+      unless @project.valid?
+        flash.now[:error] = @project.errors.full_messages.join(', ')
+        return
+      end
+      @cosmosys_copy_plan = plan
+    end
+
+    def prepare_cosmosys_copy_form(source)
       @source_project = source
       @issue_custom_fields = IssueCustomField.sorted.to_a
       @trackers = Tracker.sorted.to_a
       @project = Project.new
       @project.safe_attributes = params[:project]
-      @project.errors.add(:base, error.message)
-      flash.now[:error] = error.message
     end
   end
 end

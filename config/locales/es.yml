@@ -25,6 +25,27 @@ es:
   text_cosmosys_archive_baseline_help: Sólo se aplica a las baselines fieles.
   text_cosmosys_project_copy_preflight: "Origen analizado: %{items} items, %{documents} documentos y %{members} membresías. Un fallo estructural revierte el proyecto destino."
   notice_cosmosys_project_copy_complete: "Copia de proyecto cosmoSys completada: %{summary}"
+  label_cosmosys_copy_preflight_review: Revisar la copia del proyecto
+  text_cosmosys_copy_preflight_confirmation: "Todavía no se ha copiado nada. Revise este plan y confirme para crear el proyecto destino."
+  label_cosmosys_copy_preflight_content: Contenido
+  label_cosmosys_copy_count: Cantidad
+  button_cosmosys_confirm_copy: Confirmar copia
+  label_cosmosys_copy_count_items: Items
+  label_cosmosys_copy_count_documents: Documentos
+  label_cosmosys_copy_count_members: Membresías
+  label_cosmosys_copy_count_internal_relations: Relaciones internas
+  label_cosmosys_copy_count_external_relations: Relaciones externas
+  label_cosmosys_copy_external_relations: Relaciones que salen del proyecto origen
+  label_cosmosys_copy_relation_type: Relación
+  label_cosmosys_copy_external_item: Item externo
+  label_cosmosys_copy_relation_retain_original: Conservar el extremo original
+  label_cosmosys_copy_relation_remap_by_csid: Remapear por CSID
+  label_cosmosys_copy_relation_pending: Pendiente; el extremo no está en el árbol destino
+  label_cosmosys_copy_relation_lost: Perdida; el extremo de origen ya no existe
+  label_cosmosys_copy_relation_ambiguous: Ambigua
+  label_cosmosys_copy_relation_unauthorized: No visible para el usuario que copia
+  text_cosmosys_copy_no_external_relations: Ninguna relación sale del proyecto origen.
+  error_cosmosys_copy_ambiguous_external_relations: "%{count} relaciones externas tienen extremos destino ambiguos."
   label_cosmosys_instance_passphrase: Santo y seña de la instancia
   text_cosmosys_instance_passphrase_help: Protege las hojas ODS propias del sistema en las nuevas exportaciones. Los administradores pueden conocerlo y cambiarlo; evita ediciones involuntarias, no cifra el documento.
   label_cosmosys_ods_template: Plantilla ODS
