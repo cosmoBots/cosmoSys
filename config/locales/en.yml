@@ -3,6 +3,23 @@ en:
   text_cosmosys_text_formatting_support: "cosmoSys currently supports CommonMark Markdown. Textile remains selectable in Redmine, but its cosmoSys report and document-reference compatibility is not supported yet. Textile support is planned."
   label_cosmosys_project_copy_policy: cosmoSys copy policy
   field_cosmosys_copy_mode: Copy mode
+  field_cosmosys_identity_mode: Item identifiers
+  label_cosmosys_identity_mode_new: Generate new CSIDs
+  label_cosmosys_identity_mode_preserve: Preserve source CSIDs
+  text_cosmosys_identity_mode_help: "Preservation requires the same project code and a destination tree without collisions; otherwise preflight cancels the copy."
+  error_cosmosys_preserve_csid_project_code: "Source CSIDs cannot be preserved after changing the project code."
+  error_cosmosys_preserve_csid_collision: "Source CSIDs collide in the destination project tree: %{csids}"
+  error_cosmosys_snapshot_identifier_taken: "The destination project identifier is already in use."
+  button_cosmosys_import_snapshot: Import .csys snapshot
+  label_cosmosys_import_project_snapshot: Import project snapshot
+  text_cosmosys_snapshot_cscode_default: "Leave blank to use the project code stored in the snapshot."
+  error_cosmosys_snapshot_manifest_missing: "The .csys package has no manifest.json."
+  error_cosmosys_snapshot_manifest_too_large: "The .csys manifest is too large."
+  error_cosmosys_snapshot_schema: "The .csys snapshot schema or version is unsupported."
+  error_cosmosys_snapshot_digest: "The .csys manifest content digest is invalid."
+  error_cosmosys_snapshot_asset_missing: "The .csys package is missing asset %{digest}."
+  error_cosmosys_snapshot_asset_digest: "The .csys asset digest is invalid: %{digest}."
+  error_cosmosys_snapshot_custom_field_missing: "Required issue custom field is unavailable: %{field}."
   label_cosmosys_copy_mode_clean: Clean working copy
   label_cosmosys_copy_mode_faithful: Faithful baseline
   field_cosmosys_archive_baseline: Archive after copying

@@ -3,6 +3,23 @@ es:
   text_cosmosys_text_formatting_support: "Actualmente cosmoSys soporta CommonMark Markdown. Textile sigue siendo seleccionable en Redmine, pero su compatibilidad con los informes y las referencias documentales de cosmoSys aún no está soportada. Está previsto añadir soporte para Textile."
   label_cosmosys_project_copy_policy: Política de copia cosmoSys
   field_cosmosys_copy_mode: Modo de copia
+  field_cosmosys_identity_mode: Identificadores de los items
+  label_cosmosys_identity_mode_new: Generar CSID nuevos
+  label_cosmosys_identity_mode_preserve: Conservar los CSID de origen
+  text_cosmosys_identity_mode_help: "La conservación exige el mismo código de proyecto y un árbol de destino sin colisiones; de lo contrario el preflight cancela la copia."
+  error_cosmosys_preserve_csid_project_code: "No se pueden conservar los CSID de origen después de cambiar el código de proyecto."
+  error_cosmosys_preserve_csid_collision: "Hay CSID de origen que colisionan en el árbol de proyecto de destino: %{csids}"
+  error_cosmosys_snapshot_identifier_taken: "El identificador del proyecto de destino ya está en uso."
+  button_cosmosys_import_snapshot: Importar snapshot .csys
+  label_cosmosys_import_project_snapshot: Importar snapshot de proyecto
+  text_cosmosys_snapshot_cscode_default: "Déjelo vacío para usar el código de proyecto almacenado en el snapshot."
+  error_cosmosys_snapshot_manifest_missing: "El paquete .csys no contiene manifest.json."
+  error_cosmosys_snapshot_manifest_too_large: "El manifiesto .csys es demasiado grande."
+  error_cosmosys_snapshot_schema: "El esquema o la versión del snapshot .csys no está soportado."
+  error_cosmosys_snapshot_digest: "La huella del contenido del manifiesto .csys no es válida."
+  error_cosmosys_snapshot_asset_missing: "Falta el asset %{digest} en el paquete .csys."
+  error_cosmosys_snapshot_asset_digest: "La huella del asset .csys no es válida: %{digest}."
+  error_cosmosys_snapshot_custom_field_missing: "No está disponible el campo personalizado de item requerido: %{field}."
   label_cosmosys_copy_mode_clean: Copia de trabajo limpia
   label_cosmosys_copy_mode_faithful: Baseline fiel
   field_cosmosys_archive_baseline: Archivar después de copiar

@@ -2,8 +2,9 @@ module Cosmosys
   class ProjectCopyContext
     KEY = :cosmosys_project_copy_context
     MODES = %w[clean faithful].freeze
+    IDENTITY_MODES = %w[new preserve].freeze
 
-    attr_reader :source_project, :user, :mode, :selected_parts, :profile_key,
+    attr_reader :source_project, :user, :mode, :identity_mode, :selected_parts, :profile_key,
                 :issue_map, :document_map, :summary
     attr_accessor :destination_project
 
@@ -19,10 +20,13 @@ module Cosmosys
       ActiveSupport::IsolatedExecutionState[KEY] = previous
     end
 
-    def initialize(source_project:, user:, mode:, selected_parts:, profile_key: nil, archive: false)
+    def initialize(source_project:, user:, mode:, selected_parts:, profile_key: nil, archive: false,
+                   identity_mode: nil)
       @source_project = source_project
       @user = user
       @mode = MODES.include?(mode.to_s) ? mode.to_s : 'clean'
+      default_identity_mode = @mode == 'faithful' ? 'preserve' : 'new'
+      @identity_mode = IDENTITY_MODES.include?(identity_mode.to_s) ? identity_mode.to_s : default_identity_mode
       @selected_parts = Array(selected_parts).map(&:to_s)
       @profile_key = Cosmosys::ProjectProfileRegistry.normalize_key(profile_key.presence || source_project.csys_project_profile)
       @archive = ActiveModel::Type::Boolean.new.cast(archive)

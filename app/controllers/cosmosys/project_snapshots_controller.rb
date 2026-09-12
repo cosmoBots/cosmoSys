@@ -24,6 +24,31 @@ module Cosmosys
       redirect_to project_cosmosys_snapshots_path(@project), alert: error.record.errors.full_messages.join(', ')
     end
 
+    def new_import
+      deny_access unless User.current.admin?
+      @destination = { 'parent_id' => @project.id, 'identity_mode' => 'preserve' }
+      @parent_projects = Project.visible(User.current).order(:name)
+    end
+
+    def import
+      deny_access unless User.current.admin?
+      upload = params.require(:snapshot_file)
+      destination = nil
+      Cosmosys::ProjectSnapshotPackageReader.open(upload.tempfile.path) do |source|
+        destination = Cosmosys::ProjectSnapshotMaterializer.new(
+          source, user: User.current,
+          attributes: params.require(:destination).permit(:name, :identifier, :cscode, :parent_id, :identity_mode)
+        ).call
+      end
+      redirect_to project_path(destination), notice: l(:notice_cosmosys_project_snapshot_materialized)
+    rescue ProjectSnapshotPackageError, ProjectCopyError, ActiveRecord::RecordInvalid,
+           ActiveRecord::RecordNotFound, ActionController::ParameterMissing, KeyError => error
+      flash.now[:error] = error.message
+      @destination = params.fetch(:destination, {}).respond_to?(:to_unsafe_h) ? params.fetch(:destination).to_unsafe_h : {}
+      @parent_projects = Project.visible(User.current).order(:name)
+      render :new_import, status: :unprocessable_entity
+    end
+
     def show; end
 
     def destroy
@@ -41,10 +66,11 @@ module Cosmosys
     def materialize
       deny_access unless User.current.admin?
       destination = Cosmosys::ProjectSnapshotMaterializer.new(
-        @snapshot, user: User.current, attributes: params.require(:destination).permit(:name, :identifier, :cscode, :parent_id)
+        @snapshot, user: User.current,
+        attributes: params.require(:destination).permit(:name, :identifier, :cscode, :parent_id, :identity_mode)
       ).call
       redirect_to project_path(destination), notice: l(:notice_cosmosys_project_snapshot_materialized)
-    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound, KeyError => error
+    rescue ProjectCopyError, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound, KeyError => error
       flash.now[:error] = error.message
       @destination = params.fetch(:destination, {}).to_unsafe_h
       @parent_projects = Project.visible(User.current).order(:name)
@@ -83,7 +109,8 @@ module Cosmosys
       source = @snapshot.manifest.fetch('content').fetch('project')
       { 'name' => "#{source.fetch('name')} snapshot #{@snapshot.id}",
         'identifier' => "#{source.fetch('identifier')}-snapshot-#{@snapshot.id}",
-        'cscode' => source.fetch('cscode'), 'parent_id' => nil }
+        'cscode' => source.fetch('cscode'), 'parent_id' => nil,
+        'identity_mode' => 'preserve', 'profile' => source.fetch('profile') }
     end
   end
 end

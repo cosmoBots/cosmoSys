@@ -1,20 +1,19 @@
 <%= render partial: 'cosmosys/items/nav', locals: { current: :snapshots } %>
 
-<h2><%= l(:label_cosmosys_materialize_project_snapshot) %></h2>
+<h2><%= l(:label_cosmosys_import_project_snapshot) %></h2>
 
 <div class="box tabular">
-  <%= form_tag materialize_project_cosmosys_snapshot_path(@project, @snapshot), method: :post do %>
+  <%= form_tag import_project_cosmosys_snapshot_path(@project), method: :post, multipart: true do %>
+    <p><%= label_tag :snapshot_file, l(:field_filename) %><%= file_field_tag :snapshot_file, required: true, accept: '.csys,application/zip' %></p>
     <p><%= label_tag 'destination_name', l(:field_name) %><%= text_field_tag 'destination[name]', @destination['name'], required: true, size: 60 %></p>
     <p><%= label_tag 'destination_identifier', l(:field_identifier) %><%= text_field_tag 'destination[identifier]', @destination['identifier'], required: true, size: 60 %></p>
-    <p><%= label_tag 'destination_cscode', 'cscode' %><%= text_field_tag 'destination[cscode]', @destination['cscode'], required: true, size: 20 %></p>
-    <p><%= label_tag 'destination_profile', l(:label_cosmosys_project_profile) %><strong><%= @destination['profile'] || @snapshot.manifest.dig('content', 'project', 'profile') %></strong></p>
+    <p><%= label_tag 'destination_cscode', 'cscode' %><%= text_field_tag 'destination[cscode]', @destination['cscode'], size: 20 %><em class="info"><%= l(:text_cosmosys_snapshot_cscode_default) %></em></p>
     <p><%= label_tag 'destination_parent_id', l(:field_parent) %><%= select_tag 'destination[parent_id]', options_from_collection_for_select(@parent_projects, :id, :name, @destination['parent_id']), include_blank: l(:label_none) %></p>
     <p>
       <label><%= l(:field_cosmosys_identity_mode) %></label>
       <%= radio_button_tag 'destination[identity_mode]', 'preserve', @destination['identity_mode'].to_s != 'new' %> <%= l(:label_cosmosys_identity_mode_preserve) %>
       <%= radio_button_tag 'destination[identity_mode]', 'new', @destination['identity_mode'].to_s == 'new' %> <%= l(:label_cosmosys_identity_mode_new) %>
-      <em class="info"><%= l(:text_cosmosys_identity_mode_help) %></em>
     </p>
-    <p><%= submit_tag l(:button_cosmosys_materialize_project_snapshot), class: 'button-positive' %></p>
+    <p><%= submit_tag l(:button_cosmosys_import_snapshot), class: 'button-positive' %></p>
   <% end %>
 </div>

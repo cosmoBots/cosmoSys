@@ -8,6 +8,14 @@
     <%= l(:label_cosmosys_copy_mode_faithful) %>
   </p>
   <p>
+    <label><%= l(:field_cosmosys_identity_mode) %></label>
+    <%= radio_button_tag 'cosmosys_copy[identity_mode]', 'new', params.dig(:cosmosys_copy, :identity_mode).to_s != 'preserve' %>
+    <%= l(:label_cosmosys_identity_mode_new) %>
+    <%= radio_button_tag 'cosmosys_copy[identity_mode]', 'preserve', params.dig(:cosmosys_copy, :identity_mode).to_s == 'preserve' %>
+    <%= l(:label_cosmosys_identity_mode_preserve) %>
+    <em class="info"><%= l(:text_cosmosys_identity_mode_help) %></em>
+  </p>
+  <p>
     <label><%= l(:field_cosmosys_archive_baseline) %></label>
     <%= check_box_tag 'cosmosys_copy[archive]', '1', false %>
     <em class="info"><%= l(:text_cosmosys_archive_baseline_help) %></em>

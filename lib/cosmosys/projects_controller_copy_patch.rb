@@ -13,6 +13,7 @@ module Cosmosys
         mode: copy_params[:mode],
         selected_parts: params[:only],
         profile_key: source.csys_project_profile,
+        identity_mode: copy_params[:identity_mode],
         archive: copy_params[:archive]
       )
       Cosmosys::ProjectCopyContext.with(context) { super }

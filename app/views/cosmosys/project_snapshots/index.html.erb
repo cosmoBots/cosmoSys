@@ -13,6 +13,10 @@
 
 <p class="info"><%= l(:text_cosmosys_project_snapshot_v1_scope) %></p>
 
+<% if User.current.admin? %>
+  <p><%= link_to l(:button_cosmosys_import_snapshot), new_import_project_cosmosys_snapshot_path(@project), class: 'icon icon-import' %></p>
+<% end %>
+
 <table class="list">
   <thead><tr><th><%= l(:field_created_on) %></th><th><%= l(:field_name) %></th><th><%= l(:label_user) %></th><th><%= l(:label_cosmosys_snapshot_contents) %></th><th>SHA-256</th></tr></thead>
   <tbody>

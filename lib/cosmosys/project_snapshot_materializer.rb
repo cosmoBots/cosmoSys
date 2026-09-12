@@ -1,36 +1,67 @@
 module Cosmosys
   class ProjectSnapshotMaterializer
-    def initialize(snapshot, user:, attributes:)
-      @snapshot = snapshot
+    def initialize(source, user:, attributes:)
+      @source = source
       @user = user
       @attributes = attributes.to_h.stringify_keys
     end
 
     def call
       raise Unauthorized unless user&.admin?
+      preflight!
 
       ActiveRecord::Base.transaction do
-        content = snapshot.manifest.fetch('content')
+        content = source.manifest.fetch('content')
         project = create_project!(content.fetch('project'))
         items = create_items!(project, content.fetch('items'))
+        apply_identity_policy!(project, items, content.fetch('items'))
         restore_hierarchy!(items, content.fetch('items'))
         restore_relations!(items, content.fetch('relations'))
         documents = create_documents!(project, content.fetch('documents'))
-        restore_catalog!(project, items, documents, content.fetch('document_catalog'))
+        marker_map = restore_catalog!(project, items, documents, content.fetch('document_catalog'))
+        rewrite_internal_references!(items, content.fetch('items'), marker_map)
         project
       end
     end
 
     private
 
-    attr_reader :snapshot, :user, :attributes
+    attr_reader :source, :user, :attributes
+
+    def preflight!
+      manifest = source.manifest
+      unless manifest['schema'] == 'cosmosys-project-snapshot' &&
+             manifest['schema_version'].to_s == ProjectSnapshotCapture::SCHEMA_VERSION
+        raise ProjectSnapshotPackageError, I18n.t(:error_cosmosys_snapshot_schema)
+      end
+      content = manifest.fetch('content')
+      project = content.fetch('project')
+      profile = project.fetch('profile')
+      raise ProjectCopyError, "Unknown project profile #{profile}" unless ProjectProfileRegistry.registered?(profile)
+      raise ProjectCopyError, I18n.t(:error_cosmosys_snapshot_identifier_taken) if Project.exists?(identifier: attributes.fetch('identifier'))
+
+      return unless identity_mode == 'preserve'
+      if destination_cscode(project).casecmp(project.fetch('cscode').to_s) != 0
+        raise ProjectCopyError, I18n.t(:error_cosmosys_preserve_csid_project_code)
+      end
+      parent = attributes['parent_id'].present? ? Project.find(attributes['parent_id']) : nil
+      return unless parent
+
+      project_ids = parent.root.self_and_descendants.pluck(:id)
+      csids = content.fetch('items').map { |row| row.fetch('csid').downcase }
+      collisions = Issue.where(project_id: project_ids).where('LOWER(csid) IN (?)', csids).pluck(:csid)
+      return if collisions.empty?
+
+      raise ProjectCopyError,
+            I18n.t(:error_cosmosys_preserve_csid_collision, csids: collisions.sort.join(', '))
+    end
 
     def create_project!(source)
       parent = attributes['parent_id'].present? ? Project.find(attributes['parent_id']) : nil
       project = Project.create!(
         name: attributes.fetch('name'),
         identifier: attributes.fetch('identifier'),
-        cscode: attributes['cscode'].presence || source.fetch('cscode'),
+        cscode: destination_cscode(source),
         description: source['description'].to_s,
         parent: parent,
         is_public: false,
@@ -51,7 +82,10 @@ module Cosmosys
         tracker_key = row.dig('tracker', 'key')
         tracker = Tracker.find_by(csys_key: tracker_key) || Tracker.find_by(name: tracker_key) ||
                   raise(ActiveRecord::RecordNotFound, "Tracker #{tracker_key} is unavailable")
-        issue = Issue.new(
+        identity = identity_mode == 'preserve' ? {
+          csid: row.fetch('csid'), csidnum: row.fetch('csidnum'), csposition: row.fetch('position')
+        } : {}
+        issue = Issue.new({
           project: project,
           tracker: tracker,
           status: IssueStatus.find_by(name: row['status']) || IssueStatus.sorted.first,
@@ -62,17 +96,29 @@ module Cosmosys
           description: row['description'].to_s,
           start_date: row['start_date'], due_date: row['due_date'],
           estimated_hours: row['estimated_hours'], done_ratio: row['done_ratio'],
-          is_private: row['is_private'], csys_preferred_report_diagram: row['preferred_report_diagram'],
-          csid: row.fetch('csid'), csidnum: row.fetch('csidnum'), csposition: row.fetch('position')
-        )
+          is_private: row['is_private'], csys_preferred_report_diagram: row['preferred_report_diagram']
+        }.merge(identity))
         issue.category = project.issue_categories.find_or_create_by!(name: row['category']) if row['category'].present?
         issue.fixed_version = project.versions.find_or_create_by!(name: row['fixed_version']) if row['fixed_version'].present?
         Cosmosys::OdsItemFieldRegistry.apply(issue, row.fetch('profile_fields', {}))
-        issue.custom_field_values = row.fetch('custom_fields', {}).to_h { |entry| [entry.fetch('id').to_s, entry['value']] }
+        assign_custom_fields!(issue, project, row.fetch('custom_fields', []))
         issue.save!
         restore_attachments!(issue, row.fetch('attachments'))
         [row.fetch('csid'), issue]
-      end.tap { project.update!(cslast_id: rows.map { |row| row.fetch('csidnum').to_i }.max.to_i) }
+      end
+    end
+
+    def apply_identity_policy!(project, items, rows)
+      entries = rows.map do |row|
+        { issue: items.fetch(row.fetch('csid')), csid: row.fetch('csid'),
+          csidnum: row.fetch('csidnum'), position: row.fetch('position') }
+      end
+      ProjectMaterializationIdentity.new(
+        mode: identity_mode,
+        source_cscode: source.manifest.fetch('content').fetch('project').fetch('cscode'),
+        destination: project,
+        entries: entries
+      ).apply!
     end
 
     def restore_hierarchy!(items, rows)
@@ -82,6 +128,20 @@ module Cosmosys
         # while preceding parents are restored.  Always update a fresh object.
         items.fetch(row.fetch('csid')).reload.update!(parent_issue_id: parent.id) if parent
       end
+    end
+
+    def assign_custom_fields!(issue, project, rows)
+      values = rows.to_h do |entry|
+        field = IssueCustomField.find_by(id: entry['id'], name: entry.fetch('name')) ||
+                IssueCustomField.find_by(name: entry.fetch('name'), field_format: entry.fetch('format'))
+        unless field
+          raise ProjectSnapshotPackageError,
+                I18n.t(:error_cosmosys_snapshot_custom_field_missing, field: entry.fetch('name'))
+        end
+        project.issue_custom_fields << field unless project.all_issue_custom_fields.include?(field)
+        [field.id.to_s, entry['value']]
+      end
+      issue.custom_field_values = values
     end
 
     def restore_relations!(items, rows)
@@ -103,23 +163,48 @@ module Cosmosys
     end
 
     def restore_catalog!(project, items, documents, rows)
+      marker_map = {}
       rows.each do |row|
         entry = Cosmosys::DocumentCatalogEntry.create!(project: project, document: documents.fetch(row.fetch('document_key')),
                                                         family: row.fetch('family'), position: row.fetch('position'))
         row.fetch('references').each do |reference|
-          entry.catalog_refs.create!(issue: items.fetch(reference.fetch('item')), sense: reference.fetch('sense'), location: reference['location'])
+          copy = entry.catalog_refs.create!(issue: items.fetch(reference.fetch('item')), sense: reference.fetch('sense'), location: reference['location'])
+          marker_map[reference.fetch('key')] = copy.markdown_reference
         end
       end
+      marker_map
+    end
+
+    def rewrite_internal_references!(items, rows, marker_map)
+      csid_map = rows.to_h { |row| [row.fetch('csid'), items.fetch(row.fetch('csid')).csid] }
+      id_map = rows.to_h { |row| ["##{row.fetch('source_id')}", "##{items.fetch(row.fetch('csid')).id}"] }
+      MaterializationReferenceRewriter.new(
+        issues: items.values, csid_map: csid_map, id_map: id_map,
+        marker_map: marker_map
+      ).call
     end
 
     def restore_attachments!(container, rows)
       rows.each do |row|
-        source = snapshot.attachments.find_by!(digest: row.fetch('content_sha256'))
-        File.open(source.diskfile, 'rb') do |file|
+        File.open(asset_path(row.fetch('content_sha256')), 'rb') do |file|
           Attachment.create!(container: container, author: user, file: file, filename: row.fetch('filename'),
                              content_type: row['content_type'], description: row['description'])
         end
       end
+    end
+
+    def asset_path(digest)
+      return source.asset_path(digest) if source.respond_to?(:asset_path)
+
+      source.attachments.find_by!(digest: digest).diskfile
+    end
+
+    def identity_mode
+      ProjectCopyContext::IDENTITY_MODES.include?(attributes['identity_mode'].to_s) ? attributes['identity_mode'].to_s : 'preserve'
+    end
+
+    def destination_cscode(source_project)
+      attributes['cscode'].presence || source_project.fetch('cscode')
     end
 
     def principal(identity)

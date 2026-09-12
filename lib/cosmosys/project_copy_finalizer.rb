@@ -14,6 +14,7 @@ module Cosmosys
       context.destination_project = destination
       apply_profile!
       validate_native_copy!
+      apply_identity_policy!
       apply_mode!
       remove_external_relations!
       copy_document_references!
@@ -65,6 +66,20 @@ module Cosmosys
       end
     end
 
+    def apply_identity_policy!
+      return unless context.copying?('issues')
+
+      entries = context.issue_map.map do |source_id, copy|
+        source_issue = Issue.find(source_id)
+        { issue: copy, csid: source_issue.csid, csidnum: source_issue.csidnum,
+          position: source_issue.csposition }
+      end
+      ProjectMaterializationIdentity.new(
+        mode: context.identity_mode, source_cscode: source.cscode,
+        destination: destination, entries: entries
+      ).apply!
+    end
+
     def copy_document_references!
       return unless context.copying?('issues') && context.copying?('documents')
 
@@ -100,24 +115,10 @@ module Cosmosys
       csid_map = context.issue_map.to_h { |source_id, copy| [Issue.where(id: source_id).pick(:csid), copy.csid] }.compact
       marker_map = (@catalog_ref_map || {}).to_h { |source_id, copy| ["document:di#{source_id}", copy.markdown_reference] }
       id_map = context.issue_map.to_h { |source_id, copy| ["##{source_id}", "##{copy.id}"] }
-      replacements = csid_map.merge(marker_map).merge(id_map)
-
-      context.issue_map.each_value do |issue|
-        description = replace_tokens(issue.description.to_s, replacements)
-        issue.update_columns(description: description, updated_on: Time.current) if description != issue.description.to_s
-        issue.custom_field_values.each do |value|
-          next unless value.custom_field.field_format.in?(%w[string text link])
-          replaced = replace_tokens(value.value.to_s, replacements)
-          next if replaced == value.value.to_s
-          value.update_columns(value: replaced)
-        end
-      end
-    end
-
-    def replace_tokens(text, replacements)
-      replacements.sort_by { |source, _target| -source.length }.reduce(text) do |result, (source, target)|
-        result.gsub(/(?<![A-Za-z0-9_-])#{Regexp.escape(source)}(?![A-Za-z0-9_-])/, target)
-      end
+      MaterializationReferenceRewriter.new(
+        issues: context.issue_map.values, csid_map: csid_map,
+        marker_map: marker_map, id_map: id_map
+      ).call
     end
 
     def copy_report_settings!
@@ -130,6 +131,7 @@ module Cosmosys
     def summary
       {
         mode: context.mode,
+        identity_mode: context.identity_mode,
         items: context.issue_map.length,
         documents: context.document_map.length,
         catalog_refs: (@catalog_ref_map || {}).length,

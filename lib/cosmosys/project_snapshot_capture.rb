@@ -4,7 +4,7 @@ require 'zlib'
 
 module Cosmosys
   class ProjectSnapshotCapture
-    SCHEMA_VERSION = '1'.freeze
+    SCHEMA_VERSION = '2'.freeze
 
     def initialize(project, user:, name: nil)
       @project = project
@@ -95,6 +95,7 @@ module Cosmosys
                                 issue.custom_field_values
                               end
       {
+        'source_id' => issue.id,
         'csid' => issue.csid,
         'csidnum' => issue.csidnum,
         'position' => issue.csposition,
@@ -155,7 +156,8 @@ module Cosmosys
           'position' => entry.position,
           'references' => entry.catalog_refs.select { |reference| issue_ids.include?(reference.issue_id) }
                                .sort_by(&:id).map do |reference|
-            { 'item' => reference.issue.csid, 'sense' => reference.sense, 'location' => reference.location }
+            { 'key' => "document:di#{reference.id}", 'item' => reference.issue.csid,
+              'sense' => reference.sense, 'location' => reference.location }
           end
         }
       end
