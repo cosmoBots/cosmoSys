@@ -61,7 +61,7 @@
       <%= hidden_field_tag "settings[main_report_options][#{option_name}]", '0', id: nil %>
       <label class="block">
         <%= check_box_tag "settings[main_report_options][#{option_name}]", '1', global_report_options[option_name] %>
-        <%= l("label_cosmosys_report_include_#{option_name}") %>
+        <%= l(option_name == 'include_negative_items' ? :label_cosmosys_report_include_negative_items : "label_cosmosys_report_include_#{option_name}") %>
       </label>
     <% end %>
   </div>
