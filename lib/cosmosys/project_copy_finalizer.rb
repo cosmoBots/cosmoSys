@@ -14,6 +14,7 @@ module Cosmosys
       context.destination_project = destination
       apply_profile!
       validate_native_copy!
+      restore_deferred_issue_references!
       apply_identity_policy!
       apply_mode!
       remove_external_relations!
@@ -78,6 +79,18 @@ module Cosmosys
         mode: context.identity_mode, source_cscode: source.cscode,
         destination: destination, entries: entries
       ).apply!
+    end
+
+    def restore_deferred_issue_references!
+      context.deferred_issue_references.each do |source_id, references|
+        copy = context.issue_map.fetch(source_id)
+        copy.reload
+        references.each do |attribute, referenced_source_id|
+          referenced_copy = referenced_source_id && context.issue_map[referenced_source_id]
+          copy.public_send("#{attribute}=", referenced_copy&.id)
+        end
+        copy.save!
+      end
     end
 
     def copy_document_references!

@@ -5,7 +5,7 @@ module Cosmosys
     IDENTITY_MODES = %w[new preserve].freeze
 
     attr_reader :source_project, :user, :mode, :identity_mode, :selected_parts, :profile_key,
-                :issue_map, :document_map, :summary
+                :issue_map, :document_map, :deferred_issue_references, :summary
     attr_accessor :destination_project
 
     def self.current
@@ -32,6 +32,7 @@ module Cosmosys
       @archive = ActiveModel::Type::Boolean.new.cast(archive)
       @issue_map = {}
       @document_map = {}
+      @deferred_issue_references = {}
       @summary = {}
     end
 
@@ -45,6 +46,11 @@ module Cosmosys
 
     def register_issue(source_id, issue)
       issue_map[source_id.to_i] = issue
+    end
+
+    def defer_issue_reference(source_issue_id, attribute, referenced_issue_id)
+      deferred_issue_references[source_issue_id.to_i] ||= {}
+      deferred_issue_references[source_issue_id.to_i][attribute.to_s] = referenced_issue_id&.to_i
     end
 
     def register_document(source_id, document)
