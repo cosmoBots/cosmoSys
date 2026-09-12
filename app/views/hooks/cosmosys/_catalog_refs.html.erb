@@ -1,7 +1,7 @@
 <% issue = local_assigns[:issue] || @issue %>
 <% if issue&.persisted? && User.current.allowed_to?(:view_documents, issue.project) %>
   <% refs = issue.cosmosys_catalog_refs.includes(document_catalog_entry: :document).sort_by { |ref| [ref.family, ref.document_catalog_entry.position, ref.id] } %>
-  <% editable = issue.editable?(User.current) && User.current.allowed_to?(:edit_documents, issue.project) %>
+  <% editable = issue.editable?(User.current) && User.current.allowed_to?(:view_documents, issue.project) %>
   <hr />
   <section id="cosmosys-document-references" class="cosmosys-document-references">
     <div class="contextual">

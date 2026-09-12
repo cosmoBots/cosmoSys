@@ -92,7 +92,7 @@ module Cosmosys
     end
 
     def require_editable!(issue)
-      raise Unauthorized unless issue.editable?(User.current) && User.current.allowed_to?(:edit_documents, issue.project)
+      raise Unauthorized unless issue.editable?(User.current) && User.current.allowed_to?(:view_documents, issue.project)
     end
 
     def resolve_document(project, document_id)

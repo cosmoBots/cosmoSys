@@ -30,7 +30,7 @@ module Cosmosys
     end
 
     def editable?(user = User.current)
-      issue.editable?(user) && user.allowed_to?(:edit_documents, project)
+      issue.editable?(user) && user.allowed_to?(:view_documents, project)
     end
 
     def destroy_from_issue!
