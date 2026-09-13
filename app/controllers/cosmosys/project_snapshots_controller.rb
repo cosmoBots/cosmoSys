@@ -2,6 +2,33 @@ require 'tempfile'
 
 module Cosmosys
   class ProjectSnapshotsController < ApplicationController
+    class DownloadBody
+      def initialize(body, temporary)
+        @body = body
+        @temporary = temporary
+      end
+
+      def each(&block)
+        @body.each(&block)
+      ensure
+        cleanup
+      end
+
+      def close
+        @body.close if @body.respond_to?(:close)
+      ensure
+        cleanup
+      end
+
+      private
+
+      def cleanup
+        @temporary.unlink
+      rescue Errno::ENOENT
+        nil
+      end
+    end
+
     menu_item :cosmosys
 
     before_action :find_project_by_project_id
@@ -99,14 +126,16 @@ module Cosmosys
       temporary = Tempfile.new(["cosmosys-snapshot-#{@snapshot.id}", '.csys'])
       temporary.close
       Cosmosys::ProjectSnapshotPackage.new(@snapshot).write(temporary.path)
-      send_file(
-        temporary.path,
+      download_file = File.open(temporary.path, 'rb')
+      send_file_headers!(
         filename: "#{@project.identifier}-snapshot-#{@snapshot.id}.csys",
         type: 'application/zip',
         disposition: 'attachment'
       )
-      self.response_body = Rack::BodyProxy.new(response_body) { temporary.unlink }
+      response.headers['Content-Length'] = download_file.size.to_s
+      self.response_body = DownloadBody.new(download_file, temporary)
     rescue StandardError
+      download_file&.close
       temporary&.unlink
       raise
     end
