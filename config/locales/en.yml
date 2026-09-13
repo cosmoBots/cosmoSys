@@ -72,6 +72,7 @@ en:
   label_cosmosys_copy_count_members: Memberships
   label_cosmosys_copy_count_internal_relations: Internal relations
   label_cosmosys_copy_count_external_relations: External relations
+  label_cosmosys_copy_count_attachments: Unique attachment contents
   label_cosmosys_copy_external_relations: Relations outside the source project
   label_cosmosys_copy_relation_type: Relation
   label_cosmosys_copy_external_item: External item
