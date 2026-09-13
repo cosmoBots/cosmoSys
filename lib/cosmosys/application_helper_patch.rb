@@ -13,6 +13,17 @@ module Cosmosys
     end
 
     def parse_redmine_links(text, default_project, obj, attr, only_path, options)
+      if default_project.present?
+        text.replace(
+          Cosmosys::PresentationTextRegistry.resolve(
+            text,
+            project: default_project,
+            user: User.current,
+            formatter: ->(value) { ERB::Util.html_escape(value) }
+          )
+        )
+      end
+
       text.gsub!(CROSS_PROJECT_CATALOG_REF_PATTERN) do
         content_tag(:span, l(:label_cosmosys_broken_reference), class: 'cosmosys-broken-reference').to_s
       end

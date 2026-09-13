@@ -160,6 +160,7 @@ require_dependency File.expand_path('lib/cosmosys/project_combined_diagram_servi
 require_dependency File.expand_path('lib/cosmosys/diagram_cache_bootstrap', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_query_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issue_query_patch', __dir__)
+require_dependency File.expand_path('lib/cosmosys/presentation_text_registry', __dir__)
 require_dependency File.expand_path('lib/cosmosys/application_helper_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issues_helper_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/queries_helper_patch', __dir__)
