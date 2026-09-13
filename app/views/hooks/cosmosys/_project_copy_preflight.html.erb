@@ -13,7 +13,7 @@
             <td><%= entry.fetch(:source).fetch('name') %></td>
             <td><%= entry.fetch(:name) %></td>
             <td>
-              <% if entry[:parent_key].blank? %>
+              <% if plan.primary_project?(entry) %>
                 <%= entry.fetch(:identifier) %>
               <% else %>
                 <% source_id = entry.fetch(:key).delete_prefix('project:') %>

@@ -55,7 +55,7 @@ en:
   label_cosmosys_copy_preflight_review: Review project copy
   text_cosmosys_copy_preflight_confirmation: "Nothing has been copied yet. Review this plan and confirm to create the destination project."
   label_cosmosys_copy_project_selection: Projects to copy
-  text_cosmosys_copy_project_selection: "Select a connected part of the source subtree. The source project is always included; selecting a descendant also requires selecting its ancestors."
+  text_cosmosys_copy_project_selection: "Select any visible projects from the same source tree. The project where the copy was started is always included. Several selected placement roots require a common destination parent."
   label_cosmosys_copy_destination_tree: Planned destination tree
   label_cosmosys_copy_source_project: Source project
   label_cosmosys_copy_destination_project: Destination project
@@ -63,8 +63,7 @@ en:
   text_cosmosys_copy_multi_preview_only: "This is a signed, read-only preview. Selective multi-project execution is not enabled yet."
   button_cosmosys_copy_multi_not_available: Multi-project copy preview
   error_cosmosys_copy_source_required: "The source project must be included in a selective tree copy."
-  error_cosmosys_copy_selection_outside_source: "Only the source project and its descendants can be copied by this operation."
-  error_cosmosys_copy_ancestor_required: "Select the missing parent projects before their descendants: %{projects}."
+  error_cosmosys_copy_common_destination_parent_required: "The selection has several placement roots. Include a common source ancestor or choose an existing common destination parent in Subproject of."
   label_cosmosys_copy_preflight_content: Content
   label_cosmosys_copy_count: Count
   button_cosmosys_confirm_copy: Confirm copy

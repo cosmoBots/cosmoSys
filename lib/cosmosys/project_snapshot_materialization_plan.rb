@@ -22,7 +22,11 @@ module Cosmosys
 
     def blocking_messages
       messages = []
-      messages << I18n.t(:error_cosmosys_snapshot_ambiguous_roots) unless top_level_entries.one?
+      if top_level_entries.length > 1 && !(allow_multiple_roots? && parent)
+        messages << I18n.t(:error_cosmosys_copy_common_destination_parent_required)
+      elsif !allow_multiple_roots? && !top_level_entries.one?
+        messages << I18n.t(:error_cosmosys_snapshot_ambiguous_roots)
+      end
       project_entries.each do |entry|
         profile = entry.fetch('project').fetch('profile')
         messages << "Unknown project profile #{profile}" unless ProjectProfileRegistry.registered?(profile)
@@ -68,21 +72,22 @@ module Cosmosys
 
     def destination_projects
       @destination_projects ||= begin
-        root_entry = top_level_entries.first || project_entries.first
-        source_root_identifier = root_entry.dig('project', 'identifier').to_s
+        primary_entry = project_entries.find { |entry| entry.fetch('source_id').to_s == primary_source_id } ||
+                        top_level_entries.first || project_entries.first
+        source_primary_identifier = primary_entry.dig('project', 'identifier').to_s
         project_entries.map do |entry|
           source = entry.fetch('project')
-          root = entry == root_entry
+          primary = entry == primary_entry
           source_identifier = source.fetch('identifier').to_s
-          suffix = source_identifier.start_with?("#{source_root_identifier}-") ?
-            source_identifier.delete_prefix(source_root_identifier) : "-p#{entry.fetch('source_id')}"
+          suffix = source_identifier.start_with?("#{source_primary_identifier}-") ?
+            source_identifier.delete_prefix(source_primary_identifier) : "-p#{entry.fetch('source_id')}"
           generated_identifier = "#{attributes.fetch('identifier')}#{suffix}"
           {
             key: entry.fetch('key'), parent_key: entry['parent_key'], source: source,
-            name: root ? attributes.fetch('name') : source.fetch('name'),
-            identifier: root ? attributes.fetch('identifier') :
+            name: primary ? attributes.fetch('name') : source.fetch('name'),
+            identifier: primary ? attributes.fetch('identifier') :
               (project_identifier_overrides[entry.fetch('source_id').to_s].presence || generated_identifier),
-            cscode: root ? (attributes['cscode'].presence || source.fetch('cscode')) : source.fetch('cscode')
+            cscode: primary ? (attributes['cscode'].presence || source.fetch('cscode')) : source.fetch('cscode')
           }
         end
       end
@@ -154,6 +159,14 @@ module Cosmosys
       return if attributes['parent_id'].blank?
 
       @parent ||= Project.find(attributes['parent_id'])
+    end
+
+    def primary_source_id
+      attributes['primary_source_id'].to_s
+    end
+
+    def allow_multiple_roots?
+      ActiveModel::Type::Boolean.new.cast(attributes['allow_multiple_roots'])
     end
 
     def identity_mode

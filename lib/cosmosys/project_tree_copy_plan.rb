@@ -13,7 +13,6 @@ module Cosmosys
       @user = user
       @context = context
       @selected_projects = resolve_selection(project_ids)
-      validate_ancestor_closure!
       @snapshot_source = ProjectSnapshotCapture.new(
         source, user: user, projects: selected_projects.map(&:id)
       )
@@ -25,7 +24,9 @@ module Cosmosys
         source: snapshot_source,
         attributes: attributes.merge(
           'identity_mode' => context.identity_mode,
-          'project_identifiers' => overrides
+          'project_identifiers' => overrides,
+          'primary_source_id' => source.id,
+          'allow_multiple_roots' => true
         )
       )
     end
@@ -64,6 +65,10 @@ module Cosmosys
       materialization_plan.destination_projects
     end
 
+    def primary_project?(entry)
+      entry.fetch(:key) == "project:#{source.id}"
+    end
+
     def external_relations
       @external_relations ||= snapshot_source.manifest.dig('content', 'external_relations').map do |relation|
         {
@@ -95,29 +100,9 @@ module Cosmosys
 
     def resolve_selection(ids)
       selected = ProjectSnapshotSelection.new(source, user: user).resolve(ids)
-      # A caller may have created descendants earlier in the same unit of work;
-      # reload nested-set bounds before validating the selected subtree.
-      allowed_ids = source.reload.self_and_descendants.pluck(:id).to_set
-      raise ProjectCopyError, I18n.t(:error_cosmosys_copy_selection_outside_source) unless selected.all? { |project| allowed_ids.include?(project.id) }
       raise ProjectCopyError, I18n.t(:error_cosmosys_copy_source_required) unless selected.include?(source)
 
       selected
-    end
-
-    def validate_ancestor_closure!
-      selected_ids = selected_projects.map(&:id).to_set
-      missing = selected_projects.filter_map do |project|
-        next if project == source
-
-        ancestor = project.parent
-        ancestor unless selected_ids.include?(ancestor&.id)
-      end
-      return if missing.empty?
-
-      raise ProjectCopyError, I18n.t(
-        :error_cosmosys_copy_ancestor_required,
-        projects: missing.map(&:name).uniq.join(', ')
-      )
     end
 
     def canonical_payload

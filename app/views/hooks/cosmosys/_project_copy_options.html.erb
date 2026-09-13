@@ -27,7 +27,7 @@
     <p><em class="info"><%= l(:text_cosmosys_copy_project_selection) %></em></p>
     <%= hidden_field_tag 'cosmosys_copy[project_ids][]', @source_project.id %>
     <% Array(@cosmosys_copy_projects).each do |project| %>
-      <% depth = [project.ancestors.count - @source_project.ancestors.count, 0].max %>
+      <% depth = project.ancestors.count %>
       <label style="display: block; margin-inline-start: <%= depth * 1.5 %>em">
         <%= check_box_tag 'cosmosys_copy[project_ids][]', project.id,
                           selected_project_ids.include?(project.id.to_s),

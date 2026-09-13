@@ -23,10 +23,10 @@ module Cosmosys
           copy_native_parts!(destinations)
         end
         archive_destinations! if context.archive?
-        root = destination_root
-        context.destination_project = root
+        primary = destination_primary
+        context.destination_project = primary
         context.summary.merge!(summary)
-        root
+        primary
       end
     rescue StandardError
       @projects = nil
@@ -68,8 +68,8 @@ module Cosmosys
       projects.values.sort_by { |project| -project.lft.to_i }.each(&:archive!)
     end
 
-    def destination_root
-      row = plan.destination_projects.find { |entry| entry[:parent_key].blank? }
+    def destination_primary
+      row = plan.destination_projects.find { |entry| plan.primary_project?(entry) }
       projects.fetch(row.fetch(:key))
     end
 

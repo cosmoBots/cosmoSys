@@ -33,6 +33,10 @@ module Cosmosys
     private
 
     def tree_root(project)
+      # Nested-set bounds can change while a copy form remains open (for
+      # example when another root project is created). Always resolve the root
+      # from current bounds before comparing the selected projects.
+      project.reload
       project.root || project
     end
   end

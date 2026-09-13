@@ -110,10 +110,7 @@ module Cosmosys
 
     def prepare_cosmosys_copy_projects(source)
       selection = Cosmosys::ProjectSnapshotSelection.new(source, user: User.current)
-      allowed_ids = source.reload.self_and_descendants.pluck(:id).to_set
-      @cosmosys_copy_projects = selection.available_projects.select do |project|
-        allowed_ids.include?(project.id) && selection.selectable?(project)
-      end
+      @cosmosys_copy_projects = selection.available_projects.select { |project| selection.selectable?(project) }
     end
   end
 end

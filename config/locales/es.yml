@@ -55,7 +55,7 @@ es:
   label_cosmosys_copy_preflight_review: Revisar la copia del proyecto
   text_cosmosys_copy_preflight_confirmation: "Todavía no se ha copiado nada. Revise este plan y confirme para crear el proyecto destino."
   label_cosmosys_copy_project_selection: Proyectos que se copiarán
-  text_cosmosys_copy_project_selection: "Seleccione una parte conectada del subárbol de origen. El proyecto origen se incluye siempre; para seleccionar un descendiente también debe seleccionar sus ancestros."
+  text_cosmosys_copy_project_selection: "Seleccione cualquier proyecto visible del mismo árbol de origen. El proyecto desde el que inició la copia se incluye siempre. Varias raíces de colocación requieren un padre de destino común."
   label_cosmosys_copy_destination_tree: Árbol de destino previsto
   label_cosmosys_copy_source_project: Proyecto origen
   label_cosmosys_copy_destination_project: Proyecto destino
@@ -63,8 +63,7 @@ es:
   text_cosmosys_copy_multi_preview_only: "Esta es una previsualización firmada y de sólo lectura. La ejecución de copias multiproyecto selectivas aún no está habilitada."
   button_cosmosys_copy_multi_not_available: Previsualización multiproyecto
   error_cosmosys_copy_source_required: "La copia selectiva debe incluir el proyecto origen."
-  error_cosmosys_copy_selection_outside_source: "Esta operación sólo puede copiar el proyecto origen y sus descendientes."
-  error_cosmosys_copy_ancestor_required: "Seleccione los proyectos padre que faltan antes que sus descendientes: %{projects}."
+  error_cosmosys_copy_common_destination_parent_required: "La selección tiene varias raíces de colocación. Incluya un ancestro común de origen o escoja un padre de destino común existente en Subproyecto de."
   label_cosmosys_copy_preflight_content: Contenido
   label_cosmosys_copy_count: Cantidad
   button_cosmosys_confirm_copy: Confirmar copia
