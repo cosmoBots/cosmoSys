@@ -9,10 +9,24 @@
       <thead><tr><th><%= l(:label_cosmosys_copy_source_project) %></th><th><%= l(:label_cosmosys_copy_destination_project) %></th><th><%= l(:field_identifier) %></th></tr></thead>
       <tbody>
         <% plan.destination_projects.each do |entry| %>
-          <tr><td><%= entry.fetch(:source).fetch('name') %></td><td><%= entry.fetch(:name) %></td><td><%= entry.fetch(:identifier) %></td></tr>
+          <tr>
+            <td><%= entry.fetch(:source).fetch('name') %></td>
+            <td><%= entry.fetch(:name) %></td>
+            <td>
+              <% if entry[:parent_key].blank? %>
+                <%= entry.fetch(:identifier) %>
+              <% else %>
+                <% source_id = entry.fetch(:key).delete_prefix('project:') %>
+                <%= text_field_tag "cosmosys_copy[project_identifiers][#{source_id}]", entry.fetch(:identifier), size: 35 %>
+              <% end %>
+            </td>
+          </tr>
         <% end %>
       </tbody>
     </table>
+  <% end %>
+  <% if plan.multi_project? %>
+    <p><em class="info"><%= l(:text_cosmosys_copy_identifier_overrides) %></em></p>
   <% end %>
 
   <table class="list">

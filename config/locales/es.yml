@@ -39,6 +39,7 @@ es:
   text_cosmosys_snapshot_plugin_compatibility: Las diferencias entre plugins son avisos, no garantías de compatibilidad. Instale versiones iguales o posteriores cuando sea posible; una carga de mejor esfuerzo aceptada informará del contenido incompatible u omitido.
   error_cosmosys_snapshot_ambiguous_roots: "El conjunto seleccionado tiene más de una raíz de colocación; escoja un conjunto con un único proyecto superior."
   error_cosmosys_snapshot_identifiers_taken: "Ya se usan estos identificadores de proyecto de destino: %{identifiers}"
+  error_cosmosys_snapshot_identifiers_invalid: "Estos identificadores de proyecto de destino no son válidos: %{identifiers}"
   error_cosmosys_snapshot_duplicate_cscodes: "Los códigos de proyecto de destino colisionarían: %{cscodes}"
   label_cosmosys_snapshot_count_documents: Documentos
   label_cosmosys_snapshot_count_internal_relations: Relaciones internas
@@ -58,6 +59,7 @@ es:
   label_cosmosys_copy_destination_tree: Árbol de destino previsto
   label_cosmosys_copy_source_project: Proyecto origen
   label_cosmosys_copy_destination_project: Proyecto destino
+  text_cosmosys_copy_identifier_overrides: "El campo estándar de identificador corresponde al proyecto desde el que se inició la copia. Puede sustituir el identificador generado para cada proyecto adicional. Un cambio invalida la firma actual: envíe una vez para revisar el plan recalculado y después confírmelo."
   text_cosmosys_copy_multi_preview_only: "Esta es una previsualización firmada y de sólo lectura. La ejecución de copias multiproyecto selectivas aún no está habilitada."
   button_cosmosys_copy_multi_not_available: Previsualización multiproyecto
   error_cosmosys_copy_source_required: "La copia selectiva debe incluir el proyecto origen."

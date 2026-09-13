@@ -39,6 +39,7 @@ en:
   text_cosmosys_snapshot_plugin_compatibility: Plugin differences are warnings, not compatibility guarantees. Install equal or newer versions where possible; an accepted best-effort load will report unsupported or omitted content.
   error_cosmosys_snapshot_ambiguous_roots: "The selected project set has more than one placement root; choose a set with one top-level project."
   error_cosmosys_snapshot_identifiers_taken: "Destination project identifiers are already used: %{identifiers}"
+  error_cosmosys_snapshot_identifiers_invalid: "Destination project identifiers are invalid: %{identifiers}"
   error_cosmosys_snapshot_duplicate_cscodes: "Destination project codes would collide: %{cscodes}"
   label_cosmosys_snapshot_count_documents: Documents
   label_cosmosys_snapshot_count_internal_relations: Internal relations
@@ -58,6 +59,7 @@ en:
   label_cosmosys_copy_destination_tree: Planned destination tree
   label_cosmosys_copy_source_project: Source project
   label_cosmosys_copy_destination_project: Destination project
+  text_cosmosys_copy_identifier_overrides: "The standard project identifier field applies to the project where this copy was started. You may replace the generated identifier of every additional project. Changing one invalidates the current signature: submit once to review the recalculated plan, then confirm it."
   text_cosmosys_copy_multi_preview_only: "This is a signed, read-only preview. Selective multi-project execution is not enabled yet."
   button_cosmosys_copy_multi_not_available: Multi-project copy preview
   error_cosmosys_copy_source_required: "The source project must be included in a selective tree copy."

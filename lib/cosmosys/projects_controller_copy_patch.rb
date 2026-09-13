@@ -26,7 +26,8 @@ module Cosmosys
                Cosmosys::ProjectTreeCopyPlan.new(
                  source: source, user: User.current, context: context,
                  destination_attributes: params[:project] || {},
-                 project_ids: selected_project_ids
+                 project_ids: selected_project_ids,
+                 project_identifiers: copy_params[:project_identifiers]
                )
              else
                Cosmosys::ProjectCopyPlan.new(

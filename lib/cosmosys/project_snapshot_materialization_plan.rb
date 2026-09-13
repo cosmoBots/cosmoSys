@@ -30,7 +30,20 @@ module Cosmosys
       collisions = destination_projects.filter_map do |entry|
         entry[:identifier] if Project.exists?(identifier: entry[:identifier])
       end
+      collisions.concat(
+        destination_projects.group_by { |entry| entry[:identifier] }
+                            .select { |_identifier, rows| rows.length > 1 }.keys
+      )
+      collisions.uniq!
       messages << I18n.t(:error_cosmosys_snapshot_identifiers_taken, identifiers: collisions.join(', ')) if collisions.any?
+      invalid_identifiers = destination_projects.filter_map do |entry|
+        probe = Project.new(name: entry[:name], identifier: entry[:identifier], cscode: entry[:cscode])
+        entry[:identifier] unless probe.valid? || probe.errors[:identifier].empty?
+      end
+      if invalid_identifiers.any?
+        messages << I18n.t(:error_cosmosys_snapshot_identifiers_invalid,
+                           identifiers: invalid_identifiers.join(', '))
+      end
       duplicate_codes = destination_projects.group_by { |entry| entry[:cscode].to_s.downcase }
                                       .select { |_key, rows| rows.length > 1 }.keys
       messages << I18n.t(:error_cosmosys_snapshot_duplicate_cscodes, cscodes: duplicate_codes.join(', ')) if duplicate_codes.any?
@@ -63,10 +76,12 @@ module Cosmosys
           source_identifier = source.fetch('identifier').to_s
           suffix = source_identifier.start_with?("#{source_root_identifier}-") ?
             source_identifier.delete_prefix(source_root_identifier) : "-p#{entry.fetch('source_id')}"
+          generated_identifier = "#{attributes.fetch('identifier')}#{suffix}"
           {
             key: entry.fetch('key'), parent_key: entry['parent_key'], source: source,
             name: root ? attributes.fetch('name') : source.fetch('name'),
-            identifier: root ? attributes.fetch('identifier') : "#{attributes.fetch('identifier')}#{suffix}",
+            identifier: root ? attributes.fetch('identifier') :
+              (project_identifier_overrides[entry.fetch('source_id').to_s].presence || generated_identifier),
             cscode: root ? (attributes['cscode'].presence || source.fetch('cscode')) : source.fetch('cscode')
           }
         end
@@ -221,6 +236,7 @@ module Cosmosys
       {
         source_digest: manifest.fetch('content_sha256'),
         destination: attributes.slice('name', 'identifier', 'cscode', 'parent_id', 'identity_mode'),
+        destination_projects: destination_projects.map { |entry| entry.slice(:key, :parent_key, :identifier, :cscode) },
         counts: counts,
         identity_collisions: identity_collisions.sort,
         missing_trackers: missing_trackers.sort,
@@ -228,6 +244,14 @@ module Cosmosys
         missing_assets: missing_assets.sort,
         plugin_compatibility: plugin_compatibility
       }
+    end
+
+    def project_identifier_overrides
+      @project_identifier_overrides ||= begin
+        raw = attributes['project_identifiers'] || {}
+        raw = raw.to_unsafe_h if raw.respond_to?(:to_unsafe_h)
+        raw.to_h.stringify_keys
+      end
     end
   end
 end

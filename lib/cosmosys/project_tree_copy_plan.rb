@@ -8,7 +8,7 @@ module Cosmosys
     attr_reader :source, :user, :context, :selected_projects, :snapshot_source,
                 :materialization_plan
 
-    def initialize(source:, user:, context:, destination_attributes:, project_ids:)
+    def initialize(source:, user:, context:, destination_attributes:, project_ids:, project_identifiers: nil)
       @source = source
       @user = user
       @context = context
@@ -19,9 +19,14 @@ module Cosmosys
       )
       attributes = destination_attributes.respond_to?(:to_unsafe_h) ?
         destination_attributes.to_unsafe_h : destination_attributes.to_h
+      overrides = project_identifiers.respond_to?(:to_unsafe_h) ?
+        project_identifiers.to_unsafe_h : project_identifiers.to_h
       @materialization_plan = ProjectSnapshotMaterializationPlan.new(
         source: snapshot_source,
-        attributes: attributes.merge('identity_mode' => context.identity_mode)
+        attributes: attributes.merge(
+          'identity_mode' => context.identity_mode,
+          'project_identifiers' => overrides
+        )
       )
     end
 
