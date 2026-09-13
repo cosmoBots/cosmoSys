@@ -97,8 +97,6 @@ module Cosmosys
       deny_access unless User.current.admin?
       attributes = params.require(:destination).permit(:name, :identifier, :cscode, :parent_id, :identity_mode)
       plan = Cosmosys::ProjectSnapshotMaterializationPlan.new(source: @snapshot, attributes: attributes)
-      raise ProjectCopyError, plan.blocking_messages.join(' ') if plan.blocking_messages.any?
-
       confirmed_digest = Cosmosys::ProjectSnapshotMaterializationPlan.verified_digest(params[:confirmed_plan])
       unless confirmed_digest && ActiveSupport::SecurityUtils.secure_compare(confirmed_digest, plan.digest)
         @destination = attributes.to_h
@@ -106,6 +104,8 @@ module Cosmosys
         @materialization_plan = plan
         return render :new_materialization
       end
+
+      raise ProjectCopyError, plan.blocking_messages.join(' ') if plan.blocking_messages.any?
 
       destination = Cosmosys::ProjectSnapshotMaterializer.new(
         @snapshot, user: User.current,

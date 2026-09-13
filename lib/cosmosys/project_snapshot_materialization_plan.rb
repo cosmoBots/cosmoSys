@@ -6,7 +6,7 @@ module Cosmosys
     VERIFIER_SALT = :cosmosys_project_snapshot_materialization_plan
 
     attr_reader :source, :attributes, :identity_collisions, :missing_trackers,
-                :missing_custom_fields, :missing_assets
+                :missing_custom_fields, :missing_assets, :plugin_compatibility
 
     def initialize(source:, attributes:)
       @source = source
@@ -17,6 +17,7 @@ module Cosmosys
       @missing_trackers = find_missing_trackers
       @missing_custom_fields = find_missing_custom_fields
       @missing_assets = find_missing_assets
+      @plugin_compatibility = compare_plugins
     end
 
     def blocking_messages
@@ -54,6 +55,10 @@ module Cosmosys
         internal_relations: content.fetch('relations').length,
         attachments: required_asset_digests.length
       }
+    end
+
+    def plugin_warnings
+      plugin_compatibility.select { |entry| %w[missing older].include?(entry.fetch(:status)) }
     end
 
     def digest
@@ -148,6 +153,29 @@ module Cosmosys
       end
     end
 
+    def compare_plugins
+      installed = Redmine::Plugin.all.index_by { |plugin| plugin.id.to_s }
+      content.fetch('platform', {}).fetch('plugins', []).map do |captured|
+        plugin = installed[captured.fetch('id')]
+        status = if plugin.nil?
+                   'missing'
+                 elsif older_version?(plugin.version.to_s, captured.fetch('version'))
+                   'older'
+                 else
+                   'available'
+                 end
+        { id: captured.fetch('id'), name: captured.fetch('name'),
+          source_version: captured.fetch('version'),
+          destination_version: plugin&.version&.to_s, status: status }
+      end
+    end
+
+    def older_version?(destination, source)
+      Gem::Version.new(destination) < Gem::Version.new(source)
+    rescue ArgumentError
+      destination != source
+    end
+
     def asset_path(digest)
       return source.asset_path(digest) if source.respond_to?(:asset_path)
 
@@ -169,7 +197,8 @@ module Cosmosys
         identity_collisions: identity_collisions.sort,
         missing_trackers: missing_trackers.sort,
         missing_custom_fields: missing_custom_fields.sort,
-        missing_assets: missing_assets.sort
+        missing_assets: missing_assets.sort,
+        plugin_compatibility: plugin_compatibility
       }
     end
   end

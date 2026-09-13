@@ -59,10 +59,19 @@ module Cosmosys
 
       {
         'root' => { 'source_id' => root.id, 'identifier' => root.identifier },
+        'platform' => {
+          'redmine_version' => Redmine::VERSION.to_s,
+          'plugins' => Redmine::Plugin.all.map { |plugin| plugin_payload(plugin) }
+                                    .sort_by { |entry| entry.fetch('id') }
+        },
         'projects' => @project_entries,
         'relations' => relation_payloads(issue_ids),
         'external_relations' => external_relation_payloads(issue_ids)
       }
+    end
+
+    def plugin_payload(plugin)
+      { 'id' => plugin.id.to_s, 'name' => plugin.name.to_s, 'version' => plugin.version.to_s }
     end
 
     def capture_project(selected)

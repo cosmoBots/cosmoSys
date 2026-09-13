@@ -30,6 +30,13 @@ es:
   text_cosmosys_snapshot_internal_relations_only: "Las relaciones del snapshot son autocontenidas: sólo se restaurarán aquellas cuyos dos extremos fueron capturados."
   label_cosmosys_snapshot_count_items: Items
   label_cosmosys_snapshot_count_projects: Proyectos
+  label_cosmosys_snapshot_plugins: Compatibilidad de plugins de origen
+  label_cosmosys_snapshot_source_version: Versión de origen
+  label_cosmosys_snapshot_destination_version: Versión instalada
+  label_cosmosys_snapshot_plugin_available: Disponible
+  label_cosmosys_snapshot_plugin_missing: Ausente
+  label_cosmosys_snapshot_plugin_older: Anterior al origen
+  text_cosmosys_snapshot_plugin_compatibility: Las diferencias entre plugins son avisos, no garantías de compatibilidad. Instale versiones iguales o posteriores cuando sea posible; una carga de mejor esfuerzo aceptada informará del contenido incompatible u omitido.
   label_cosmosys_snapshot_count_documents: Documentos
   label_cosmosys_snapshot_count_internal_relations: Relaciones internas
   label_cosmosys_snapshot_count_attachments: Contenidos de adjunto únicos

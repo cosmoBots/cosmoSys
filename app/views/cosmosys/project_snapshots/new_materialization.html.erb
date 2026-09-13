@@ -19,12 +19,30 @@
       <div class="cosmosys-project-copy-preflight">
         <h3><%= l(:label_cosmosys_snapshot_materialization_preflight) %></h3>
         <p class="warning"><%= l(:text_cosmosys_snapshot_materialization_confirmation) %></p>
+        <% @materialization_plan.blocking_messages.each do |message| %>
+          <p class="error"><%= message %></p>
+        <% end %>
         <%= hidden_field_tag :confirmed_plan, @materialization_plan.confirmation_token %>
         <table class="list">
           <thead><tr><th><%= l(:label_cosmosys_copy_preflight_content) %></th><th><%= l(:label_cosmosys_copy_count) %></th></tr></thead>
           <tbody>
             <% @materialization_plan.counts.each do |kind, count| %>
               <tr><td><%= l("label_cosmosys_snapshot_count_#{kind}") %></td><td><%= count %></td></tr>
+            <% end %>
+          </tbody>
+        </table>
+        <h4><%= l(:label_cosmosys_snapshot_plugins) %></h4>
+        <p class="info"><%= l(:text_cosmosys_snapshot_plugin_compatibility) %></p>
+        <table class="list">
+          <thead><tr><th><%= l(:field_name) %></th><th><%= l(:label_cosmosys_snapshot_source_version) %></th><th><%= l(:label_cosmosys_snapshot_destination_version) %></th><th><%= l(:field_status) %></th></tr></thead>
+          <tbody>
+            <% @materialization_plan.plugin_compatibility.each do |plugin| %>
+              <tr class="<%= 'warning' if %w[missing older].include?(plugin[:status]) %>">
+                <td><%= plugin[:name] %> (<code><%= plugin[:id] %></code>)</td>
+                <td><%= plugin[:source_version] %></td>
+                <td><%= plugin[:destination_version].presence || '—' %></td>
+                <td><%= l("label_cosmosys_snapshot_plugin_#{plugin[:status]}") %></td>
+              </tr>
             <% end %>
           </tbody>
         </table>
