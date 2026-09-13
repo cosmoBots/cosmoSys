@@ -37,6 +37,9 @@ es:
   label_cosmosys_snapshot_plugin_missing: Ausente
   label_cosmosys_snapshot_plugin_older: Anterior al origen
   text_cosmosys_snapshot_plugin_compatibility: Las diferencias entre plugins son avisos, no garantías de compatibilidad. Instale versiones iguales o posteriores cuando sea posible; una carga de mejor esfuerzo aceptada informará del contenido incompatible u omitido.
+  error_cosmosys_snapshot_ambiguous_roots: "El conjunto seleccionado tiene más de una raíz de colocación; escoja un conjunto con un único proyecto superior."
+  error_cosmosys_snapshot_identifiers_taken: "Ya se usan estos identificadores de proyecto de destino: %{identifiers}"
+  error_cosmosys_snapshot_duplicate_cscodes: "Los códigos de proyecto de destino colisionarían: %{cscodes}"
   label_cosmosys_snapshot_count_documents: Documentos
   label_cosmosys_snapshot_count_internal_relations: Relaciones internas
   label_cosmosys_snapshot_count_attachments: Contenidos de adjunto únicos

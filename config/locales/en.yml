@@ -37,6 +37,9 @@ en:
   label_cosmosys_snapshot_plugin_missing: Missing
   label_cosmosys_snapshot_plugin_older: Older than source
   text_cosmosys_snapshot_plugin_compatibility: Plugin differences are warnings, not compatibility guarantees. Install equal or newer versions where possible; an accepted best-effort load will report unsupported or omitted content.
+  error_cosmosys_snapshot_ambiguous_roots: "The selected project set has more than one placement root; choose a set with one top-level project."
+  error_cosmosys_snapshot_identifiers_taken: "Destination project identifiers are already used: %{identifiers}"
+  error_cosmosys_snapshot_duplicate_cscodes: "Destination project codes would collide: %{cscodes}"
   label_cosmosys_snapshot_count_documents: Documents
   label_cosmosys_snapshot_count_internal_relations: Internal relations
   label_cosmosys_snapshot_count_attachments: Unique attachment contents

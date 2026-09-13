@@ -22,12 +22,18 @@ module Cosmosys
 
     def blocking_messages
       messages = []
-      messages << I18n.t(:error_cosmosys_snapshot_multi_materialization_pending) unless project_entries.one?
-      profile = project_payload.fetch('profile')
-      messages << "Unknown project profile #{profile}" unless ProjectProfileRegistry.registered?(profile)
-      if Project.exists?(identifier: attributes.fetch('identifier'))
-        messages << I18n.t(:error_cosmosys_snapshot_identifier_taken)
+      messages << I18n.t(:error_cosmosys_snapshot_ambiguous_roots) unless top_level_entries.one?
+      project_entries.each do |entry|
+        profile = entry.fetch('project').fetch('profile')
+        messages << "Unknown project profile #{profile}" unless ProjectProfileRegistry.registered?(profile)
       end
+      collisions = destination_projects.filter_map do |entry|
+        entry[:identifier] if Project.exists?(identifier: entry[:identifier])
+      end
+      messages << I18n.t(:error_cosmosys_snapshot_identifiers_taken, identifiers: collisions.join(', ')) if collisions.any?
+      duplicate_codes = destination_projects.group_by { |entry| entry[:cscode].to_s.downcase }
+                                      .select { |_key, rows| rows.length > 1 }.keys
+      messages << I18n.t(:error_cosmosys_snapshot_duplicate_cscodes, cscodes: duplicate_codes.join(', ')) if duplicate_codes.any?
       if identity_collisions.any?
         messages << I18n.t(:error_cosmosys_preserve_csid_collision,
                            csids: identity_collisions.sort.join(', '))
@@ -45,6 +51,26 @@ module Cosmosys
                            count: missing_assets.length)
       end
       messages
+    end
+
+    def destination_projects
+      @destination_projects ||= begin
+        root_entry = top_level_entries.first || project_entries.first
+        source_root_identifier = root_entry.dig('project', 'identifier').to_s
+        project_entries.map do |entry|
+          source = entry.fetch('project')
+          root = entry == root_entry
+          source_identifier = source.fetch('identifier').to_s
+          suffix = source_identifier.start_with?("#{source_root_identifier}-") ?
+            source_identifier.delete_prefix(source_root_identifier) : "-p#{entry.fetch('source_id')}"
+          {
+            key: entry.fetch('key'), parent_key: entry['parent_key'], source: source,
+            name: root ? attributes.fetch('name') : source.fetch('name'),
+            identifier: root ? attributes.fetch('identifier') : "#{attributes.fetch('identifier')}#{suffix}",
+            cscode: root ? (attributes['cscode'].presence || source.fetch('cscode')) : source.fetch('cscode')
+          }
+        end
+      end
     end
 
     def counts
@@ -85,12 +111,13 @@ module Cosmosys
       @content ||= manifest.fetch('content')
     end
 
-    def project_payload
-      project_entries.first.fetch('project')
-    end
-
     def project_entries
       content.fetch('projects')
+    end
+
+    def top_level_entries
+      keys = project_entries.map { |entry| entry.fetch('key') }.to_set
+      project_entries.select { |entry| entry['parent_key'].blank? || !keys.include?(entry['parent_key']) }
     end
 
     def items
@@ -125,7 +152,8 @@ module Cosmosys
       csids = items.filter_map { |row| row['csid']&.downcase }
       return [] if csids.empty?
 
-      Issue.where(project_id: parent.root.self_and_descendants.select(:id))
+      tree_root = parent.root || parent
+      Issue.where(project_id: tree_root.self_and_descendants.select(:id))
            .where('LOWER(csid) IN (?)', csids).pluck(:csid).uniq
     end
 

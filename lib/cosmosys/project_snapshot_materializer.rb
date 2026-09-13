@@ -8,21 +8,32 @@ module Cosmosys
 
     def call
       raise Unauthorized unless user&.admin?
-      preflight!
+      @plan = preflight!
 
       ActiveRecord::Base.transaction do
         content = source.manifest.fetch('content')
-        entry = content.fetch('projects').fetch(0)
-        rows = entry.fetch('items')
-        project = create_project!(entry.fetch('project'))
-        items = create_items!(project, rows)
-        apply_identity_policy!(project, items, rows)
+        entries = content.fetch('projects')
+        projects = create_projects!(entries)
+        items = entries.each_with_object({}) do |entry, map|
+          map.merge!(create_items!(projects.fetch(entry.fetch('key')), entry.fetch('items')))
+        end
+        entries.each do |entry|
+          apply_identity_policy!(projects.fetch(entry.fetch('key')), items, entry.fetch('items'))
+        end
+        rows = entries.flat_map { |entry| entry.fetch('items') }
+        apply_deferred_profile_fields!(items, rows)
         restore_hierarchy!(items, rows)
         restore_relations!(items, content.fetch('relations'))
-        documents = create_documents!(project, entry.fetch('documents'))
-        marker_map = restore_catalog!(project, items, documents, entry.fetch('document_catalog'))
+        documents = entries.each_with_object({}) do |entry, map|
+          map.merge!(create_documents!(projects.fetch(entry.fetch('key')), entry.fetch('documents')))
+        end
+        marker_map = {}
+        entries.each do |entry|
+          marker_map.merge!(restore_catalog!(projects.fetch(entry.fetch('key')), items, documents,
+                                             entry.fetch('document_catalog')))
+        end
         rewrite_internal_references!(items, rows, marker_map)
-        project
+        projects.fetch(plan.destination_projects.find { |entry| entry[:parent_key].blank? }.fetch(:key))
       end
     end
 
@@ -30,19 +41,42 @@ module Cosmosys
 
     attr_reader :source, :user, :attributes
 
+    def plan
+      @plan
+    end
+
     def preflight!
       plan = ProjectSnapshotMaterializationPlan.new(source: source, attributes: attributes)
-      return if plan.blocking_messages.empty?
+      return plan if plan.blocking_messages.empty?
 
       raise ProjectCopyError, plan.blocking_messages.join(' ')
     end
 
-    def create_project!(source)
-      parent = attributes['parent_id'].present? ? Project.find(attributes['parent_id']) : nil
+    def create_projects!(entries)
+      destination_rows = plan.destination_projects.index_by { |row| row.fetch(:key) }
+      pending = entries.dup
+      projects = {}
+      until pending.empty?
+        ready, pending = pending.partition do |entry|
+          entry['parent_key'].blank? || projects.key?(entry['parent_key'])
+        end
+        raise ProjectCopyError, I18n.t(:error_cosmosys_snapshot_ambiguous_roots) if ready.empty?
+
+        ready.each do |entry|
+          destination = destination_rows.fetch(entry.fetch('key'))
+          parent = entry['parent_key'].present? ? projects.fetch(entry['parent_key']) : destination_parent
+          projects[entry.fetch('key')] = create_project!(destination, parent)
+        end
+      end
+      projects
+    end
+
+    def create_project!(destination, parent)
+      source = destination.fetch(:source)
       project = Project.create!(
-        name: attributes.fetch('name'),
-        identifier: attributes.fetch('identifier'),
-        cscode: destination_cscode(source),
+        name: destination.fetch(:name),
+        identifier: destination.fetch(:identifier),
+        cscode: destination.fetch(:cscode),
         description: source['description'].to_s,
         parent: parent,
         is_public: false,
@@ -56,6 +90,10 @@ module Cosmosys
       project.enabled_module_names = source.fetch('enabled_modules')
       project.save!
       project
+    end
+
+    def destination_parent
+      @destination_parent ||= attributes['parent_id'].present? ? Project.find(attributes['parent_id']) : nil
     end
 
     def create_items!(project, rows)
@@ -81,11 +119,22 @@ module Cosmosys
         }.merge(identity))
         issue.category = project.issue_categories.find_or_create_by!(name: row['category']) if row['category'].present?
         issue.fixed_version = project.versions.find_or_create_by!(name: row['fixed_version']) if row['fixed_version'].present?
-        Cosmosys::OdsItemFieldRegistry.apply(issue, row.fetch('profile_fields', {}))
+        Cosmosys::OdsItemFieldRegistry.apply(issue, row.fetch('profile_fields', {}), phase: :immediate)
         assign_custom_fields!(issue, project, row.fetch('custom_fields', []))
         issue.save!
         restore_attachments!(issue, row.fetch('attachments'))
         [row.fetch('key'), issue]
+      end
+    end
+
+    def apply_deferred_profile_fields!(items, rows)
+      csid_map = rows.to_h { |row| [row.fetch('csid'), items.fetch(row.fetch('key')).csid] }
+      rows.each do |row|
+        issue = items.fetch(row.fetch('key')).reload
+        Cosmosys::OdsItemFieldRegistry.apply(
+          issue, row.fetch('profile_fields', {}), phase: :deferred, context: { csid_map: csid_map }
+        )
+        issue.save! if issue.changed?
       end
     end
 
@@ -181,10 +230,6 @@ module Cosmosys
 
     def identity_mode
       ProjectCopyContext::IDENTITY_MODES.include?(attributes['identity_mode'].to_s) ? attributes['identity_mode'].to_s : 'preserve'
-    end
-
-    def destination_cscode(source_project)
-      attributes['cscode'].presence || source_project.fetch('cscode')
     end
 
     def principal(identity)

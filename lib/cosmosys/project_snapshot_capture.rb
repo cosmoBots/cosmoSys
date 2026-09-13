@@ -55,6 +55,13 @@ module Cosmosys
       @project_entries = projects.map { |selected| capture_project(selected) }
       issues = @project_entries.flat_map { |entry| entry.delete('_issues') }
       issue_ids = issues.map(&:id).to_set
+      issues_by_id = issues.index_by(&:id)
+      @project_entries.each do |entry|
+        entry.fetch('items').each do |row|
+          parent_id = issues_by_id.fetch(row.fetch('source_id')).parent_id
+          row['parent_key'] = "item:#{parent_id}" if issue_ids.include?(parent_id)
+        end
+      end
       root = project.root || project
 
       {
