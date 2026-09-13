@@ -3,7 +3,11 @@ require_dependency 'projects_controller'
 module Cosmosys
   module ProjectsControllerCopyPatch
     def copy
-      return super if request.get?
+      if request.get?
+        source = Project.find(params[:id])
+        prepare_cosmosys_copy_projects(source)
+        return super
+      end
 
       source = Project.find(params[:id])
       copy_params = params[:cosmosys_copy] || {}
@@ -16,18 +20,32 @@ module Cosmosys
         identity_mode: copy_params[:identity_mode],
         archive: copy_params[:archive]
       )
-      plan = Cosmosys::ProjectCopyPlan.new(
-        source: source,
-        user: User.current,
-        context: context,
-        destination_attributes: params[:project] || {}
-      )
+      selected_project_ids = Array(copy_params[:project_ids]).presence || [source.id]
+      selected_project_ids = selected_project_ids.map(&:to_s).uniq
+      plan = if selected_project_ids != [source.id.to_s]
+               Cosmosys::ProjectTreeCopyPlan.new(
+                 source: source, user: User.current, context: context,
+                 destination_attributes: params[:project] || {},
+                 project_ids: selected_project_ids
+               )
+             else
+               Cosmosys::ProjectCopyPlan.new(
+                 source: source, user: User.current, context: context,
+                 destination_attributes: params[:project] || {}
+               )
+             end
       raise Cosmosys::ProjectCopyError, plan.blocking_messages.join(' ') if plan.blocking_messages.any?
 
-      confirmed_digest = Cosmosys::ProjectCopyPlan.verified_digest(copy_params[:confirmed_plan])
+      confirmed_digest = plan.class.verified_digest(copy_params[:confirmed_plan])
       unless confirmed_digest && ActiveSupport::SecurityUtils.secure_compare(confirmed_digest, plan.digest)
         prepare_cosmosys_copy_review(source, plan)
         return render action: :copy
+      end
+
+      unless plan.executable?
+        prepare_cosmosys_copy_review(source, plan)
+        flash.now[:warning] = I18n.t(:text_cosmosys_copy_multi_preview_only)
+        return render action: :copy, status: :unprocessable_entity
       end
 
       context.copy_plan = plan
@@ -69,10 +87,19 @@ module Cosmosys
 
     def prepare_cosmosys_copy_form(source)
       @source_project = source
+      prepare_cosmosys_copy_projects(source)
       @issue_custom_fields = IssueCustomField.sorted.to_a
       @trackers = Tracker.sorted.to_a
       @project = Project.new
       @project.safe_attributes = params[:project]
+    end
+
+    def prepare_cosmosys_copy_projects(source)
+      selection = Cosmosys::ProjectSnapshotSelection.new(source, user: User.current)
+      allowed_ids = source.reload.self_and_descendants.pluck(:id).to_set
+      @cosmosys_copy_projects = selection.available_projects.select do |project|
+        allowed_ids.include?(project.id) && selection.selectable?(project)
+      end
     end
   end
 end

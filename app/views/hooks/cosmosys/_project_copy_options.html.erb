@@ -20,6 +20,22 @@
     <%= check_box_tag 'cosmosys_copy[archive]', '1', params.dig(:cosmosys_copy, :archive).present? %>
     <em class="info"><%= l(:text_cosmosys_archive_baseline_help) %></em>
   </p>
+  <% selected_project_ids = Array(params.dig(:cosmosys_copy, :project_ids)).map(&:to_s) %>
+  <% selected_project_ids = [@source_project.id.to_s] if selected_project_ids.empty? %>
+  <div class="cosmosys-copy-project-selection">
+    <h3><%= l(:label_cosmosys_copy_project_selection) %></h3>
+    <p><em class="info"><%= l(:text_cosmosys_copy_project_selection) %></em></p>
+    <%= hidden_field_tag 'cosmosys_copy[project_ids][]', @source_project.id %>
+    <% Array(@cosmosys_copy_projects).each do |project| %>
+      <% depth = [project.ancestors.count - @source_project.ancestors.count, 0].max %>
+      <label style="display: block; margin-inline-start: <%= depth * 1.5 %>em">
+        <%= check_box_tag 'cosmosys_copy[project_ids][]', project.id,
+                          selected_project_ids.include?(project.id.to_s),
+                          disabled: project == @source_project %>
+        <%= project.name %>
+      </label>
+    <% end %>
+  </div>
   <p><em class="info"><%= l(:text_cosmosys_project_copy_preflight, items: @source_project.issues.count, documents: @source_project.documents.count, members: @source_project.members.count) %></em></p>
   <%= render partial: 'hooks/cosmosys/project_copy_preflight', locals: { plan: @cosmosys_copy_plan } if @cosmosys_copy_plan %>
 </fieldset>

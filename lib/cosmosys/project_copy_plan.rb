@@ -64,6 +64,14 @@ module Cosmosys
                         .transform_values(&:length)
     end
 
+    def multi_project?
+      false
+    end
+
+    def executable?
+      true
+    end
+
     private
 
     def parent

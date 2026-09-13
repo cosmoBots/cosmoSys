@@ -1,7 +1,19 @@
 <div class="cosmosys-project-copy-preflight">
   <h3><%= l(:label_cosmosys_copy_preflight_review) %></h3>
-  <p class="warning"><%= l(:text_cosmosys_copy_preflight_confirmation) %></p>
+  <p class="warning"><%= l(plan.executable? ? :text_cosmosys_copy_preflight_confirmation : :text_cosmosys_copy_multi_preview_only) %></p>
   <%= hidden_field_tag 'cosmosys_copy[confirmed_plan]', plan.confirmation_token %>
+
+  <% if plan.multi_project? %>
+    <h4><%= l(:label_cosmosys_copy_destination_tree) %></h4>
+    <table class="list">
+      <thead><tr><th><%= l(:label_cosmosys_copy_source_project) %></th><th><%= l(:label_cosmosys_copy_destination_project) %></th><th><%= l(:field_identifier) %></th></tr></thead>
+      <tbody>
+        <% plan.destination_projects.each do |entry| %>
+          <tr><td><%= entry.fetch(:source).fetch('name') %></td><td><%= entry.fetch(:name) %></td><td><%= entry.fetch(:identifier) %></td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
 
   <table class="list">
     <thead>
@@ -48,6 +60,9 @@
   document.addEventListener('DOMContentLoaded', function () {
     var confirmation = document.querySelector('.cosmosys-project-copy-preflight');
     var submit = confirmation && confirmation.closest('form').querySelector('input[type="submit"]');
-    if (submit) submit.value = <%= l(:button_cosmosys_confirm_copy).to_json.html_safe %>;
+    if (submit) {
+      submit.value = <%= l(plan.executable? ? :button_cosmosys_confirm_copy : :button_cosmosys_copy_multi_not_available).to_json.html_safe %>;
+      submit.disabled = <%= (!plan.executable?).to_json %>;
+    }
   });
 </script>
