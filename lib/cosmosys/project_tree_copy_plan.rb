@@ -29,11 +29,8 @@ module Cosmosys
       true
     end
 
-    # The first implementation slice deliberately stops at a signed preview.
-    # Execution will reuse snapshot materialization once its copy policy has
-    # been validated through this UI and the smoke tests.
     def executable?
-      false
+      true
     end
 
     def blocking_messages
@@ -41,10 +38,21 @@ module Cosmosys
     end
 
     def counts
-      materialization_plan.counts.merge(
-        members: selected_projects.sum { |project| project.members.count },
-        external_relations: external_relations.length
-      )
+      entries = snapshot_source.manifest.dig('content', 'projects')
+      items = context.copying?('issues') ? entries.sum { |entry| entry.fetch('items').length } : 0
+      documents = context.copying?('documents') ? entries.sum { |entry| entry.fetch('documents').length } : 0
+      attachment_rows = []
+      attachment_rows.concat(entries.flat_map { |entry| entry.fetch('items').flat_map { |row| row.fetch('attachments') } }) if context.copying?('issues')
+      attachment_rows.concat(entries.flat_map { |entry| entry.fetch('documents').flat_map { |row| row.fetch('attachments') } }) if context.copying?('documents')
+      {
+        projects: entries.length,
+        items: items,
+        documents: documents,
+        members: context.copying?('members') ? selected_projects.sum { |project| project.members.count } : 0,
+        internal_relations: context.copying?('issues') ? snapshot_source.manifest.dig('content', 'relations').length : 0,
+        external_relations: context.copying?('issues') ? external_relations.length : 0,
+        attachments: attachment_rows.map { |row| row.fetch('content_sha256') }.uniq.length
+      }
     end
 
     def destination_projects

@@ -8,14 +8,26 @@ module Cosmosys
 
     def call
       raise Unauthorized unless user&.admin?
+      projects = materialize_projects!
+      projects.fetch(plan.destination_projects.find { |entry| entry[:parent_key].blank? }.fetch(:key))
+    end
+
+    # Shared batch writer for an authorized live tree copy. The optional block
+    # runs after every project shell exists but before snapshot content is
+    # written, allowing Redmine to copy its native project-owned entities.
+    def materialize_projects!(selected_parts: nil)
       @plan = preflight!
 
       ActiveRecord::Base.transaction do
         content = source.manifest.fetch('content')
         entries = content.fetch('projects')
         projects = create_projects!(entries)
-        materialize_contents!(content, entries, projects)
-        projects.fetch(plan.destination_projects.find { |entry| entry[:parent_key].blank? }.fetch(:key))
+        yield projects if block_given?
+        materialize_contents!(
+          content, entries, projects,
+          selected_parts: selected_parts && Array(selected_parts).map(&:to_s)
+        )
+        projects
       end
     end
 

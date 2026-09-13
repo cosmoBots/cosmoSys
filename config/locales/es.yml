@@ -50,6 +50,7 @@ es:
   text_cosmosys_archive_baseline_help: Sólo se aplica a las baselines fieles.
   text_cosmosys_project_copy_preflight: "Origen analizado: %{items} items, %{documents} documentos y %{members} membresías. Un fallo estructural revierte el proyecto destino."
   notice_cosmosys_project_copy_complete: "Proyecto %{project} copiado: %{items} items, %{documents} documentos y %{references} referencias documentales. Relaciones externas: %{retained} conservadas, %{remapped} remapeadas y %{lost} omitidas."
+  notice_cosmosys_project_tree_copy_complete: "Árbol de proyecto %{project} copiado: %{projects} proyectos, %{items} items, %{documents} documentos y %{relations} relaciones internas."
   label_cosmosys_copy_preflight_review: Revisar la copia del proyecto
   text_cosmosys_copy_preflight_confirmation: "Todavía no se ha copiado nada. Revise este plan y confirme para crear el proyecto destino."
   label_cosmosys_copy_project_selection: Proyectos que se copiarán

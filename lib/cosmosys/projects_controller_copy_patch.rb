@@ -48,6 +48,19 @@ module Cosmosys
         return render action: :copy, status: :unprocessable_entity
       end
 
+      if plan.multi_project?
+        destination = Cosmosys::ProjectTreeCopyExecutor.new(plan).call
+        flash[:notice] = I18n.t(
+          :notice_cosmosys_project_tree_copy_complete,
+          project: destination.name,
+          projects: context.summary.fetch(:projects),
+          items: context.summary.fetch(:items),
+          documents: context.summary.fetch(:documents),
+          relations: context.summary.fetch(:relations)
+        )
+        return redirect_to project_path(destination)
+      end
+
       context.copy_plan = plan
       Cosmosys::ProjectCopyContext.with(context) { super }
       if context.destination_project&.persisted?

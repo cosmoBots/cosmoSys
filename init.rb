@@ -72,6 +72,7 @@ require_dependency File.expand_path('lib/cosmosys/project_copy_context', __dir__
 require_dependency File.expand_path('lib/cosmosys/project_copy_reference_registry', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_copy_plan', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_tree_copy_plan', __dir__)
+require_dependency File.expand_path('lib/cosmosys/project_tree_copy_executor', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_copy_summary', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_materialization_identity', __dir__)
 require_dependency File.expand_path('lib/cosmosys/materialization_reference_rewriter', __dir__)
