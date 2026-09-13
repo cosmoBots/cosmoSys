@@ -13,11 +13,12 @@ module Cosmosys
     end
 
     def parse_redmine_links(text, default_project, obj, attr, only_path, options)
-      if default_project.present?
+      presentation_project = default_project || obj.try(:project)
+      if presentation_project.present?
         text.replace(
           Cosmosys::PresentationTextRegistry.resolve(
             text,
-            project: default_project,
+            project: presentation_project,
             user: User.current,
             formatter: ->(value) { ERB::Util.html_escape(value) }
           )
