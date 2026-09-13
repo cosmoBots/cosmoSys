@@ -12,14 +12,16 @@ module Cosmosys
 
       ActiveRecord::Base.transaction do
         content = source.manifest.fetch('content')
-        project = create_project!(content.fetch('project'))
-        items = create_items!(project, content.fetch('items'))
-        apply_identity_policy!(project, items, content.fetch('items'))
-        restore_hierarchy!(items, content.fetch('items'))
+        entry = content.fetch('projects').fetch(0)
+        rows = entry.fetch('items')
+        project = create_project!(entry.fetch('project'))
+        items = create_items!(project, rows)
+        apply_identity_policy!(project, items, rows)
+        restore_hierarchy!(items, rows)
         restore_relations!(items, content.fetch('relations'))
-        documents = create_documents!(project, content.fetch('documents'))
-        marker_map = restore_catalog!(project, items, documents, content.fetch('document_catalog'))
-        rewrite_internal_references!(items, content.fetch('items'), marker_map)
+        documents = create_documents!(project, entry.fetch('documents'))
+        marker_map = restore_catalog!(project, items, documents, entry.fetch('document_catalog'))
+        rewrite_internal_references!(items, rows, marker_map)
         project
       end
     end
@@ -83,13 +85,13 @@ module Cosmosys
         assign_custom_fields!(issue, project, row.fetch('custom_fields', []))
         issue.save!
         restore_attachments!(issue, row.fetch('attachments'))
-        [row.fetch('csid'), issue]
+        [row.fetch('key'), issue]
       end
     end
 
     def apply_identity_policy!(project, items, rows)
       entries = rows.map do |row|
-        { issue: items.fetch(row.fetch('csid')), csid: row.fetch('csid'),
+        { issue: items.fetch(row.fetch('key')), csid: row.fetch('csid'),
           csidnum: row.fetch('csidnum'), position: row.fetch('position') }
       end
       ProjectMaterializationIdentity.new(
@@ -101,10 +103,10 @@ module Cosmosys
 
     def restore_hierarchy!(items, rows)
       rows.each do |row|
-        parent = items[row['parent_csid']]
+        parent = items[row['parent_key']]
         # Redmine's nested-set maintenance can advance siblings' lock_version
         # while preceding parents are restored.  Always update a fresh object.
-        items.fetch(row.fetch('csid')).reload.update!(parent_issue_id: parent.id) if parent
+        items.fetch(row.fetch('key')).reload.update!(parent_issue_id: parent.id) if parent
       end
     end
 
@@ -154,8 +156,8 @@ module Cosmosys
     end
 
     def rewrite_internal_references!(items, rows, marker_map)
-      csid_map = rows.to_h { |row| [row.fetch('csid'), items.fetch(row.fetch('csid')).csid] }
-      id_map = rows.to_h { |row| ["##{row.fetch('source_id')}", "##{items.fetch(row.fetch('csid')).id}"] }
+      csid_map = rows.to_h { |row| [row.fetch('csid'), items.fetch(row.fetch('key')).csid] }
+      id_map = rows.to_h { |row| ["##{row.fetch('source_id')}", "##{items.fetch(row.fetch('key')).id}"] }
       MaterializationReferenceRewriter.new(
         issues: items.values, csid_map: csid_map, id_map: id_map,
         marker_map: marker_map

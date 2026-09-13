@@ -11,17 +11,20 @@ module Cosmosys
     def index
       @snapshots = Cosmosys::ProjectSnapshot.where(project_id: @project.id, created_by_id: User.current.id).recent_first
       @snapshots = Cosmosys::ProjectSnapshot.where(project_id: @project.id).recent_first if User.current.admin?
+      @snapshot_selection = ProjectSnapshotSelection.new(@project, user: User.current)
     end
 
     def create
       snapshot = Cosmosys::ProjectSnapshotCapture.new(
         @project,
         user: User.current,
-        name: params[:name]
+        name: params[:name],
+        projects: params[:project_ids] || []
       ).call
       redirect_to project_cosmosys_snapshot_path(@project, snapshot), notice: l(:notice_cosmosys_project_snapshot_created)
-    rescue ActiveRecord::RecordInvalid => error
-      redirect_to project_cosmosys_snapshots_path(@project), alert: error.record.errors.full_messages.join(', ')
+    rescue ActiveRecord::RecordInvalid, ArgumentError => error
+      message = error.respond_to?(:record) ? error.record.errors.full_messages.join(', ') : error.message
+      redirect_to project_cosmosys_snapshots_path(@project), alert: message
     end
 
     def new_import
@@ -121,7 +124,7 @@ module Cosmosys
     end
 
     def destination_defaults
-      source = @snapshot.manifest.fetch('content').fetch('project')
+      source = @snapshot.manifest.fetch('content').fetch('projects').fetch(0).fetch('project')
       { 'name' => "#{source.fetch('name')} snapshot #{@snapshot.id}",
         'identifier' => "#{source.fetch('identifier')}-snapshot-#{@snapshot.id}",
         'cscode' => source.fetch('cscode'), 'parent_id' => nil,

@@ -6,12 +6,25 @@
   <div class="box tabular">
     <%= form_tag project_cosmosys_snapshots_path(@project), method: :post do %>
       <p><%= label_tag :name, l(:field_name) %><%= text_field_tag :name, nil, size: 50 %></p>
+      <fieldset>
+        <legend><%= l(:label_cosmosys_snapshot_project_selection) %></legend>
+        <% visible_ids = @snapshot_selection.available_projects.map(&:id).to_set %>
+        <% @snapshot_selection.available_projects.each do |candidate| %>
+          <% depth = candidate.ancestors.count { |ancestor| visible_ids.include?(ancestor.id) } %>
+          <label class="block" style="margin-inline-start: <%= depth * 1.5 %>em">
+            <%= check_box_tag 'project_ids[]', candidate.id, candidate.id == @project.id,
+                              disabled: !@snapshot_selection.selectable?(candidate) %>
+            <%= candidate.name %> <small>(<%= candidate.identifier %>)</small>
+          </label>
+        <% end %>
+        <em class="info"><%= l(:text_cosmosys_snapshot_project_selection) %></em>
+      </fieldset>
       <p><%= submit_tag l(:button_cosmosys_create_snapshot), class: 'button-positive' %></p>
     <% end %>
   </div>
 <% end %>
 
-<p class="info"><%= l(:text_cosmosys_project_snapshot_v1_scope) %></p>
+<p class="info"><%= l(:text_cosmosys_project_snapshot_scope) %></p>
 
 <% if User.current.admin? %>
   <p><%= link_to l(:button_cosmosys_import_snapshot), new_import_project_cosmosys_snapshot_path(@project), class: 'icon icon-import' %></p>
@@ -25,7 +38,7 @@
         <td><%= link_to format_time(snapshot.created_at), project_cosmosys_snapshot_path(@project, snapshot) %></td>
         <td><%= snapshot.name.presence || '-' %></td>
         <td><%= link_to_user snapshot.created_by %></td>
-        <td><%= l(:text_cosmosys_snapshot_counts, items: snapshot.item_count, documents: snapshot.document_count, relations: snapshot.relation_count) %></td>
+        <td><%= l(:text_cosmosys_snapshot_counts, projects: snapshot.project_count, items: snapshot.item_count, documents: snapshot.document_count, relations: snapshot.relation_count) %></td>
         <td><code><%= snapshot.content_sha256.first(12) %></code></td>
       </tr>
     <% end %>

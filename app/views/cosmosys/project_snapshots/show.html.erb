@@ -5,7 +5,7 @@
 <div class="box">
   <p><strong><%= l(:field_created_on) %>:</strong> <%= format_time(@snapshot.created_at) %></p>
   <p><strong><%= l(:label_user) %>:</strong> <%= link_to_user @snapshot.created_by %></p>
-  <p><strong><%= l(:label_cosmosys_snapshot_contents) %>:</strong> <%= l(:text_cosmosys_snapshot_counts, items: @snapshot.item_count, documents: @snapshot.document_count, relations: @snapshot.relation_count) %></p>
+  <p><strong><%= l(:label_cosmosys_snapshot_contents) %>:</strong> <%= l(:text_cosmosys_snapshot_counts, projects: @snapshot.project_count, items: @snapshot.item_count, documents: @snapshot.document_count, relations: @snapshot.relation_count) %></p>
   <p><strong>SHA-256:</strong> <code><%= @snapshot.content_sha256 %></code></p>
 </div>
 

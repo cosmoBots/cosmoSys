@@ -4,18 +4,17 @@ require 'zlib'
 
 module Cosmosys
   class ProjectSnapshotCapture
-    SCHEMA_VERSION = '2'.freeze
+    SCHEMA_VERSION = '3'.freeze
 
-    def initialize(project, user:, name: nil)
+    def initialize(project, user:, name: nil, projects: nil)
       @project = project
       @user = user
       @name = name.to_s.strip.presence
+      selected_ids = projects.nil? ? [project.id] : projects
+      @projects = ProjectSnapshotSelection.new(project, user: user).resolve(selected_ids)
     end
 
     def call
-      raise Unauthorized unless user && project.visible?(user)
-      raise Unauthorized unless user.admin? || user.allowed_to?(:edit_project, project)
-
       content = capture_content
       canonical_content = CanonicalJson.generate(content)
       digest = Digest::SHA256.hexdigest(canonical_content)
@@ -36,8 +35,8 @@ module Cosmosys
           schema_version: SCHEMA_VERSION,
           content_sha256: digest,
           manifest_gzip: gzip(CanonicalJson.generate(manifest)),
-          item_count: content.fetch('items').length,
-          document_count: content.fetch('documents').length,
+          item_count: project_entries.sum { |entry| entry.fetch('items').length },
+          document_count: project_entries.sum { |entry| entry.fetch('documents').length },
           relation_count: content.fetch('relations').length
         )
         retain_attachment_payloads!(snapshot)
@@ -50,41 +49,59 @@ module Cosmosys
 
     private
 
-    attr_reader :project, :user, :name
+    attr_reader :project, :projects, :user, :name
 
     def capture_content
-      issues = project.issues.visible(user).includes(:tracker, :status, :priority, :author, :assigned_to,
-                                                     :category, :fixed_version, :custom_values, :attachments)
-                      .order(:csposition, :id).to_a
+      @project_entries = projects.map { |selected| capture_project(selected) }
+      issues = @project_entries.flat_map { |entry| entry.delete('_issues') }
       issue_ids = issues.map(&:id).to_set
-      documents = project.documents.visible(user).includes(:category, :attachments).order(:id).to_a
-      document_ids = documents.map(&:id).to_set
-      @source_attachments = (issues.flat_map { |issue| issue.attachments.to_a } +
-                             documents.flat_map { |document| document.attachments.to_a })
-                            .uniq(&:id)
+      root = project.root || project
 
       {
-        'project' => project_payload,
-        'items' => issues.map { |issue| issue_payload(issue, issue_ids) },
+        'root' => { 'source_id' => root.id, 'identifier' => root.identifier },
+        'projects' => @project_entries,
         'relations' => relation_payloads(issue_ids),
-        'documents' => documents.map { |document| document_payload(document) },
-        'document_catalog' => catalog_payloads(issue_ids, document_ids)
+        'external_relations' => external_relation_payloads(issue_ids)
       }
     end
 
-    def project_payload
-      profile = Cosmosys::ProjectProfileRegistry.fetch(project.csys_project_profile)
+    def capture_project(selected)
+      issues = selected.issues.visible(user).includes(:tracker, :status, :priority, :author, :assigned_to,
+                                                      :category, :fixed_version, :custom_values, :attachments)
+                       .order(:csposition, :id).to_a
+      issue_ids = issues.map(&:id).to_set
+      documents = selected.documents.visible(user).includes(:category, :attachments).order(:id).to_a
+      document_ids = documents.map(&:id).to_set
+      @source_attachments ||= []
+      @source_attachments.concat(issues.flat_map { |issue| issue.attachments.to_a })
+      @source_attachments.concat(documents.flat_map { |document| document.attachments.to_a })
+
       {
-        'identifier' => project.identifier,
-        'name' => project.name,
-        'description' => project.description.to_s,
-        'cscode' => project.cscode,
-        'profile' => profile.key,
-        'language' => project.cosmosys_effective_language,
-        'report_code' => project.csys_report_code,
-        'report_export_format' => project.cosmosys_effective_report_export_format,
-        'enabled_modules' => project.enabled_module_names.map(&:to_s).sort,
-        'trackers' => project.trackers.map { |tracker| tracker_identity(tracker) }.sort_by { |entry| entry['key'].to_s }
+        'key' => "project:#{selected.id}",
+        'source_id' => selected.id,
+        'parent_key' => projects.include?(selected.parent) ? "project:#{selected.parent_id}" : nil,
+        'project' => project_payload(selected),
+        'items' => issues.map { |issue| issue_payload(issue, issue_ids) },
+        'documents' => documents.map { |document| document_payload(document) },
+        'document_catalog' => catalog_payloads(selected, issue_ids, document_ids),
+        '_issues' => issues
+      }
+    end
+
+    def project_entries
+      @project_entries || []
+    end
+
+    def project_payload(selected)
+      profile = Cosmosys::ProjectProfileRegistry.fetch(selected.csys_project_profile)
+      {
+        'identifier' => selected.identifier, 'name' => selected.name,
+        'description' => selected.description.to_s, 'cscode' => selected.cscode,
+        'profile' => profile.key, 'language' => selected.cosmosys_effective_language,
+        'report_code' => selected.csys_report_code,
+        'report_export_format' => selected.cosmosys_effective_report_export_format,
+        'enabled_modules' => selected.enabled_module_names.map(&:to_s).sort,
+        'trackers' => selected.trackers.map { |tracker| tracker_identity(tracker) }.sort_by { |entry| entry['key'].to_s }
       }
     end
 
@@ -95,11 +112,11 @@ module Cosmosys
                                 issue.custom_field_values
                               end
       {
-        'source_id' => issue.id,
+        'key' => "item:#{issue.id}", 'source_id' => issue.id,
         'csid' => issue.csid,
         'csidnum' => issue.csidnum,
         'position' => issue.csposition,
-        'parent_csid' => issue_ids.include?(issue.parent_id) ? issue.parent&.csid : nil,
+        'parent_key' => issue_ids.include?(issue.parent_id) ? "item:#{issue.parent_id}" : nil,
         'tracker' => tracker_identity(issue.tracker),
         'subject' => issue.subject,
         'description' => issue.description.to_s,
@@ -125,11 +142,31 @@ module Cosmosys
     def relation_payloads(issue_ids)
       IssueRelation.where(issue_from_id: issue_ids).where(issue_to_id: issue_ids).order(:id).map do |relation|
         {
-          'from' => relation.issue_from.csid,
-          'to' => relation.issue_to.csid,
+          'from' => "item:#{relation.issue_from_id}",
+          'to' => "item:#{relation.issue_to_id}",
           'type' => relation.relation_type,
           'delay' => relation.delay,
           'restricted' => relation.csys_restricted
+        }
+      end
+    end
+
+    def external_relation_payloads(issue_ids)
+      visible_ids = Issue.visible(user).where(id: IssueRelation.where(issue_from_id: issue_ids).or(IssueRelation.where(issue_to_id: issue_ids)).pluck(:issue_from_id, :issue_to_id).flatten.uniq).pluck(:id).to_set
+      IssueRelation.where(issue_from_id: issue_ids).or(IssueRelation.where(issue_to_id: issue_ids)).order(:id).filter_map do |relation|
+        from_inside = issue_ids.include?(relation.issue_from_id)
+        to_inside = issue_ids.include?(relation.issue_to_id)
+        next if from_inside == to_inside
+        external_id = from_inside ? relation.issue_to_id : relation.issue_from_id
+        next unless visible_ids.include?(external_id)
+
+        external = Issue.find(external_id)
+        {
+          'local' => "item:#{from_inside ? relation.issue_from_id : relation.issue_to_id}",
+          'local_side' => from_inside ? 'from' : 'to',
+          'external_csid' => external.csid,
+          'external_project_identifier' => external.project.identifier,
+          'type' => relation.relation_type, 'delay' => relation.delay
         }
       end
     end
@@ -147,8 +184,8 @@ module Cosmosys
       }
     end
 
-    def catalog_payloads(issue_ids, document_ids)
-      Cosmosys::DocumentCatalogEntry.where(project_id: project.id, document_id: document_ids)
+    def catalog_payloads(selected, issue_ids, document_ids)
+      Cosmosys::DocumentCatalogEntry.where(project_id: selected.id, document_id: document_ids)
                                     .includes(:catalog_refs).order(:family, :position, :id).map do |entry|
         {
           'document_key' => "document:#{entry.document_id}",
@@ -156,7 +193,7 @@ module Cosmosys
           'position' => entry.position,
           'references' => entry.catalog_refs.select { |reference| issue_ids.include?(reference.issue_id) }
                                .sort_by(&:id).map do |reference|
-            { 'key' => "document:di#{reference.id}", 'item' => reference.issue.csid,
+            { 'key' => "document:di#{reference.id}", 'item' => "item:#{reference.issue_id}",
               'sense' => reference.sense, 'location' => reference.location }
           end
         }
@@ -180,7 +217,7 @@ module Cosmosys
     end
 
     def retain_attachment_payloads!(snapshot)
-      Array(@source_attachments).group_by { |attachment| attachment_sha256(attachment) }.each do |digest, matches|
+      Array(@source_attachments).uniq(&:id).group_by { |attachment| attachment_sha256(attachment) }.each do |digest, matches|
         source = matches.first
         File.open(source.diskfile, 'rb') do |file|
           Attachment.create!(

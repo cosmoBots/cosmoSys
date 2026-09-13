@@ -133,6 +133,7 @@ require_dependency File.expand_path('app/models/cosmosys/project_snapshot', __di
 require_dependency File.expand_path('app/models/cosmosys/pending_relation', __dir__)
 require_dependency File.expand_path('lib/cosmosys/pending_relation_reconciler', __dir__)
 require_dependency File.expand_path('lib/cosmosys/canonical_json', __dir__)
+require_dependency File.expand_path('lib/cosmosys/project_snapshot_selection', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_capture', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_package', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_package_reader', __dir__)

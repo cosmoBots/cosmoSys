@@ -21,6 +21,7 @@ module Cosmosys
 
     def blocking_messages
       messages = []
+      messages << I18n.t(:error_cosmosys_snapshot_multi_materialization_pending) unless project_entries.one?
       profile = project_payload.fetch('profile')
       messages << "Unknown project profile #{profile}" unless ProjectProfileRegistry.registered?(profile)
       if Project.exists?(identifier: attributes.fetch('identifier'))
@@ -47,8 +48,9 @@ module Cosmosys
 
     def counts
       {
-        items: content.fetch('items').length,
-        documents: content.fetch('documents').length,
+        projects: project_entries.length,
+        items: items.length,
+        documents: documents.length,
         internal_relations: content.fetch('relations').length,
         attachments: required_asset_digests.length
       }
@@ -79,7 +81,19 @@ module Cosmosys
     end
 
     def project_payload
-      content.fetch('project')
+      project_entries.first.fetch('project')
+    end
+
+    def project_entries
+      content.fetch('projects')
+    end
+
+    def items
+      project_entries.flat_map { |entry| entry.fetch('items') }
+    end
+
+    def documents
+      project_entries.flat_map { |entry| entry.fetch('documents') }
     end
 
     def validate_schema!
@@ -103,7 +117,7 @@ module Cosmosys
     def find_identity_collisions
       return [] unless identity_mode == 'preserve' && parent
 
-      csids = content.fetch('items').filter_map { |row| row['csid']&.downcase }
+      csids = items.filter_map { |row| row['csid']&.downcase }
       return [] if csids.empty?
 
       Issue.where(project_id: parent.root.self_and_descendants.select(:id))
@@ -111,13 +125,13 @@ module Cosmosys
     end
 
     def find_missing_trackers
-      keys = content.fetch('items').filter_map { |row| row.dig('tracker', 'key') }.uniq
+      keys = items.filter_map { |row| row.dig('tracker', 'key') }.uniq
       available = Tracker.where(csys_key: keys).or(Tracker.where(name: keys)).pluck(:csys_key, :name).flatten.compact
       keys - available
     end
 
     def find_missing_custom_fields
-      definitions = content.fetch('items').flat_map { |row| row.fetch('custom_fields', []) }
+      definitions = items.flat_map { |row| row.fetch('custom_fields', []) }
                            .map { |entry| [entry.fetch('name'), entry.fetch('format')] }.uniq
       definitions.reject do |name, format|
         IssueCustomField.where(name: name, field_format: format).exists?
@@ -142,8 +156,8 @@ module Cosmosys
 
     def required_asset_digests
       @required_asset_digests ||= (
-        content.fetch('items').flat_map { |row| row.fetch('attachments') } +
-        content.fetch('documents').flat_map { |row| row.fetch('attachments') }
+        items.flat_map { |row| row.fetch('attachments') } +
+        documents.flat_map { |row| row.fetch('attachments') }
       ).map { |row| row.fetch('content_sha256') }.uniq.sort
     end
 

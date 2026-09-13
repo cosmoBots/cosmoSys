@@ -7,7 +7,7 @@
     <p><%= label_tag 'destination_name', l(:field_name) %><%= text_field_tag 'destination[name]', @destination['name'], required: true, size: 60 %></p>
     <p><%= label_tag 'destination_identifier', l(:field_identifier) %><%= text_field_tag 'destination[identifier]', @destination['identifier'], required: true, size: 60 %></p>
     <p><%= label_tag 'destination_cscode', 'cscode' %><%= text_field_tag 'destination[cscode]', @destination['cscode'], required: true, size: 20 %></p>
-    <p><%= label_tag 'destination_profile', l(:label_cosmosys_project_profile) %><strong><%= @destination['profile'] || @snapshot.manifest.dig('content', 'project', 'profile') %></strong></p>
+    <p><%= label_tag 'destination_profile', l(:label_cosmosys_project_profile) %><strong><%= @destination['profile'] || @snapshot.manifest.dig('content', 'projects', 0, 'project', 'profile') %></strong></p>
     <p><%= label_tag 'destination_parent_id', l(:field_parent) %><%= select_tag 'destination[parent_id]', options_from_collection_for_select(@parent_projects, :id, :name, @destination['parent_id']), include_blank: l(:label_none) %></p>
     <p>
       <label><%= l(:field_cosmosys_identity_mode) %></label>

@@ -29,6 +29,7 @@ en:
   text_cosmosys_snapshot_materialization_confirmation: "Nothing has been created yet. Review this plan and confirm to create the destination project."
   text_cosmosys_snapshot_internal_relations_only: "Snapshot relations are self-contained: only relations whose two endpoints were captured will be restored."
   label_cosmosys_snapshot_count_items: Items
+  label_cosmosys_snapshot_count_projects: Projects
   label_cosmosys_snapshot_count_documents: Documents
   label_cosmosys_snapshot_count_internal_relations: Internal relations
   label_cosmosys_snapshot_count_attachments: Unique attachment contents
@@ -521,13 +522,19 @@ en:
   label_cosmosys_project_snapshot: "Project snapshot"
   label_cosmosys_snapshot_contents: "Contents"
   button_cosmosys_create_snapshot: "Create snapshot"
+  label_cosmosys_snapshot_project_selection: "Projects to include"
+  text_cosmosys_snapshot_project_selection: "Select one or more visible projects from this project tree. Disabled projects are visible but you are not allowed to capture them."
+  text_cosmosys_project_snapshot_scope: "A snapshot captures the visible state of the selected projects from this project tree. It excludes journals, comments and time entries. Attachments are retained and every download is a complete portable package. Multi-project materialization is not available yet."
+  error_cosmosys_snapshot_empty_selection: "Select at least one project."
+  error_cosmosys_snapshot_mixed_roots: "Every project in a snapshot must belong to the same project tree."
+  error_cosmosys_snapshot_multi_materialization_pending: "Materializing a snapshot containing several projects is not available yet."
   notice_cosmosys_project_snapshot_created: "The immutable project snapshot was created."
   notice_cosmosys_project_snapshot_deleted: "The project snapshot was deleted."
   label_cosmosys_materialize_project_snapshot: "Materialize project snapshot"
   button_cosmosys_materialize_project_snapshot: "Create project from this snapshot"
   notice_cosmosys_project_snapshot_materialized: "The project was created from the snapshot."
   text_cosmosys_project_snapshot_v1_scope: "This snapshot captures the visible state of this project only. It excludes journals, comments and time entries. Its attachments are retained and every download is a complete portable package. It is not yet a named release or baseline."
-  text_cosmosys_snapshot_counts: "%{items} items, %{documents} documents and %{relations} relations"
+  text_cosmosys_snapshot_counts: "%{projects} projects, %{items} items, %{documents} documents and %{relations} relations"
   label_cosmosys_closed_outcome: "Closed outcome"
   label_cosmosys_closed_outcome_unspecified: "Not classified"
   label_cosmosys_closed_outcome_successful: "Successful"

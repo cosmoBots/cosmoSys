@@ -27,6 +27,10 @@ module Cosmosys
       Zlib::GzipReader.new(StringIO.new(manifest_gzip)).read
     end
 
+    def project_count
+      manifest.fetch('content').fetch('projects').length
+    end
+
     def readable_by?(user)
       user&.admin? || created_by_id == user&.id
     end
