@@ -6,7 +6,7 @@ module Cosmosys
 
     attr_reader :source_project, :user, :mode, :identity_mode, :selected_parts, :profile_key,
                 :issue_map, :document_map, :deferred_issue_references, :summary
-    attr_accessor :destination_project, :copy_plan
+    attr_accessor :destination_project, :copy_plan, :snapshot_source
 
     def self.current
       ActiveSupport::IsolatedExecutionState[KEY]

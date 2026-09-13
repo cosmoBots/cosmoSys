@@ -108,7 +108,7 @@ module Cosmosys
     end
 
     def classify_external(external)
-      return ['pending', nil] unless parent
+      return ['lost', nil] unless parent
       return ['retain_original', external.id] if external.project.root.id == parent.root.id
       return ['lost', nil] if external.csid.blank?
 
@@ -117,7 +117,7 @@ module Cosmosys
       return ['remap_by_csid', matches.first] if matches.one?
       return ['ambiguous', nil] if matches.many?
 
-      ['pending', nil]
+      ['lost', nil]
     end
 
     def relation_entry(relation, local_id, external_id, from_local, external, classification, target_id = nil)

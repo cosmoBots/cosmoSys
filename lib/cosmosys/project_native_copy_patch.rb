@@ -2,22 +2,21 @@ require_dependency 'project'
 
 module Cosmosys
   module ProjectNativeCopyPatch
-    private
+    SNAPSHOT_PARTS = %w[issues documents].freeze
 
-    def copy_documents(project)
+    def copy(project, options = {})
       context = Cosmosys::ProjectCopyContext.current
       return super unless context&.source_project == project
 
-      project.documents.each do |source|
-        copy = Document.new
-        copy.attributes = source.attributes.dup.except('id', 'project_id')
-        copy.project = self
-        copy.attachments = source.attachments.map { |attachment| attachment.copy(container: copy) }
-        documents << copy
-        raise Cosmosys::ProjectCopyError, "Document #{source.id} could not be copied: #{copy.errors.full_messages.join(', ')}" if copy.new_record?
-
-        context.register_document(source.id, copy)
-      end
+      context.snapshot_source = Cosmosys::ProjectSnapshotCapture.new(
+        project, user: context.user, projects: [project.id]
+      )
+      filtered = options.dup
+      selected = options[:only].nil? ?
+        %w[members wiki versions issue_categories issues queries boards documents] : Array(options[:only]).map(&:to_s)
+      filtered[:only] = selected - SNAPSHOT_PARTS
+      super(project, filtered)
     end
+
   end
 end

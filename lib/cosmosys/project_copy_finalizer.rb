@@ -13,14 +13,8 @@ module Cosmosys
     def call
       context.destination_project = destination
       apply_profile!
-      validate_native_copy!
-      restore_deferred_issue_references!
-      apply_identity_policy!
-      apply_mode!
+      materialize_snapshot_contents!
       reconcile_external_relations!
-      reconcile_pending_relations!
-      copy_document_references!
-      rewrite_internal_references!
       copy_report_settings!
       context.summary.merge!(summary)
       context
@@ -45,72 +39,18 @@ module Cosmosys
       destination.cosmosys_enable_required_trackers!
     end
 
-    def validate_native_copy!
-      if context.copying?('issues') && context.issue_map.length != source.issues.count
-        raise ProjectCopyError, "Only #{context.issue_map.length} of #{source.issues.count} items were copied"
-      end
-      if context.copying?('documents') && context.document_map.length != source.documents.count
-        raise ProjectCopyError, "Only #{context.document_map.length} of #{source.documents.count} documents were copied"
-      end
-    end
+    def materialize_snapshot_contents!
+      return unless context.snapshot_source
 
-    def apply_mode!
-      return unless context.mode == 'clean'
-
-      context.issue_map.each_value do |issue|
-        issue.reload
-        issue.status = issue.tracker.default_status
-        issue.done_ratio = 0 if issue.respond_to?(:done_ratio=)
-        issue.start_date = nil
-        issue.due_date = nil
-        issue.closed_on = nil if issue.respond_to?(:closed_on=)
-        issue.save!
-      end
-    end
-
-    def apply_identity_policy!
-      return unless context.copying?('issues')
-
-      entries = context.issue_map.map do |source_id, copy|
-        source_issue = Issue.find(source_id)
-        { issue: copy, csid: source_issue.csid, csidnum: source_issue.csidnum,
-          position: source_issue.csposition }
-      end
-      ProjectMaterializationIdentity.new(
-        mode: context.identity_mode, destination: destination, entries: entries
-      ).apply!
-    end
-
-    def restore_deferred_issue_references!
-      context.deferred_issue_references.each do |source_id, references|
-        copy = context.issue_map.fetch(source_id)
-        copy.reload
-        references.each do |attribute, referenced_source_id|
-          referenced_copy = referenced_source_id && context.issue_map[referenced_source_id]
-          copy.public_send("#{attribute}=", referenced_copy&.id)
-        end
-        copy.save!
-      end
-    end
-
-    def copy_document_references!
-      return unless context.copying?('issues') && context.copying?('documents')
-
-      @catalog_ref_map = {}
-      Cosmosys::CatalogRef.joins(:document_catalog_entry)
-                          .where(issue_id: context.issue_map.keys, cosmosys_document_catalog_entries: { project_id: source.id })
-                          .ordered.each do |source_ref|
-        issue = context.issue_map.fetch(source_ref.issue_id)
-        document = context.document_map.fetch(source_ref.document_id)
-        entry = Cosmosys::DocumentCatalogEntry.find_or_create_for!(document: document, family: source_ref.family)
-        copy = Cosmosys::CatalogRef.create!(
-          issue: issue,
-          document_catalog_entry: entry,
-          sense: source_ref.sense,
-          location: source_ref.location
-        )
-        @catalog_ref_map[source_ref.id] = copy
-      end
+      Cosmosys::ProjectSnapshotMaterializer.new(
+        context.snapshot_source,
+        user: context.user,
+        attributes: { identity_mode: context.identity_mode, copy_mode: context.mode }
+      ).materialize_into!(
+        destination,
+        selected_parts: context.selected_parts,
+        copy_context: context
+      )
     end
 
     def reconcile_external_relations!
@@ -125,19 +65,6 @@ module Cosmosys
       restored = Hash.new(0)
       Array(effective_copy_plan.external_relations).each do |entry|
         classification = entry.fetch(:classification)
-        if classification == 'pending' && entry[:external_csid].present?
-          local_issue = context.issue_map.fetch(entry.fetch(:local_source_id))
-          Cosmosys::PendingRelation.find_or_create_by!(
-            root_project_id: destination.root.id,
-            local_issue_id: local_issue.id,
-            external_csid: entry.fetch(:external_csid),
-            relation_type: entry.fetch(:relation_type),
-            local_side: entry.fetch(:local_side)
-          ) do |pending|
-            pending.delay = entry[:delay]
-            pending.source_relation_id = entry[:source_relation_id]
-          end
-        end
         unless %w[retain_original remap_by_csid].include?(classification)
           restored[classification] += 1
           next
@@ -158,11 +85,6 @@ module Cosmosys
       context.summary[:external_relations] = restored
     end
 
-    def reconcile_pending_relations!
-      context.summary[:pending_relation_reconciliation] =
-        Cosmosys::PendingRelationReconciler.new(destination.root).call
-    end
-
     def effective_copy_plan
       context.copy_plan ||= ProjectCopyPlan.new(
         source: source,
@@ -175,16 +97,6 @@ module Cosmosys
           'parent_id' => destination.parent_id
         }
       )
-    end
-
-    def rewrite_internal_references!
-      csid_map = context.issue_map.to_h { |source_id, copy| [Issue.where(id: source_id).pick(:csid), copy.csid] }.compact
-      marker_map = (@catalog_ref_map || {}).to_h { |source_id, copy| ["document:di#{source_id}", copy.markdown_reference] }
-      id_map = context.issue_map.to_h { |source_id, copy| ["##{source_id}", "##{copy.id}"] }
-      MaterializationReferenceRewriter.new(
-        issues: context.issue_map.values, csid_map: csid_map,
-        marker_map: marker_map, id_map: id_map
-      ).call
     end
 
     def copy_report_settings!
@@ -200,7 +112,7 @@ module Cosmosys
         identity_mode: context.identity_mode,
         items: context.issue_map.length,
         documents: context.document_map.length,
-        catalog_refs: (@catalog_ref_map || {}).length,
+        catalog_refs: context.summary.fetch(:catalog_refs, 0),
         members: destination.members.count
       }
     end

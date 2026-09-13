@@ -14,27 +14,27 @@ module Cosmosys
         content = source.manifest.fetch('content')
         entries = content.fetch('projects')
         projects = create_projects!(entries)
-        items = entries.each_with_object({}) do |entry, map|
-          map.merge!(create_items!(projects.fetch(entry.fetch('key')), entry.fetch('items')))
-        end
-        entries.each do |entry|
-          apply_identity_policy!(projects.fetch(entry.fetch('key')), items, entry.fetch('items'))
-        end
-        rows = entries.flat_map { |entry| entry.fetch('items') }
-        apply_deferred_profile_fields!(items, rows)
-        restore_hierarchy!(items, rows)
-        restore_relations!(items, content.fetch('relations'))
-        documents = entries.each_with_object({}) do |entry, map|
-          map.merge!(create_documents!(projects.fetch(entry.fetch('key')), entry.fetch('documents')))
-        end
-        marker_map = {}
-        entries.each do |entry|
-          marker_map.merge!(restore_catalog!(projects.fetch(entry.fetch('key')), items, documents,
-                                             entry.fetch('document_catalog')))
-        end
-        rewrite_internal_references!(items, rows, marker_map)
+        materialize_contents!(content, entries, projects)
         projects.fetch(plan.destination_projects.find { |entry| entry[:parent_key].blank? }.fetch(:key))
       end
+    end
+
+    # Populate a project which Redmine has already created while copying its
+    # native parts (members, wiki, queries, boards...). This is the shared
+    # entity writer used by live copy and retained/portable snapshots.
+    def materialize_into!(project, selected_parts:, copy_context: nil)
+      content = source.manifest.fetch('content')
+      entries = content.fetch('projects')
+      raise ProjectCopyError, I18n.t(:error_cosmosys_snapshot_ambiguous_roots) unless entries.one?
+
+      materialize_contents!(
+        content,
+        entries,
+        { entries.first.fetch('key') => project },
+        selected_parts: Array(selected_parts).map(&:to_s),
+        copy_context: copy_context
+      )
+      project
     end
 
     private
@@ -69,6 +69,42 @@ module Cosmosys
         end
       end
       projects
+    end
+
+    def materialize_contents!(content, entries, projects, selected_parts: nil, copy_context: nil)
+      include_items = selected_parts.nil? || selected_parts.include?('issues')
+      include_documents = selected_parts.nil? || selected_parts.include?('documents')
+      items = {}
+      if include_items
+        items = entries.each_with_object({}) do |entry, map|
+          map.merge!(create_items!(projects.fetch(entry.fetch('key')), entry.fetch('items')))
+        end
+        entries.each do |entry|
+          apply_identity_policy!(projects.fetch(entry.fetch('key')), items, entry.fetch('items'))
+        end
+        rows = entries.flat_map { |entry| entry.fetch('items') }
+        apply_deferred_profile_fields!(items, rows)
+        restore_hierarchy!(items, rows)
+        restore_relations!(items, content.fetch('relations'))
+      end
+
+      documents = {}
+      if include_documents
+        documents = entries.each_with_object({}) do |entry, map|
+          map.merge!(create_documents!(projects.fetch(entry.fetch('key')), entry.fetch('documents')))
+        end
+      end
+
+      marker_map = {}
+      if include_items && include_documents
+        entries.each do |entry|
+          marker_map.merge!(restore_catalog!(projects.fetch(entry.fetch('key')), items, documents,
+                                             entry.fetch('document_catalog')))
+        end
+      end
+      rewrite_internal_references!(items, entries.flat_map { |entry| entry.fetch('items') }, marker_map) if include_items
+      register_copy_maps!(copy_context, items, documents)
+      copy_context.summary[:catalog_refs] = marker_map.length if copy_context
     end
 
     def create_project!(destination, parent)
@@ -107,14 +143,15 @@ module Cosmosys
         issue = Issue.new({
           project: project,
           tracker: tracker,
-          status: IssueStatus.find_by(name: row['status']) || IssueStatus.sorted.first,
+          status: item_status(tracker, row),
           priority: IssuePriority.find_by(name: row['priority']) || IssuePriority.default,
           author: User.find_by(login: row['author']) || user,
           assigned_to: principal(row['assigned_to']),
           subject: row.fetch('subject'),
           description: row['description'].to_s,
-          start_date: row['start_date'], due_date: row['due_date'],
-          estimated_hours: row['estimated_hours'], done_ratio: row['done_ratio'],
+          start_date: faithful? ? row['start_date'] : nil,
+          due_date: faithful? ? row['due_date'] : nil,
+          estimated_hours: row['estimated_hours'], done_ratio: faithful? ? row['done_ratio'] : 0,
           is_private: row['is_private'], csys_preferred_report_diagram: row['preferred_report_diagram']
         }.merge(identity))
         issue.category = project.issue_categories.find_or_create_by!(name: row['category']) if row['category'].present?
@@ -125,6 +162,12 @@ module Cosmosys
         restore_attachments!(issue, row.fetch('attachments'))
         [row.fetch('key'), issue]
       end
+    end
+
+    def item_status(tracker, row)
+      return tracker.default_status unless faithful?
+
+      IssueStatus.find_by(name: row['status']) || IssueStatus.sorted.first
     end
 
     def apply_deferred_profile_fields!(items, rows)
@@ -230,6 +273,21 @@ module Cosmosys
 
     def identity_mode
       ProjectCopyContext::IDENTITY_MODES.include?(attributes['identity_mode'].to_s) ? attributes['identity_mode'].to_s : 'preserve'
+    end
+
+    def faithful?
+      attributes['copy_mode'].to_s != 'clean'
+    end
+
+    def register_copy_maps!(context, items, documents)
+      return unless context
+
+      items.each do |key, issue|
+        context.register_issue(key.delete_prefix('item:').to_i, issue)
+      end
+      documents.each do |key, document|
+        context.register_document(key.delete_prefix('document:').to_i, document)
+      end
     end
 
     def principal(identity)

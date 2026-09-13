@@ -15,17 +15,8 @@ module Cosmosys
     end
 
     def call
-      content = capture_content
-      canonical_content = CanonicalJson.generate(content)
-      digest = Digest::SHA256.hexdigest(canonical_content)
-      manifest = {
-        'schema' => 'cosmosys-project-snapshot',
-        'schema_version' => SCHEMA_VERSION,
-        'content_sha256' => digest,
-        'captured_at' => Time.current.utc.iso8601(6),
-        'captured_by' => user.login,
-        'content' => content
-      }
+      payload = manifest
+      digest = payload.fetch('content_sha256')
 
       Cosmosys::ProjectSnapshot.transaction do
         snapshot = Cosmosys::ProjectSnapshot.create!(
@@ -34,10 +25,10 @@ module Cosmosys
           name: name,
           schema_version: SCHEMA_VERSION,
           content_sha256: digest,
-          manifest_gzip: gzip(CanonicalJson.generate(manifest)),
+          manifest_gzip: gzip(CanonicalJson.generate(payload)),
           item_count: project_entries.sum { |entry| entry.fetch('items').length },
           document_count: project_entries.sum { |entry| entry.fetch('documents').length },
-          relation_count: content.fetch('relations').length
+          relation_count: payload.fetch('content').fetch('relations').length
         )
         retain_attachment_payloads!(snapshot)
         # Attachment creation happens after the snapshot has been persisted.  A
@@ -45,6 +36,30 @@ module Cosmosys
         # return a fresh instance rather than exposing a stale empty cache.
         snapshot.reload
       end
+    end
+
+    # A live copy uses the exact same immutable representation as a retained
+    # snapshot, but does not need to create a snapshot database record.
+    def manifest
+      @manifest ||= begin
+        content = capture_content
+        digest = Digest::SHA256.hexdigest(CanonicalJson.generate(content))
+        {
+          'schema' => 'cosmosys-project-snapshot',
+          'schema_version' => SCHEMA_VERSION,
+          'content_sha256' => digest,
+          'captured_at' => Time.current.utc.iso8601(6),
+          'captured_by' => user.login,
+          'content' => content
+        }
+      end
+    end
+
+    def asset_path(digest)
+      attachment = Array(@source_attachments).find { |candidate| attachment_sha256(candidate) == digest }
+      raise ActiveRecord::RecordNotFound, "Snapshot asset is unavailable: #{digest}" unless attachment
+
+      attachment.diskfile
     end
 
     private

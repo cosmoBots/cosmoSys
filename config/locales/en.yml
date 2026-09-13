@@ -49,7 +49,7 @@ en:
   field_cosmosys_archive_baseline: Archive after copying
   text_cosmosys_archive_baseline_help: Applies only to faithful baselines.
   text_cosmosys_project_copy_preflight: "Preflight source: %{items} items, %{documents} documents and %{members} memberships. Structural copy failures roll back the destination."
-  notice_cosmosys_project_copy_complete: "Project %{project} copied: %{items} items, %{documents} documents and %{references} document references. External relations: %{retained} retained, %{remapped} remapped, %{pending} pending and %{resolved} previously pending resolved."
+  notice_cosmosys_project_copy_complete: "Project %{project} copied: %{items} items, %{documents} documents and %{references} document references. External relations: %{retained} retained, %{remapped} remapped and %{lost} omitted."
   label_cosmosys_copy_preflight_review: Review project copy
   text_cosmosys_copy_preflight_confirmation: "Nothing has been copied yet. Review this plan and confirm to create the destination project."
   label_cosmosys_copy_preflight_content: Content
@@ -65,8 +65,7 @@ en:
   label_cosmosys_copy_external_item: External item
   label_cosmosys_copy_relation_retain_original: Keep original endpoint
   label_cosmosys_copy_relation_remap_by_csid: Remap by CSID
-  label_cosmosys_copy_relation_pending: Pending; endpoint is not in the destination tree
-  label_cosmosys_copy_relation_lost: Lost; source endpoint no longer exists
+  label_cosmosys_copy_relation_lost: Omitted; endpoint is not available in the destination tree
   label_cosmosys_copy_relation_ambiguous: Ambiguous
   label_cosmosys_copy_relation_unauthorized: Not visible to the copying user
   text_cosmosys_copy_no_external_relations: No relations leave the source project.

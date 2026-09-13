@@ -7,7 +7,6 @@ module Cosmosys
 
     def message
       external = @summary.fetch(:external_relations, {})
-      reconciliation = @summary.fetch(:pending_relation_reconciliation, {})
       I18n.t(
         :notice_cosmosys_project_copy_complete,
         project: @context.destination_project.name,
@@ -16,8 +15,7 @@ module Cosmosys
         references: @summary.fetch(:catalog_refs, 0),
         retained: count(external, 'retain_original'),
         remapped: count(external, 'remap_by_csid'),
-        pending: count(external, 'pending'),
-        resolved: count(reconciliation, :resolved)
+        lost: count(external, 'lost')
       )
     end
 

@@ -47,10 +47,6 @@ module Cosmosys
                 class_name: 'Cosmosys::ReportPlaceholder',
                 foreign_key: :issue_id,
                 dependent: :destroy
-        has_many :cosmosys_pending_relations,
-                 class_name: 'Cosmosys::PendingRelation',
-                 foreign_key: :local_issue_id,
-                 dependent: :destroy
         safe_attributes 'csys_report_placeholder_kind'
         safe_attributes 'csys_preferred_report_diagram'
         safe_attributes 'csys_negative_status_id'
