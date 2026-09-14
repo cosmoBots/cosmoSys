@@ -146,10 +146,7 @@ module Cosmosys
     end
 
     def dsm
-      @dsm_payload = Cosmosys::DsmAnalysis.new(
-        @project, user: User.current,
-        include_negative: ActiveModel::Type::Boolean.new.cast(params[:include_negative_items])
-      ).as_json
+      @dsm_payload = Cosmosys::DsmAnalysis.new(@project, user: User.current).as_json
       @dsm_payload[:labels] = {
         sequence: l(:label_cosmosys_dsm_sequence), item: l(:label_issue_plural),
         backward: l(:label_cosmosys_dsm_backward), restricted: l(:label_cosmosys_dsm_restricted),

@@ -208,19 +208,10 @@ module Cosmosys
       kinds.uniq
     end
 
-    # An item is visible in a diagram by default only when its profile allows
-    # diagram visibility and it has not closed unsuccessfully (Rejected/Erased).
-    # Retired content stays in its persisted location and can be shown through
-    # the "show negatives in place" option via cosmosys_diagram_content_positive?
+    # Diagrams represent current content: profiles may opt out and items closed
+    # unsuccessfully (Rejected/Erased) are always excluded.
     def cosmosys_diagram_visible?
       cosmosys_item_kind.value(:diagram_visible, self) != false && cosmosys_positive?
-    end
-
-    # Full control for callers that support the "include negative" view option.
-    def cosmosys_diagram_content_positive?(include_negative: false)
-      return cosmosys_item_kind.value(:diagram_visible, self) != false if include_negative
-
-      cosmosys_diagram_visible?
     end
 
     def cosmosys_tree_visible?
