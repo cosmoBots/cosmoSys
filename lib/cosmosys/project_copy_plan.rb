@@ -5,7 +5,7 @@ module Cosmosys
   class ProjectCopyPlan
     VERIFIER_SALT = :cosmosys_project_copy_plan
     attr_reader :source, :user, :context, :destination_attributes, :external_relations,
-                :identity_collisions
+                :identity_collisions, :project_data_reconciliation
 
     def initialize(source:, user:, context:, destination_attributes:)
       @source = source
@@ -18,6 +18,10 @@ module Cosmosys
                        end
       @destination_attributes = raw_attributes.stringify_keys
       @identity_collisions = find_identity_collisions
+      @project_data_reconciliation = ProjectDataReconciliation.new(
+        rows: project_data_rows, root: parent&.root,
+        policy: @destination_attributes['project_data_conflict_policy'], user: user
+      )
       @external_relations = inspect_external_relations
     end
 
@@ -26,6 +30,10 @@ module Cosmosys
       if identity_collisions.any?
         messages << I18n.t(:error_cosmosys_preserve_csid_collision,
                            csids: identity_collisions.sort.join(', '))
+      end
+      if project_data_reconciliation.blocking?
+        messages << I18n.t(:error_cosmosys_project_data_conflicts,
+                           keys: project_data_reconciliation.conflicts.map { |entry| entry.fetch(:key) }.join(', '))
       end
       ambiguous = external_relations.select { |entry| entry[:classification] == 'ambiguous' }
       if ambiguous.any?
@@ -85,11 +93,21 @@ module Cosmosys
     def find_identity_collisions
       return [] unless context.identity_mode == 'preserve' && context.copying?('issues') && parent
 
-      csids = source.issues.where.not(csid: nil).pluck(:csid)
+      csids = source.issues.includes(:tracker).reject(&:cosmosys_defines_project_data?).filter_map(&:csid)
       return [] if csids.empty?
 
       Issue.where(project_id: parent.root.self_and_descendants.select(:id))
            .where('LOWER(csid) IN (?)', csids.map(&:downcase)).pluck(:csid).uniq
+    end
+
+    def project_data_rows
+      source.issues.includes(:tracker).select(&:cosmosys_defines_project_data?).map do |issue|
+        {
+          'key' => "item:#{issue.id}", 'csid' => issue.csid, 'subject' => issue.subject,
+          'tracker' => { 'item_profile' => issue.cosmosys_item_kind_key },
+          'profile_fields' => { 'csys_value' => issue.csys_value }
+        }
+      end
     end
 
     def inspect_external_relations
@@ -154,13 +172,14 @@ module Cosmosys
       {
         source_id: source.id,
         source_updated_on: source.updated_on&.utc&.iso8601(6),
-        destination: destination_attributes.slice('name', 'identifier', 'cscode', 'parent_id'),
+        destination: destination_attributes.slice('name', 'identifier', 'cscode', 'parent_id', 'project_data_conflict_policy'),
         mode: context.mode,
         identity_mode: context.identity_mode,
         selected_parts: context.selected_parts.sort,
         counts: counts,
         source_revisions: source_revisions,
         identity_collisions: identity_collisions.sort,
+        project_data_reconciliation: project_data_reconciliation.entries,
         external_relations: external_relations
       }
     end

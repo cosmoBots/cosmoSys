@@ -14,6 +14,14 @@
       <%= radio_button_tag 'destination[identity_mode]', 'preserve', @destination['identity_mode'].to_s != 'new' %> <%= l(:label_cosmosys_identity_mode_preserve) %>
       <%= radio_button_tag 'destination[identity_mode]', 'new', @destination['identity_mode'].to_s == 'new' %> <%= l(:label_cosmosys_identity_mode_new) %>
     </p>
+    <p>
+      <label><%= l(:field_cosmosys_project_data_conflict_policy) %></label>
+      <% datum_policy = @destination['project_data_conflict_policy'].to_s.presence || 'cancel' %>
+      <% Cosmosys::ProjectDataReconciliation::POLICIES.each do |policy| %>
+        <%= radio_button_tag 'destination[project_data_conflict_policy]', policy, datum_policy == policy %>
+        <%= l("label_cosmosys_project_data_conflict_#{policy}") %>
+      <% end %>
+    </p>
     <p><%= submit_tag l(:button_cosmosys_import_snapshot), class: 'button-positive' %></p>
   <% end %>
 </div>

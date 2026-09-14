@@ -1,3 +1,5 @@
+require 'set'
+
 module Cosmosys
   class ProjectSnapshotMaterializer
     def initialize(source, user:, attributes:)
@@ -84,6 +86,7 @@ module Cosmosys
     end
 
     def materialize_contents!(content, entries, projects, selected_parts: nil, copy_context: nil)
+      @reused_item_keys = Set.new
       include_items = selected_parts.nil? || selected_parts.include?('issues')
       include_documents = selected_parts.nil? || selected_parts.include?('documents')
       items = {}
@@ -150,6 +153,13 @@ module Cosmosys
         tracker = Tracker.find_by(csys_key: tracker_key) || Tracker.find_by(name: tracker_key) ||
                   raise(ActiveRecord::RecordNotFound, "Tracker #{tracker_key} is unavailable")
         semantic_identity = tracker.cosmosys_item_kind_profile.user_defined_csid == true
+        if semantic_identity && tracker.cosmosys_item_kind_profile.defines_project_data == true
+          existing = reconcile_project_data!(project, row)
+          if existing
+            @reused_item_keys.add(row.fetch('key'))
+            next [row.fetch('key'), existing]
+          end
+        end
         identity = (identity_mode == 'preserve' || semantic_identity) ? {
           csid: row.fetch('csid'), csidnum: row.fetch('csidnum'), csposition: row.fetch('position')
         } : {}
@@ -186,6 +196,8 @@ module Cosmosys
     def apply_deferred_profile_fields!(items, rows)
       csid_map = rows.to_h { |row| [row.fetch('csid'), items.fetch(row.fetch('key')).csid] }
       rows.each do |row|
+        next if @reused_item_keys.include?(row.fetch('key'))
+
         issue = items.fetch(row.fetch('key')).reload
         Cosmosys::OdsItemFieldRegistry.apply(
           issue, row.fetch('profile_fields', {}), phase: :deferred, context: { csid_map: csid_map }
@@ -195,7 +207,7 @@ module Cosmosys
     end
 
     def apply_identity_policy!(project, items, rows)
-      entries = rows.map do |row|
+      entries = rows.reject { |row| @reused_item_keys.include?(row.fetch('key')) }.map do |row|
         { issue: items.fetch(row.fetch('key')), csid: row.fetch('csid'),
           csidnum: row.fetch('csidnum'), position: row.fetch('position') }
       end
@@ -208,10 +220,39 @@ module Cosmosys
 
     def restore_hierarchy!(items, rows)
       rows.each do |row|
+        next if @reused_item_keys.include?(row.fetch('key'))
+
         parent = items[row['parent_key']]
         # Redmine's nested-set maintenance can advance siblings' lock_version
         # while preceding parents are restored.  Always update a fresh object.
         items.fetch(row.fetch('key')).reload.update!(parent_issue_id: parent.id) if parent
+      end
+    end
+
+    def reconcile_project_data!(project, row)
+      root = project.root || project
+      profile_keys = ItemKindRegistry.all.select(&:defines_project_data).map(&:key)
+      existing = Issue.joins(:tracker)
+                      .where(project_id: root.self_and_descendants.select(:id), trackers: { csys_item_kind: profile_keys })
+                      .where('LOWER(issues.csid) = ?', row.fetch('csid').downcase)
+                      .first
+      return unless existing
+
+      source_name = row.fetch('subject').to_s
+      source_value = row.fetch('profile_fields', {})['csys_value'].to_s
+      return existing if existing.subject.to_s == source_name && existing.csys_value.to_s == source_value
+
+      case project_data_conflict_policy
+      when 'keep'
+        existing
+      when 'overwrite'
+        unless existing.editable?(user)
+          raise ProjectCopyError, I18n.t(:error_cosmosys_project_data_overwrite_forbidden, key: row.fetch('csid'))
+        end
+        existing.update!(subject: source_name, csys_value: source_value)
+        existing
+      else
+        raise ProjectCopyError, I18n.t(:error_cosmosys_project_data_conflicts, keys: row.fetch('csid'))
       end
     end
 
@@ -286,6 +327,11 @@ module Cosmosys
 
     def identity_mode
       ProjectCopyContext::IDENTITY_MODES.include?(attributes['identity_mode'].to_s) ? attributes['identity_mode'].to_s : 'preserve'
+    end
+
+    def project_data_conflict_policy
+      ProjectDataReconciliation::POLICIES.include?(attributes['project_data_conflict_policy'].to_s) ?
+        attributes['project_data_conflict_policy'].to_s : 'cancel'
     end
 
     def faithful?

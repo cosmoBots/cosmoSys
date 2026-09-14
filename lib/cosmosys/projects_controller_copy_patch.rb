@@ -22,17 +22,22 @@ module Cosmosys
       )
       selected_project_ids = Array(copy_params[:project_ids]).presence || [source.id]
       selected_project_ids = selected_project_ids.map(&:to_s).uniq
+      raw_destination = params[:project] || {}
+      raw_destination = raw_destination.to_unsafe_h if raw_destination.respond_to?(:to_unsafe_h)
+      destination_attributes = raw_destination.to_h.merge(
+        'project_data_conflict_policy' => copy_params[:project_data_conflict_policy]
+      )
       plan = if selected_project_ids != [source.id.to_s]
                Cosmosys::ProjectTreeCopyPlan.new(
                  source: source, user: User.current, context: context,
-                 destination_attributes: params[:project] || {},
+                 destination_attributes: destination_attributes,
                  project_ids: selected_project_ids,
                  project_identifiers: copy_params[:project_identifiers]
                )
              else
                Cosmosys::ProjectCopyPlan.new(
                  source: source, user: User.current, context: context,
-                 destination_attributes: params[:project] || {}
+                 destination_attributes: destination_attributes
                )
              end
       raise Cosmosys::ProjectCopyError, plan.blocking_messages.join(' ') if plan.blocking_messages.any?

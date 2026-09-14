@@ -11,6 +11,7 @@ module Cosmosys
         'dependency_diagram' => '0',
         'item_url_link' => '0',
         'info_url_link' => '0',
+        'project_data_links' => '0',
         'include_negative_items' => '0'
       }
     }.freeze

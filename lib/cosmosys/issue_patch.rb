@@ -22,11 +22,13 @@ module Cosmosys
         validate :cosmosys_validate_issue_csid_uniqueness
         validate :cosmosys_validate_user_defined_csid
         validate :cosmosys_validate_issue_identity_immutable, on: :update
+        validate :cosmosys_validate_used_project_data_retirement, on: :update
         before_validation :cosmosys_assign_identity, on: :create
         before_validation :cosmosys_assign_position
         before_save :cosmosys_capture_root_transition, if: :cosmosys_tree_structure_pending_change?
         before_destroy :cosmosys_capture_diagram_obsolete_ids
         before_destroy :cosmosys_capture_root_transition
+        before_destroy :cosmosys_prevent_used_project_data_deletion
         after_save :cosmosys_normalize_sibling_positions, if: :cosmosys_saved_hierarchy_change?
         after_commit :cosmosys_mark_diagrams_obsolete_after_commit, on: [:create, :update]
         after_commit :cosmosys_bump_tree_revision_after_commit, on: [:create, :update]
@@ -549,6 +551,28 @@ module Cosmosys
     def cosmosys_validate_issue_identity_immutable
       errors.add(:csid, :readonly) if will_save_change_to_csid?
       errors.add(:csidnum, :readonly) if will_save_change_to_csidnum?
+    end
+
+    def cosmosys_validate_used_project_data_retirement
+      return unless cosmosys_defines_project_data? && will_save_change_to_status_id?
+      return unless status&.respond_to?(:cosmosys_unsuccessfully_closed?) && status.cosmosys_unsuccessfully_closed?
+
+      usages = Cosmosys::ProjectDataUsageScanner.new(self).call(limit: 4)
+      cosmosys_add_project_data_usage_error(usages) if usages.any?
+    end
+
+    def cosmosys_prevent_used_project_data_deletion
+      return unless cosmosys_defines_project_data?
+      usages = Cosmosys::ProjectDataUsageScanner.new(self).call(limit: 4)
+      return if usages.empty?
+
+      cosmosys_add_project_data_usage_error(usages)
+      throw :abort
+    end
+
+    def cosmosys_add_project_data_usage_error(usages)
+      references = usages.map { |usage| "##{usage.issue.id} (#{usage.attribute})" }.join(', ')
+      errors.add(:base, I18n.t(:text_cosmosys_project_data_in_use, references: references))
     end
 
     def cosmosys_saved_hierarchy_change?

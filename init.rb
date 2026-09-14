@@ -164,6 +164,8 @@ require_dependency File.expand_path('lib/cosmosys/issue_query_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/presentation_text_registry', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_data_dictionary', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_data_report_scanner', __dir__)
+require_dependency File.expand_path('lib/cosmosys/project_data_usage_scanner', __dir__)
+require_dependency File.expand_path('lib/cosmosys/project_data_reconciliation', __dir__)
 require_dependency File.expand_path('lib/cosmosys/application_helper_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issues_helper_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/queries_helper_patch', __dir__)
@@ -176,7 +178,15 @@ Cosmosys::PresentationTextRegistry.register(:project_data) do |text, project:, u
 
     escaped_value = formatter.call(value)
     tooltip = formatter.call("#{entry.key} — #{entry.name.presence || entry.key} — #{entry.value}")
-    %(<em class="cosmosys-project-data" title="#{tooltip}">#{escaped_value}</em>)
+    content = %(<em class="cosmosys-project-data" title="#{tooltip}">#{escaped_value}</em>)
+    link_policy = entry.issue.cosmosys_item_kind.value(:resolved_project_data_links, entry.issue)
+    link_enabled = link_policy == true || (link_policy == :user_choice && Cosmosys::ProjectDataRenderState.link_resolutions)
+    next content unless link_enabled
+
+    issue_url = Rails.application.routes.url_helpers.issue_url(
+      entry.issue, host: Setting.host_name, protocol: Setting.protocol
+    )
+    %(<a href="#{formatter.call(issue_url)}" data-cosmosys-export-link="1">#{content}</a>)
   end
 end
 

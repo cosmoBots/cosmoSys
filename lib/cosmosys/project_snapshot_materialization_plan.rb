@@ -6,7 +6,8 @@ module Cosmosys
     VERIFIER_SALT = :cosmosys_project_snapshot_materialization_plan
 
     attr_reader :source, :attributes, :identity_collisions, :missing_trackers,
-                :missing_custom_fields, :missing_assets, :plugin_compatibility
+                :missing_custom_fields, :missing_assets, :plugin_compatibility,
+                :project_data_reconciliation
 
     def initialize(source:, attributes:)
       @source = source
@@ -14,6 +15,9 @@ module Cosmosys
       @attributes = raw.stringify_keys
       validate_schema!
       @identity_collisions = find_identity_collisions
+      @project_data_reconciliation = ProjectDataReconciliation.new(
+        rows: items, root: parent&.root, policy: attributes['project_data_conflict_policy']
+      )
       @missing_trackers = find_missing_trackers
       @missing_custom_fields = find_missing_custom_fields
       @missing_assets = find_missing_assets
@@ -54,6 +58,10 @@ module Cosmosys
       if identity_collisions.any?
         messages << I18n.t(:error_cosmosys_preserve_csid_collision,
                            csids: identity_collisions.sort.join(', '))
+      end
+      if project_data_reconciliation.blocking?
+        messages << I18n.t(:error_cosmosys_project_data_conflicts,
+                           keys: project_data_reconciliation.conflicts.map { |entry| entry.fetch(:key) }.join(', '))
       end
       if missing_trackers.any?
         messages << I18n.t(:error_cosmosys_snapshot_trackers_missing,
@@ -177,12 +185,16 @@ module Cosmosys
     def find_identity_collisions
       return [] unless identity_mode == 'preserve' && parent
 
-      csids = items.filter_map { |row| row['csid']&.downcase }
+      csids = items.reject { |row| data_profile?(row) }.filter_map { |row| row['csid']&.downcase }
       return [] if csids.empty?
 
       tree_root = parent.root || parent
       Issue.where(project_id: tree_root.self_and_descendants.select(:id))
            .where('LOWER(csid) IN (?)', csids).pluck(:csid).uniq
+    end
+
+    def data_profile?(row)
+      ItemKindRegistry.fetch(row.dig('tracker', 'item_profile')).defines_project_data == true
     end
 
     def find_missing_trackers
@@ -248,10 +260,11 @@ module Cosmosys
     def canonical_payload
       {
         source_digest: manifest.fetch('content_sha256'),
-        destination: attributes.slice('name', 'identifier', 'cscode', 'parent_id', 'identity_mode'),
+        destination: attributes.slice('name', 'identifier', 'cscode', 'parent_id', 'identity_mode', 'project_data_conflict_policy'),
         destination_projects: destination_projects.map { |entry| entry.slice(:key, :parent_key, :identifier, :cscode) },
         counts: counts,
         identity_collisions: identity_collisions.sort,
+        project_data_reconciliation: project_data_reconciliation.entries,
         missing_trackers: missing_trackers.sort,
         missing_custom_fields: missing_custom_fields.sort,
         missing_assets: missing_assets.sort,

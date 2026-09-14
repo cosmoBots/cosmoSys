@@ -6,6 +6,7 @@ module Cosmosys
     end
 
     def call
+      Cosmosys::ProjectDataRenderState.link_resolutions = report.options['project_data_links']
       report.sections.each { |section| scan_section(section) }
       dictionary
     end

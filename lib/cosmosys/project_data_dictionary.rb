@@ -1,6 +1,6 @@
 module Cosmosys
   class ProjectDataRenderState < ActiveSupport::CurrentAttributes
-    attribute :dictionaries
+    attribute :dictionaries, :link_resolutions
   end
 
   class ProjectDataDictionary

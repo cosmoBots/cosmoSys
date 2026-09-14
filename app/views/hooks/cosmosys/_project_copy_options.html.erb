@@ -20,6 +20,15 @@
     <%= check_box_tag 'cosmosys_copy[archive]', '1', params.dig(:cosmosys_copy, :archive).present? %>
     <em class="info"><%= l(:text_cosmosys_archive_baseline_help) %></em>
   </p>
+  <p>
+    <label><%= l(:field_cosmosys_project_data_conflict_policy) %></label>
+    <% datum_policy = params.dig(:cosmosys_copy, :project_data_conflict_policy).to_s.presence || 'cancel' %>
+    <% Cosmosys::ProjectDataReconciliation::POLICIES.each do |policy| %>
+      <%= radio_button_tag 'cosmosys_copy[project_data_conflict_policy]', policy, datum_policy == policy %>
+      <%= l("label_cosmosys_project_data_conflict_#{policy}") %>
+    <% end %>
+    <em class="info"><%= l(:text_cosmosys_project_data_conflict_policy) %></em>
+  </p>
   <% selected_project_ids = Array(params.dig(:cosmosys_copy, :project_ids)).map(&:to_s) %>
   <% selected_project_ids = [@source_project.id.to_s] if selected_project_ids.empty? %>
   <div class="cosmosys-copy-project-selection">

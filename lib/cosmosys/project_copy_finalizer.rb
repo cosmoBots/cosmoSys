@@ -45,7 +45,10 @@ module Cosmosys
       Cosmosys::ProjectSnapshotMaterializer.new(
         context.snapshot_source,
         user: context.user,
-        attributes: { identity_mode: context.identity_mode, copy_mode: context.mode }
+        attributes: {
+          identity_mode: context.identity_mode, copy_mode: context.mode,
+          project_data_conflict_policy: effective_copy_plan.destination_attributes['project_data_conflict_policy']
+        }
       ).materialize_into!(
         destination,
         selected_parts: context.selected_parts,

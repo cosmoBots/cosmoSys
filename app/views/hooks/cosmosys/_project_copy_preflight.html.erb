@@ -43,6 +43,24 @@
     </tbody>
   </table>
 
+  <% reconciliation = plan.respond_to?(:project_data_reconciliation) ? plan.project_data_reconciliation : plan.materialization_plan.project_data_reconciliation %>
+  <% if reconciliation.entries.any? %>
+    <h4><%= l(:label_cosmosys_project_data_reconciliation) %></h4>
+    <table class="list">
+      <thead><tr><th><%= l(:field_cosmosys_datum_key) %></th><th><%= l(:field_status) %></th><th><%= l(:field_subject) %></th><th><%= l(:field_cosmosys_datum_value) %></th></tr></thead>
+      <tbody>
+        <% reconciliation.entries.each do |entry| %>
+          <tr class="<%= 'warning' if entry[:status] == 'conflict' %>">
+            <td><%= entry[:key] %></td>
+            <td><%= l("label_cosmosys_project_data_#{entry[:status]}") %></td>
+            <td><%= entry[:target_visible] ? entry[:target_name] : l(:label_cosmosys_project_data_hidden) %> → <%= entry[:source_name] %></td>
+            <td><%= entry[:target_visible] ? entry[:target_value] : l(:label_cosmosys_project_data_hidden) %> → <%= entry[:source_value] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+
   <% if plan.external_relations.any? %>
     <h4><%= l(:label_cosmosys_copy_external_relations) %></h4>
     <table class="list">

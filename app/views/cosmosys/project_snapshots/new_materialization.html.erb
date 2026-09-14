@@ -15,6 +15,15 @@
       <%= radio_button_tag 'destination[identity_mode]', 'new', @destination['identity_mode'].to_s == 'new' %> <%= l(:label_cosmosys_identity_mode_new) %>
       <em class="info"><%= l(:text_cosmosys_identity_mode_help) %></em>
     </p>
+    <p>
+      <label><%= l(:field_cosmosys_project_data_conflict_policy) %></label>
+      <% datum_policy = @destination['project_data_conflict_policy'].to_s.presence || 'cancel' %>
+      <% Cosmosys::ProjectDataReconciliation::POLICIES.each do |policy| %>
+        <%= radio_button_tag 'destination[project_data_conflict_policy]', policy, datum_policy == policy %>
+        <%= l("label_cosmosys_project_data_conflict_#{policy}") %>
+      <% end %>
+      <em class="info"><%= l(:text_cosmosys_project_data_conflict_policy) %></em>
+    </p>
     <% if @materialization_plan %>
       <div class="cosmosys-project-copy-preflight">
         <h3><%= l(:label_cosmosys_snapshot_materialization_preflight) %></h3>
@@ -31,6 +40,21 @@
             <% end %>
           </tbody>
         </table>
+        <% if @materialization_plan.project_data_reconciliation.entries.any? %>
+          <h4><%= l(:label_cosmosys_project_data_reconciliation) %></h4>
+          <table class="list">
+            <thead><tr><th><%= l(:field_cosmosys_datum_key) %></th><th><%= l(:field_status) %></th><th><%= l(:field_subject) %></th><th><%= l(:field_cosmosys_datum_value) %></th></tr></thead>
+            <tbody>
+              <% @materialization_plan.project_data_reconciliation.entries.each do |entry| %>
+                <tr class="<%= 'warning' if entry[:status] == 'conflict' %>">
+                  <td><%= entry[:key] %></td><td><%= l("label_cosmosys_project_data_#{entry[:status]}") %></td>
+                  <td><%= entry[:target_visible] ? entry[:target_name] : l(:label_cosmosys_project_data_hidden) %> → <%= entry[:source_name] %></td>
+                  <td><%= entry[:target_visible] ? entry[:target_value] : l(:label_cosmosys_project_data_hidden) %> → <%= entry[:source_value] %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% end %>
         <h4><%= l(:label_cosmosys_snapshot_plugins) %></h4>
         <p class="info"><%= l(:text_cosmosys_snapshot_plugin_compatibility) %></p>
         <table class="list">

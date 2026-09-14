@@ -67,7 +67,7 @@ module Cosmosys
       Cosmosys::ProjectSnapshotPackageReader.open(upload.tempfile.path) do |source|
         destination = Cosmosys::ProjectSnapshotMaterializer.new(
           source, user: User.current,
-          attributes: params.require(:destination).permit(:name, :identifier, :cscode, :parent_id, :identity_mode)
+          attributes: params.require(:destination).permit(:name, :identifier, :cscode, :parent_id, :identity_mode, :project_data_conflict_policy)
         ).call
       end
       redirect_to project_path(destination), notice: l(:notice_cosmosys_project_snapshot_materialized)
@@ -95,7 +95,7 @@ module Cosmosys
 
     def materialize
       deny_access unless User.current.admin?
-      attributes = params.require(:destination).permit(:name, :identifier, :cscode, :parent_id, :identity_mode)
+      attributes = params.require(:destination).permit(:name, :identifier, :cscode, :parent_id, :identity_mode, :project_data_conflict_policy)
       plan = Cosmosys::ProjectSnapshotMaterializationPlan.new(source: @snapshot, attributes: attributes)
       confirmed_digest = Cosmosys::ProjectSnapshotMaterializationPlan.verified_digest(params[:confirmed_plan])
       unless confirmed_digest && ActiveSupport::SecurityUtils.secure_compare(confirmed_digest, plan.digest)
