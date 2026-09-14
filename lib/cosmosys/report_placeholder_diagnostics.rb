@@ -17,12 +17,12 @@ module Cosmosys
       results << Result.new(code: :info_tracker_disabled) unless info_tracker
       results << Result.new(code: :document_tracker_disabled) unless document_tracker
 
-      if document_tracker && document_tracker.cosmosys_item_kind_profile.report_placeholder_kinds.to_a.sort != ReportPlaceholder::KINDS.keys.sort
+      if document_tracker && document_tracker.cosmosys_item_kind_profile.report_placeholder_kinds.to_a.sort != ReportPlaceholder::DOCUMENT_KINDS.keys.sort
         results << Result.new(code: :document_profile_invalid, details: document_tracker.csys_item_kind)
       end
 
       placeholders = ReportPlaceholder.where(project_id: project.id).includes(:issue).index_by(&:kind)
-      missing = ReportPlaceholder::KINDS.keys - placeholders.keys
+      missing = ReportPlaceholder::DOCUMENT_KINDS.keys - placeholders.keys
       results << Result.new(code: :placeholders_missing, details: missing) if missing.any?
       invalid = placeholders.values.select { |placeholder| placeholder.issue.nil? || !placeholder.valid? }
       results << Result.new(code: :placeholders_invalid, details: invalid.map(&:kind)) if invalid.any?

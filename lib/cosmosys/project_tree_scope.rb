@@ -34,6 +34,7 @@ module Cosmosys
         .includes(:project, :tracker, :parent)
         .order(:csposition, :lft, :id)
         .to_a
+        .select(&:cosmosys_tree_visible?)
       return issues if @include_negative
 
       issues_by_id = issues.index_by(&:id)

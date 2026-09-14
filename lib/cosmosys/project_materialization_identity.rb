@@ -9,7 +9,10 @@ module Cosmosys
     end
 
     def apply!
-      return destination if mode == 'new'
+      if mode == 'new'
+        restore_semantic_identities!
+        return destination
+      end
 
       validate_collisions!
       entries.each do |entry|
@@ -28,6 +31,20 @@ module Cosmosys
     private
 
     attr_reader :mode, :destination, :entries
+
+    def restore_semantic_identities!
+      entries.each do |entry|
+        issue = entry.fetch(:issue)
+        next unless issue.cosmosys_user_defined_csid?
+
+        Issue.unscoped.where(id: issue.id).update_all(
+          csid: entry.fetch(:csid),
+          csidnum: entry.fetch(:csidnum),
+          csposition: entry.fetch(:position)
+        )
+        issue.reload
+      end
+    end
 
     def validate_collisions!
       csids = entries.map { |entry| entry.fetch(:csid) }

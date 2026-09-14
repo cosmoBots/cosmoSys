@@ -59,7 +59,7 @@ module Cosmosys
     end
 
     def local_issues
-      @local_issues ||= tree_scope.local_issues
+      @local_issues ||= tree_scope.local_issues.select(&:cosmosys_report_visible?)
     end
 
     def issues_by_parent_id
@@ -87,7 +87,7 @@ module Cosmosys
     end
 
     def assign_chapters(issues, prefix, map)
-      issues.select(&:cosmosys_positive?).each_with_index do |issue, index|
+      issues.select { |issue| issue.cosmosys_positive? && issue.cosmosys_chapter_numbered? }.each_with_index do |issue, index|
         chapter = [prefix, index + 1].compact.join('.')
         map[issue.id] = chapter
         assign_chapters(ordered_children(issue.id), chapter, map)
@@ -138,7 +138,7 @@ module Cosmosys
     end
 
     def document_catalog_entries_for(placeholder)
-      return [] unless placeholder
+      return [] unless placeholder&.family
 
       Cosmosys::DocumentCatalogEntry.where(project_id: placeholder.project_id, family: placeholder.family)
                                     .includes(:document)

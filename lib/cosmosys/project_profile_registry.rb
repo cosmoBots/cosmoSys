@@ -22,7 +22,9 @@ module Cosmosys
     DEFAULT_ITEM_LIST_COLUMNS = %w[chapter_label subject tracker status priority assigned_to updated_on category fixed_version].freeze
     BASE_TRACKERS = [
       { key: 'cs_info', name: 'csInfo', item_profile: 'info' }.freeze,
-      { key: 'cs_ref_doc', name: 'csRefDoc', item_profile: 'doc' }.freeze
+      { key: 'cs_ref_doc', name: 'csRefDoc', item_profile: 'doc' }.freeze,
+      { key: 'cs_data', name: 'csData', item_profile: 'data_section' }.freeze,
+      { key: 'cs_datum', name: 'csDatum', item_profile: 'datum' }.freeze
     ].freeze
 
     module_function

@@ -83,6 +83,7 @@ module Cosmosys
           options: @report_options
         ).build
       end
+      Cosmosys::ProjectDataReportScanner.new(@report, user: User.current).call
       @tree_health_problem = Cosmosys::IssueTreeHealth.first_problem(@report.local_issues)
       @report_placeholder_diagnostics = Cosmosys::ReportPlaceholderDiagnostics.new(@project, user: User.current).call
     end

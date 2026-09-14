@@ -1,0 +1,22 @@
+<% if issue.cosmosys_defines_project_data? %>
+  <fieldset class="box cosmosys-datum-fields">
+    <legend><%= l(:label_cosmosys_project_data) %></legend>
+    <p><%= form.text_field :csid, required: true, readonly: issue.persisted?, label: l(:field_cosmosys_datum_key) %></p>
+    <p><%= form.text_field :csys_value, label: l(:field_cosmosys_datum_value) %></p>
+    <em class="info"><%= l(:text_cosmosys_datum_subject_help) %></em>
+  </fieldset>
+  <script>
+    (function() {
+      function hideDatumHostFields() {
+        ['issue_status_id', 'issue_priority_id', 'issue_assigned_to_id', 'issue_category_id',
+         'issue_fixed_version_id', 'issue_start_date', 'issue_due_date',
+         'issue_estimated_hours', 'issue_done_ratio'].forEach(function(id) {
+          var field = document.getElementById(id);
+          if (field && field.closest('p')) field.closest('p').hidden = true;
+        });
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hideDatumHostFields);
+      else hideDatumHostFields();
+    })();
+  </script>
+<% end %>

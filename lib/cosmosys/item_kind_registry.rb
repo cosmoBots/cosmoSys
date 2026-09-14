@@ -25,6 +25,14 @@ module Cosmosys
       :closed_presentation,
       :allow_unsuccessful_closure_when_blocked,
       :validate_blocking_maturity,
+      :tree_visible,
+      :report_visible,
+      :chapter_numbered,
+      :allowed_child_profiles,
+      :defines_project_data,
+      :user_defined_csid,
+      :consumes_csid_sequence,
+      :resolved_project_data_links,
       keyword_init: true
     ) do
       def value(attribute, issue, **context)
@@ -56,7 +64,15 @@ module Cosmosys
       { key: :reference_tracker, label: :label_cosmosys_item_profile_reference_tracker, scope: :text_cosmosys_item_profile_scope_reference_tracker },
       { key: :closed_presentation, label: :label_cosmosys_item_profile_closed_presentation, scope: :text_cosmosys_item_profile_scope_closed_presentation },
       { key: :allow_unsuccessful_closure_when_blocked, label: :label_cosmosys_item_profile_unsuccessful_closure, scope: :text_cosmosys_item_profile_scope_unsuccessful_closure },
-      { key: :validate_blocking_maturity, label: :label_cosmosys_item_profile_maturity_validation, scope: :text_cosmosys_item_profile_scope_maturity_validation }
+      { key: :validate_blocking_maturity, label: :label_cosmosys_item_profile_maturity_validation, scope: :text_cosmosys_item_profile_scope_maturity_validation },
+      { key: :tree_visible, label: :label_cosmosys_item_profile_tree_visible, scope: :text_cosmosys_item_profile_scope_tree_visible },
+      { key: :report_visible, label: :label_cosmosys_item_profile_report_visible, scope: :text_cosmosys_item_profile_scope_report_visible },
+      { key: :chapter_numbered, label: :label_cosmosys_item_profile_chapter_numbered, scope: :text_cosmosys_item_profile_scope_chapter_numbered },
+      { key: :allowed_child_profiles, label: :label_cosmosys_item_profile_allowed_children, scope: :text_cosmosys_item_profile_scope_allowed_children },
+      { key: :defines_project_data, label: :label_cosmosys_item_profile_defines_project_data, scope: :text_cosmosys_item_profile_scope_defines_project_data },
+      { key: :user_defined_csid, label: :label_cosmosys_item_profile_user_defined_csid, scope: :text_cosmosys_item_profile_scope_user_defined_csid },
+      { key: :consumes_csid_sequence, label: :label_cosmosys_item_profile_consumes_csid_sequence, scope: :text_cosmosys_item_profile_scope_consumes_csid_sequence },
+      { key: :resolved_project_data_links, label: :label_cosmosys_item_profile_data_links, scope: :text_cosmosys_item_profile_scope_data_links }
     ].map { |effect| effect.freeze }.freeze
 
     def register(key, label: nil, description: nil, provider:, **attributes)
@@ -117,7 +133,14 @@ module Cosmosys
           dsm_mode: 'leaves',
           closed_presentation: 'struck',
           allow_unsuccessful_closure_when_blocked: false,
-          validate_blocking_maturity: false
+          validate_blocking_maturity: false,
+          tree_visible: true,
+          report_visible: true,
+          chapter_numbered: true,
+          defines_project_data: false,
+          user_defined_csid: false,
+          consumes_csid_sequence: true,
+          resolved_project_data_links: false
         )
       }
     end
@@ -132,7 +155,15 @@ module Cosmosys
         reference_tracker: true,
         closed_presentation: 'struck',
         allow_unsuccessful_closure_when_blocked: false,
-        validate_blocking_maturity: false
+        validate_blocking_maturity: false,
+        tree_visible: true,
+        report_visible: true,
+        chapter_numbered: true,
+        allowed_child_profiles: nil,
+        defines_project_data: false,
+        user_defined_csid: false,
+        consumes_csid_sequence: true,
+        resolved_project_data_links: false
       }.merge(attributes)
       immutable_attributes = attributes.transform_values { |value| value.nil? || value.frozen? ? value : value.freeze }
       Profile.new(**immutable_attributes).freeze
@@ -175,6 +206,47 @@ Cosmosys::ItemKindRegistry.register(
   allowed_parent_profiles: %w[info].freeze,
   dsm_mode: 'none',
   report_placeholder_kinds: %w[reference_documents applicable_documents compliance_documents].freeze
+)
+
+Cosmosys::ItemKindRegistry.register(
+  'data_section',
+  label: :label_cosmosys_item_profile_data_section,
+  description: :text_cosmosys_item_profile_data_section,
+  provider: :cosmosys,
+  diagram_visible: false,
+  report_diagrams: false,
+  report_metadata: false,
+  can_have_children: true,
+  can_split: false,
+  aggregate_children: false,
+  allowed_child_profiles: %w[datum].freeze,
+  dsm_mode: 'none',
+  reference_mode: 'chapter',
+  reference_tracker: false,
+  report_placeholder_kinds: %w[project_data].freeze
+)
+
+Cosmosys::ItemKindRegistry.register(
+  'datum',
+  label: :label_cosmosys_item_profile_datum,
+  description: :text_cosmosys_item_profile_datum,
+  provider: :cosmosys,
+  diagram_visible: false,
+  report_diagrams: false,
+  report_metadata: false,
+  can_have_children: false,
+  can_split: false,
+  aggregate_children: false,
+  dsm_mode: 'none',
+  reference_mode: 'csid',
+  reference_tracker: false,
+  tree_visible: false,
+  report_visible: false,
+  chapter_numbered: false,
+  defines_project_data: true,
+  user_defined_csid: true,
+  consumes_csid_sequence: false,
+  resolved_project_data_links: :user_choice
 )
 
 Cosmosys::ItemKindRegistry.register(

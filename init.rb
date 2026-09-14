@@ -162,11 +162,23 @@ require_dependency File.expand_path('lib/cosmosys/diagram_cache_bootstrap', __di
 require_dependency File.expand_path('lib/cosmosys/project_query_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issue_query_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/presentation_text_registry', __dir__)
+require_dependency File.expand_path('lib/cosmosys/project_data_dictionary', __dir__)
+require_dependency File.expand_path('lib/cosmosys/project_data_report_scanner', __dir__)
 require_dependency File.expand_path('lib/cosmosys/application_helper_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issues_helper_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/queries_helper_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/projects_helper_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/hooks', __dir__)
+
+Cosmosys::PresentationTextRegistry.register(:project_data) do |text, project:, user:, formatter:|
+  Cosmosys::ProjectDataDictionary.current(project: project, user: user).resolve(text) do |value, entry, _component|
+    next value unless formatter
+
+    escaped_value = formatter.call(value)
+    tooltip = formatter.call("#{entry.key} — #{entry.name.presence || entry.key} — #{entry.value}")
+    %(<em class="cosmosys-project-data" title="#{tooltip}">#{escaped_value}</em>)
+  end
+end
 
 patch_cosmosys_models = proc do
   Project.include Cosmosys::ProjectPatch unless Project < Cosmosys::ProjectPatch

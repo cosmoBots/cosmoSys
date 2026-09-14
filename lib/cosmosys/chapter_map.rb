@@ -28,12 +28,13 @@ module Cosmosys
 
     def self.for_issue(issue)
       return nil unless issue
+      return nil unless issue.cosmosys_chapter_numbered?
 
       path = []
       current = issue
 
       while current.present?
-        sibling_ids = sibling_scope_for(current).select(&:cosmosys_positive?).map(&:id)
+        sibling_ids = sibling_scope_for(current).select { |candidate| candidate.cosmosys_positive? && candidate.cosmosys_chapter_numbered? }.map(&:id)
         sibling_index = sibling_ids.index(current.id)
         return nil unless sibling_index
 
@@ -60,7 +61,7 @@ module Cosmosys
     private
 
     def assign_children(parent_id, prefix, result)
-      ordered_children(parent_id).each_with_index do |issue, index|
+      ordered_children(parent_id).select(&:cosmosys_chapter_numbered?).each_with_index do |issue, index|
         chapter = [prefix, index + 1].compact.join('.')
         result[issue.id] = chapter
         assign_children(issue.id, chapter, result)

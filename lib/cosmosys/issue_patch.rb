@@ -20,6 +20,7 @@ module Cosmosys
         validate :cosmosys_validate_parent_scope
         validate :cosmosys_validate_profile_hierarchy
         validate :cosmosys_validate_issue_csid_uniqueness
+        validate :cosmosys_validate_user_defined_csid
         validate :cosmosys_validate_issue_identity_immutable, on: :update
         before_validation :cosmosys_assign_identity, on: :create
         before_validation :cosmosys_assign_position
@@ -50,6 +51,8 @@ module Cosmosys
         safe_attributes 'csys_report_placeholder_kind'
         safe_attributes 'csys_preferred_report_diagram'
         safe_attributes 'csys_negative_status_id'
+        safe_attributes 'csys_value', if: ->(issue, _user) { issue.cosmosys_defines_project_data? }
+        safe_attributes 'csid', if: ->(issue, _user) { issue.new_record? && issue.cosmosys_user_defined_csid? }
         validates :csys_preferred_report_diagram,
                   inclusion: { in: PREFERRED_REPORT_DIAGRAMS }
         validate :cosmosys_validate_negative_status
@@ -155,6 +158,26 @@ module Cosmosys
 
     def cosmosys_diagram_visible?
       cosmosys_item_kind.value(:diagram_visible, self) != false
+    end
+
+    def cosmosys_tree_visible?
+      cosmosys_item_kind.value(:tree_visible, self) != false
+    end
+
+    def cosmosys_report_visible?
+      cosmosys_item_kind.value(:report_visible, self) != false
+    end
+
+    def cosmosys_chapter_numbered?
+      cosmosys_item_kind.value(:chapter_numbered, self) != false
+    end
+
+    def cosmosys_defines_project_data?
+      cosmosys_item_kind.value(:defines_project_data, self) == true
+    end
+
+    def cosmosys_user_defined_csid?
+      cosmosys_item_kind.value(:user_defined_csid, self) == true
     end
 
     def cosmosys_report_metadata?
@@ -415,6 +438,18 @@ module Cosmosys
 
     def cosmosys_assign_identity
       return unless project.present?
+
+      if cosmosys_user_defined_csid?
+        self.csid = csid.to_s.strip.presence
+        return if csidnum.present?
+
+        project.root.with_lock do
+          project_ids = project.root.self_and_descendants.select(:id)
+          self.csidnum = Issue.where(project_id: project_ids).where('csidnum < 0').minimum(:csidnum).to_i - 1
+        end
+        return
+      end
+
       return if csid.present?
 
       project.with_lock do
@@ -483,6 +518,10 @@ module Cosmosys
       unless parent_issue.cosmosys_item_kind.can_have_children
         errors.add(:parent_issue_id, I18n.t(:text_cosmosys_parent_profile_cannot_have_children))
       end
+      allowed_children = parent_issue.cosmosys_item_kind.allowed_child_profiles
+      if allowed_children && !allowed_children.include?(profile.key)
+        errors.add(:parent_issue_id, I18n.t(:text_cosmosys_parent_profile_rejects_child))
+      end
       allowed = profile.allowed_parent_profiles
       return if allowed.nil? || allowed.include?(parent_issue.cosmosys_item_kind.key)
 
@@ -499,6 +538,12 @@ module Cosmosys
       return unless duplicates.exists?
 
       errors.add(:csid, :taken)
+    end
+
+    def cosmosys_validate_user_defined_csid
+      return unless cosmosys_user_defined_csid?
+
+      errors.add(:csid, :invalid) unless csid.to_s.match?(/\A[A-Za-z][A-Za-z0-9_]*\z/)
     end
 
     def cosmosys_validate_issue_identity_immutable

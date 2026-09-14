@@ -1,0 +1,25 @@
+<% entries = Cosmosys::ProjectDataDictionary.current(project: @project, user: User.current).used_entries %>
+<section class="cosmosys-report-project-data">
+  <% if entries.any? %>
+    <table class="list cosmosys-project-data-table">
+      <thead>
+        <tr>
+          <th><%= l(:field_cosmosys_datum_key) %></th>
+          <th><%= l(:field_subject) %></th>
+          <th><%= l(:field_cosmosys_datum_value) %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% entries.each do |entry| %>
+          <tr>
+            <td><%= link_to entry.fetch(:key), issue_url(entry.fetch(:issue)), data: { cosmosys_export_link: true } %></td>
+            <td><%= entry.fetch(:name) %></td>
+            <td><%= entry.fetch(:value) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="nodata"><%= l(:text_cosmosys_project_data_unused) %></p>
+  <% end %>
+</section>

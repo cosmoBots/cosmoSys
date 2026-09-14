@@ -149,7 +149,8 @@ module Cosmosys
         tracker_key = row.dig('tracker', 'key')
         tracker = Tracker.find_by(csys_key: tracker_key) || Tracker.find_by(name: tracker_key) ||
                   raise(ActiveRecord::RecordNotFound, "Tracker #{tracker_key} is unavailable")
-        identity = identity_mode == 'preserve' ? {
+        semantic_identity = tracker.cosmosys_item_kind_profile.user_defined_csid == true
+        identity = (identity_mode == 'preserve' || semantic_identity) ? {
           csid: row.fetch('csid'), csidnum: row.fetch('csidnum'), csposition: row.fetch('position')
         } : {}
         issue = Issue.new({

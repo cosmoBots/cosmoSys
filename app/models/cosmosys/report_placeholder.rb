@@ -5,8 +5,10 @@ module Cosmosys
     KINDS = {
       'reference_documents' => 'R',
       'applicable_documents' => 'A',
-      'compliance_documents' => 'C'
+      'compliance_documents' => 'C',
+      'project_data' => nil
     }.freeze
+    DOCUMENT_KINDS = KINDS.select { |_kind, family| family.present? }.freeze
 
     belongs_to :issue
     belongs_to :project

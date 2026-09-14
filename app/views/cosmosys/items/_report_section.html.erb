@@ -35,6 +35,8 @@
 
   <% if section.issue.cosmosys_item_kind_key == 'negative' %>
     <%= render partial: 'cosmosys/items/report_negative_items', locals: { section: section } %>
+  <% elsif section.report_placeholder&.kind == 'project_data' %>
+    <%= render partial: 'cosmosys/items/report_project_data', locals: { section: section } %>
   <% elsif section.report_placeholder %>
     <%= render partial: 'cosmosys/items/report_document_catalog', locals: { section: section } %>
   <% elsif section.body_fields.present? %>

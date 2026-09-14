@@ -1,0 +1,13 @@
+<% if issue.cosmosys_defines_project_data? %>
+  <div class="box cosmosys-datum-details">
+    <h3><%= l(:label_cosmosys_project_data) %></h3>
+    <table class="attributes">
+      <tbody>
+        <tr>
+          <th><%= l(:field_cosmosys_datum_key) %></th><td><%= issue.csid %></td>
+          <th><%= l(:field_cosmosys_datum_value) %></th><td><%= issue.csys_value.presence || '-' %></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+<% end %>

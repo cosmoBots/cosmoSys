@@ -1,0 +1,25 @@
+<% dictionary = Cosmosys::ProjectDataDictionary.current(project: issue.project, user: User.current) %>
+<% entries = dictionary.used_entries %>
+<% if entries.any? %>
+  <div class="box cosmosys-used-project-data">
+    <h3><%= l(:label_cosmosys_used_project_data) %></h3>
+    <table class="list cosmosys-project-data-table">
+      <thead>
+        <tr>
+          <th><%= l(:field_cosmosys_datum_key) %></th>
+          <th><%= l(:field_subject) %></th>
+          <th><%= l(:field_cosmosys_datum_value) %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% entries.each do |entry| %>
+          <tr>
+            <td><%= link_to entry.fetch(:key), issue_path(entry.fetch(:issue)) %></td>
+            <td><%= entry.fetch(:name) %></td>
+            <td><%= entry.fetch(:value) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>
