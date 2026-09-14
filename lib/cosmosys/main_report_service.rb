@@ -1,7 +1,7 @@
 module Cosmosys
   class MainReportService
     Report = Struct.new(:project, :sections, :toc_entries, :local_issues, :options, :orphaned_sections, keyword_init: true)
-    Section = Struct.new(:issue, :depth, :heading_level, :chapter, :anchor, :metadata_fields, :body_fields, :children, :report_placeholder, :document_catalog_entries, :document_references, :negative_items, :numbered, keyword_init: true)
+    Section = Struct.new(:issue, :depth, :heading_level, :chapter, :anchor, :metadata_fields, :body_fields, :children, :report_placeholder, :document_catalog_entries, :document_references, :negative_items, :numbered, :orphaned, keyword_init: true)
     OutlineEntry = Struct.new(:issue, :chapter, keyword_init: true)
 
     def initialize(project, user:, column_names: nil, field_presentations: nil, options: nil)
@@ -90,8 +90,6 @@ module Cosmosys
 
     def build_section_from_entry(entry, depth)
       issue = entry.issue
-      return build_section(issue, depth, {}) if entry.children.empty?
-
       fields = field_registry.fields_for(issue)
       placeholder = issue.cosmosys_report_placeholder
       Section.new(
@@ -107,7 +105,8 @@ module Cosmosys
         document_catalog_entries: document_catalog_entries_for(placeholder),
         document_references: document_references_for(issue),
         negative_items: [],
-        numbered: issue.cosmosys_positive?
+        numbered: false,
+        orphaned: true
       )
     end
 
@@ -145,7 +144,8 @@ module Cosmosys
         document_catalog_entries: document_catalog_entries_for(placeholder),
         document_references: document_references_for(issue),
         negative_items: negative_items_for(issue),
-        numbered: issue.cosmosys_positive?
+        numbered: issue.cosmosys_positive?,
+        orphaned: false
       )
     end
 

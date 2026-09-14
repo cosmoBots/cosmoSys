@@ -1,4 +1,6 @@
 es:
+  label_cosmosys_item_profile_physical_delete: Política de borrado físico
+  text_cosmosys_item_profile_scope_physical_delete: Controla si bastan los permisos de Redmine para borrar físicamente o si se requiere un administrador.
   mail_subject_cosmosys_issue_tree_audit: Se han detectado anomalías en árboles de items
   mail_body_cosmosys_issue_tree_audit: "La auditoría de sólo lectura de cosmoSys comprobó %{roots} árboles de proyecto y %{items} items, y encontró anomalías en %{inconsistent} árboles."
   mail_body_cosmosys_issue_tree_audit_repair_warning: "No se ha modificado ningún dato. Revise los árboles indicados y ejecute la reparación administrativa explícita sólo después de confirmar la anomalía."

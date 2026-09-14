@@ -10,6 +10,7 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
     add_index :issues, :csys_datum_source_issue_id unless index_exists?(:issues, :csys_datum_source_issue_id)
 
     create_negative_status_selections_table unless table_exists?(:cosmosys_negative_statuses)
+    migrate_legacy_negative_status_selections
 
     install_trackers
   end
@@ -45,6 +46,19 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
 
   def remove_negative_status_selections_table
     drop_table :cosmosys_negative_statuses
+  end
+
+  def migrate_legacy_negative_status_selections
+    return unless column_exists?(:issues, :csys_negative_status_id)
+
+    execute <<~SQL.squish
+      INSERT INTO cosmosys_negative_statuses (issue_id, issue_status_id, created_at, updated_at)
+      SELECT id, csys_negative_status_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+      FROM issues
+      WHERE csys_negative_status_id IS NOT NULL
+      ON CONFLICT DO NOTHING
+    SQL
+    execute 'UPDATE issues SET csys_negative_status_id = NULL WHERE csys_negative_status_id IS NOT NULL'
   end
 
   def install_trackers

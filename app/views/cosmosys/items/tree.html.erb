@@ -7,7 +7,7 @@
   <%= render partial: 'tree_sidebar', locals: { issue: selected_issue } %>
 <% end %>
 
-<% if root_entries.any? %>
+<% if root_entries.any? || Array(@tree_orphaned_issues).any? %>
   <div class="cosmosys-tree-scrollbox">
     <div class="box cosmosys-tree-view cosmosys-tree-reorder-view" data-cosmosys-tree="tree">
       <div class="cosmosys-dnd-dropzone cosmosys-dnd-root-dropzone"

@@ -33,6 +33,7 @@ module Cosmosys
       :user_defined_csid,
       :consumes_csid_sequence,
       :resolved_project_data_links,
+      :physical_delete_policy,
       keyword_init: true
     ) do
       def value(attribute, issue, **context)
@@ -72,7 +73,8 @@ module Cosmosys
       { key: :defines_project_data, label: :label_cosmosys_item_profile_defines_project_data, scope: :text_cosmosys_item_profile_scope_defines_project_data },
       { key: :user_defined_csid, label: :label_cosmosys_item_profile_user_defined_csid, scope: :text_cosmosys_item_profile_scope_user_defined_csid },
       { key: :consumes_csid_sequence, label: :label_cosmosys_item_profile_consumes_csid_sequence, scope: :text_cosmosys_item_profile_scope_consumes_csid_sequence },
-      { key: :resolved_project_data_links, label: :label_cosmosys_item_profile_data_links, scope: :text_cosmosys_item_profile_scope_data_links }
+      { key: :resolved_project_data_links, label: :label_cosmosys_item_profile_data_links, scope: :text_cosmosys_item_profile_scope_data_links },
+      { key: :physical_delete_policy, label: :label_cosmosys_item_profile_physical_delete, scope: :text_cosmosys_item_profile_scope_physical_delete }
     ].map { |effect| effect.freeze }.freeze
 
     def register(key, label: nil, description: nil, provider:, **attributes)
@@ -140,7 +142,8 @@ module Cosmosys
           defines_project_data: false,
           user_defined_csid: false,
           consumes_csid_sequence: true,
-          resolved_project_data_links: false
+          resolved_project_data_links: false,
+          physical_delete_policy: 'redmine'
         )
       }
     end
@@ -163,7 +166,8 @@ module Cosmosys
         defines_project_data: false,
         user_defined_csid: false,
         consumes_csid_sequence: true,
-        resolved_project_data_links: false
+        resolved_project_data_links: false,
+        physical_delete_policy: 'redmine'
       }.merge(attributes)
       immutable_attributes = attributes.transform_values { |value| value.nil? || value.frozen? ? value : value.freeze }
       Profile.new(**immutable_attributes).freeze

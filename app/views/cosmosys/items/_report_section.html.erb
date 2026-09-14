@@ -73,6 +73,16 @@
     <%= render partial: 'cosmosys/items/report_section', locals: { section: child, server_export: local_assigns.fetch(:server_export, false) } %>
   <% end %>
 </article>
+<% elsif section.orphaned %>
+<article id="<%= section.anchor %>" class="cosmosys-report-orphaned-item" data-cosmosys-report-item data-cosmosys-report-text="<%= [section.issue.csid, section.issue.subject, section.issue.description].compact.join(' ').downcase %>">
+  <h6><%= link_to section.issue.csid, issue_path(section.issue) %> — <%= section.issue.subject %></h6>
+  <% if @report.options['description'] && section.issue.description.present? %>
+    <div class="wiki cosmosys-report-description"><%= textilizable(Cosmosys::MainReportTextNormalizer.normalize(section.issue.description), object: section.issue, attachments: section.issue.attachments) %></div>
+  <% end %>
+  <% section.children.each do |child| %>
+    <%= render partial: 'cosmosys/items/report_section', locals: { section: child, server_export: local_assigns.fetch(:server_export, false) } %>
+  <% end %>
+</article>
 <% else %>
 <p class="cosmosys-report-negative-spacer" style="margin: 1em 0 0 0; line-height: 1;">&nbsp;</p>
 <article id="<%= section.anchor %>" class="cosmosys-report-negative-item" style="margin: 0.5em 0 1em 0; padding: 0.75em 1em; border-left: 4px solid #b94a48; background-color: #fdf3f3;" data-cosmosys-report-item data-cosmosys-report-text="<%= [section.issue.csid, section.issue.subject, section.issue.description].compact.join(' ').downcase %>">

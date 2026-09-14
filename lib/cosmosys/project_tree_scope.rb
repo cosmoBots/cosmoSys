@@ -26,7 +26,7 @@ module Cosmosys
       @local_issues ||= visible_local_issues
     end
 
-    # Positive items whose nearest ancestor in the tree is negative
+    # Positive items whose immediate parent in the persisted tree is negative
     # (Rejected/Erased). They are excluded from the default tree/report because
     # their parent is retired, but remain fully alive and must be rescuable. In
     # the "show negatives in place" view there are no orphans: everything is
@@ -36,8 +36,7 @@ module Cosmosys
 
       @orphaned_roots ||= visible_local_issues_for_scoping.values
         .select(&:cosmosys_positive?)
-        .select { |issue| negative_ancestor?(issue) }
-        .reject { |issue| positive_ancestor_in_project?(issue) }
+        .select { |issue| negative_parent?(issue) }
     end
 
     def orphaned_issues
@@ -56,24 +55,9 @@ module Cosmosys
         .index_by(&:id)
     end
 
-    def negative_ancestor?(issue)
-      current = visible_local_issues_for_scoping[issue.parent_id]
-      while current
-        return true unless current.cosmosys_positive?
-
-        current = visible_local_issues_for_scoping[current.parent_id]
-      end
-      false
-    end
-
-    def positive_ancestor_in_project?(issue)
-      current = visible_local_issues_for_scoping[issue.parent_id]
-      while current
-        return true if current.cosmosys_positive?
-
-        current = visible_local_issues_for_scoping[current.parent_id]
-      end
-      false
+    def negative_parent?(issue)
+      parent = visible_local_issues_for_scoping[issue.parent_id]
+      parent.present? && !parent.cosmosys_positive?
     end
 
     def visible_local_issues

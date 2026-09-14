@@ -71,6 +71,7 @@ module Cosmosys
         validate :cosmosys_validate_negative_status
         validate :cosmosys_validate_report_placeholder
         after_save :cosmosys_sync_report_placeholder
+        after_save :cosmosys_sync_negative_status_selections
       end
 
       searchable_columns = Array(base.searchable_options[:columns]).dup
@@ -104,12 +105,10 @@ module Cosmosys
     end
 
     def cosmosys_validate_negative_status
-      return unless cosmosys_negative_item? && csys_negative_status_id.present?
+      return unless cosmosys_negative_item?
 
-      status = IssueStatus.find_by(id: csys_negative_status_id)
-      return if status&.is_closed? && status.csys_closed_outcome == 'unsuccessful'
-
-      errors.add(:csys_negative_status_id, :invalid)
+      invalid = csys_negative_status_ids.reject { |status_id| valid_negative_status_selection?(status_id) }
+      errors.add(:csys_negative_status_ids, :invalid) if invalid.any?
     end
 
     # Multi-status selector for a csNegative. An empty selection means "surface
@@ -119,28 +118,25 @@ module Cosmosys
     # captured before the join table existed; the join table is the source of
     # truth for the multi-selector.
     def csys_negative_status_ids
-      return @csys_negative_status_ids.to_a if !persisted? && defined?(@csys_negative_status_ids)
+      return @csys_negative_status_ids.to_a if defined?(@csys_negative_status_ids)
 
       ids = negative_status_selections.map(&:issue_status_id)
-      ids = [csys_negative_status_id] if ids.blank? && csys_negative_status_id.present?
       ids.compact.uniq
     end
 
     def csys_negative_status_ids=(ids)
       values = Array(ids).reject(&:blank?).map(&:to_i).uniq
-      if persisted?
-        current = negative_status_selections.map(&:issue_status_id)
-        to_remove = current - values
-        to_add = values - current
-        negative_status_selections.where(issue_status_id: to_remove).delete_all if to_remove.any?
-        to_add.each do |status_id|
-          next unless valid_negative_status_selection?(status_id)
+      @csys_negative_status_ids = values
+    end
 
-          negative_status_selections.create!(issue_status_id: status_id)
-        end
-      else
-        @csys_negative_status_ids = values
-      end
+    def cosmosys_sync_negative_status_selections
+      return unless cosmosys_negative_item? && defined?(@csys_negative_status_ids)
+
+      values = @csys_negative_status_ids
+      negative_status_selections.where.not(issue_status_id: values).delete_all
+      values.each { |status_id| negative_status_selections.find_or_create_by!(issue_status_id: status_id) }
+      update_column(:csys_negative_status_id, nil) if csys_negative_status_id.present?
+      remove_instance_variable(:@csys_negative_status_ids)
     end
 
     def cosmosys_selected_negative_status_ids
@@ -635,13 +631,10 @@ module Cosmosys
       throw :abort
     end
 
-    # Physical deletes are reserved to administrators. No non-admin profile can
-    # delete any item; retirement is modelled by the Erased state. An
-    # administrator may perform Redmine's hard delete (making the item
-    # disappear) on any item, including a requirement. This is a model-level
-    # guard, independent of the controller's permission checks; disabling the
-    # Redmine delete control for non-admins is handled separately.
+    # Profiles may reserve physical deletion to administrators. Profiles using
+    # the default `redmine` policy retain Redmine's native permission model.
     def cosmosys_prevent_unauthorized_physical_delete
+      return unless cosmosys_item_kind.value(:physical_delete_policy, self) == 'admin_only'
       return if User.current&.admin?
 
       errors.add(:base, I18n.t(:error_cosmosys_issue_delete_admin_only))

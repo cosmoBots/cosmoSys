@@ -1,4 +1,6 @@
 en:
+  label_cosmosys_item_profile_physical_delete: Physical deletion policy
+  text_cosmosys_item_profile_scope_physical_delete: Controls whether Redmine permissions are sufficient for hard deletion or an administrator is required.
   mail_subject_cosmosys_issue_tree_audit: Item-tree anomalies detected
   mail_body_cosmosys_issue_tree_audit: "The read-only cosmoSys audit checked %{roots} project trees and %{items} items, and found anomalies in %{inconsistent} trees."
   mail_body_cosmosys_issue_tree_audit_repair_warning: "No data was changed. Review the reported trees and run the explicit administrator repair only after confirming the anomaly."
