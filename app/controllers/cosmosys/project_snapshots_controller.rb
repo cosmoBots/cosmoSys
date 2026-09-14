@@ -62,15 +62,13 @@ module Cosmosys
 
     def import
       deny_access unless User.current.admin?
-      upload = params.require(:snapshot_file)
-      destination = nil
-      Cosmosys::ProjectSnapshotPackageReader.open(upload.tempfile.path) do |source|
-        destination = Cosmosys::ProjectSnapshotMaterializer.new(
-          source, user: User.current,
-          attributes: params.require(:destination).permit(:name, :identifier, :cscode, :parent_id, :identity_mode, :project_data_conflict_policy)
-        ).call
+      attributes = params.require(:destination).permit(:name, :identifier, :cscode, :parent_id, :identity_mode, :project_data_conflict_policy)
+
+      if params[:confirmed_plan].present?
+        perform_confirmed_import(attributes)
+      else
+        stage_and_preview_import(attributes)
       end
-      redirect_to project_path(destination), notice: l(:notice_cosmosys_project_snapshot_materialized)
     rescue ProjectSnapshotPackageError, ProjectCopyError, ActiveRecord::RecordInvalid,
            ActiveRecord::RecordNotFound, ActionController::ParameterMissing, KeyError => error
       flash.now[:error] = error.message
@@ -141,6 +139,71 @@ module Cosmosys
     end
 
     private
+
+    # First step of the external .csys import: upload a bounded package, stage
+    # it, validate it and build the signed non-writing preflight. Nothing is
+    # created; the confirmation screen must be reviewed and re-submitted.
+    def stage_and_preview_import(attributes)
+      upload = params[:snapshot_file]
+      raise ProjectSnapshotPackageError, I18n.t(:error_cosmosys_snapshot_file_required) unless upload.respond_to?(:read) && upload.tempfile
+
+      token = Cosmosys::ProjectSnapshotImportStage.create(upload.tempfile.path)
+      @destination = attributes.to_h
+      @parent_projects = Project.visible(User.current).order(:name)
+      path = Cosmosys::ProjectSnapshotImportStage.retrieve(token)
+      unless path
+        Cosmosys::ProjectSnapshotImportStage.cleanup(token)
+        raise ProjectSnapshotPackageError, I18n.t(:error_cosmosys_snapshot_upload_expired)
+      end
+
+      begin
+        Cosmosys::ProjectSnapshotPackageReader.open(path) do |source|
+          @import_plan = Cosmosys::ProjectSnapshotMaterializationPlan.new(source: source, attributes: attributes)
+        end
+      rescue StandardError
+        # An invalid or unplanable package must not keep a staged upload: the
+        # user must fix the package before a further confirmation step.
+        Cosmosys::ProjectSnapshotImportStage.cleanup(token)
+        raise
+      end
+      @import_token = token
+      render :new_import
+    end
+
+    # Second step: only after the preflight digest still matches the current
+    # plan does the import materialize, using the exact staged bytes reviewed.
+    # The staged upload is removed after a completed or failed materialization;
+    # a changed preflight keeps the stage so the user can confirm the new plan.
+    def perform_confirmed_import(attributes)
+      token = params[:import_token].to_s
+      confirmed_digest = Cosmosys::ProjectSnapshotMaterializationPlan.verified_digest(params[:confirmed_plan])
+      path = Cosmosys::ProjectSnapshotImportStage.retrieve(token)
+      unless confirmed_digest && path
+        Cosmosys::ProjectSnapshotImportStage.cleanup(token)
+        @destination = attributes.to_h
+        @parent_projects = Project.visible(User.current).order(:name)
+        return render :new_import
+      end
+
+      Cosmosys::ProjectSnapshotPackageReader.open(path) do |source|
+        plan = Cosmosys::ProjectSnapshotMaterializationPlan.new(source: source, attributes: attributes)
+        unless ActiveSupport::SecurityUtils.secure_compare(confirmed_digest, plan.digest)
+          @import_plan = plan
+          @import_token = token
+          @destination = attributes.to_h
+          @parent_projects = Project.visible(User.current).order(:name)
+          return render :new_import
+        end
+        raise ProjectCopyError, plan.blocking_messages.join(' ') if plan.blocking_messages.any?
+
+        destination = Cosmosys::ProjectSnapshotMaterializer.new(
+          source, user: User.current, attributes: attributes
+        ).call
+        Cosmosys::ProjectSnapshotImportStage.cleanup(token)
+        notice = Cosmosys::ProjectSnapshotMaterializationSummary.new(project: destination, plan: plan).message
+        redirect_to project_path(destination), notice: notice
+      end
+    end
 
     def authorize_project
       deny_access unless @project.visible?(User.current)
