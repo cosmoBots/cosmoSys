@@ -180,7 +180,7 @@ Cosmosys::PresentationTextRegistry.register(:project_data) do |text, project:, u
   Cosmosys::ProjectDataDictionary.current(project: project, user: user).resolve(text) do |value, entry, _component|
     next value unless formatter
 
-    escaped_value = formatter.call(value)
+    escaped_value = formatter.call(value, :inline_wiki, entry.issue)
     tooltip = formatter.call("#{entry.key} — #{entry.name.presence || entry.key} — #{entry.value}")
     content = %(<em class="cosmosys-project-data" title="#{tooltip}">#{escaped_value}</em>)
     link_policy = entry.issue.cosmosys_item_kind.value(:resolved_project_data_links, entry.issue)

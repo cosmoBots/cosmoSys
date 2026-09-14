@@ -5,7 +5,8 @@
       <tbody>
         <tr>
           <th><%= l(:field_cosmosys_datum_key) %></th><td><%= issue.csid %></td>
-          <th><%= l(:field_cosmosys_datum_value) %></th><td><%= issue.csys_value.presence || '-' %></td>
+          <th><%= l(:field_cosmosys_datum_value) %></th>
+          <td class="wiki"><%= issue.csys_value.present? ? textilizable(issue.csys_value, object: issue, project: issue.project) : '-' %></td>
         </tr>
       </tbody>
     </table>

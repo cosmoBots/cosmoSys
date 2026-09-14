@@ -20,7 +20,13 @@ module Cosmosys
             text,
             project: presentation_project,
             user: User.current,
-            formatter: ->(value) { ERB::Util.html_escape(value) }
+            formatter: lambda do |value, representation = :escaped, object = nil|
+              if representation == :inline_wiki
+                cosmosys_inline_wiki_html(value, object: object)
+              else
+                ERB::Util.html_escape(value)
+              end
+            end
           )
         )
       end
@@ -68,6 +74,21 @@ module Cosmosys
       end
 
       super
+    end
+
+    def cosmosys_inline_wiki_html(value, object: nil)
+      html = Redmine::WikiFormatting.to_html(
+        Setting.text_formatting,
+        value.to_s,
+        object: object,
+        attribute: :csys_value,
+        view: self
+      )
+      fragment = Nokogiri::HTML::DocumentFragment.parse(html)
+      only_child = fragment.children.reject { |node| node.text? && node.text.blank? }
+      return only_child.first.inner_html if only_child.one? && only_child.first.name == 'p'
+
+      fragment.to_html
     end
 
     def cosmosys_tree_issue_link(issue, chapter_map: nil, boundary: false)
