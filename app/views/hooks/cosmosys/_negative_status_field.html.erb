@@ -1,14 +1,17 @@
 <% issue = local_assigns[:issue] || @issue %>
 <% if issue&.cosmosys_item_kind_key == 'negative' %>
   <% negative_statuses = IssueStatus.where(is_closed: true, csys_closed_outcome: 'unsuccessful').order(:position, :id) %>
+  <% selected_ids = issue.csys_negative_status_ids %>
   <p id="cosmosys-negative-status-field">
-    <%= label_tag 'issue_csys_negative_status_id', l(:label_cosmosys_negative_status) %>
+    <%= label_tag 'issue_csys_negative_status_ids', l(:label_cosmosys_negative_statuses) %>
     <%= select_tag(
-          'issue[csys_negative_status_id]',
-          options_from_collection_for_select(negative_statuses, :id, :name, issue.csys_negative_status_id),
-          include_blank: l(:label_cosmosys_all_negative_statuses),
-          id: 'issue_csys_negative_status_id'
+          'issue[csys_negative_status_ids][]',
+          options_from_collection_for_select(negative_statuses, :id, :name, selected_ids),
+          multiple: true,
+          size: [negative_statuses.length, 6].min,
+          id: 'issue_csys_negative_status_ids',
+          include_blank: l(:label_cosmosys_all_negative_statuses)
         ) %>
-    <em class="info"><%= l(:text_cosmosys_negative_status_help) %></em>
+    <em class="info"><%= l(:text_cosmosys_negative_statuses_help) %></em>
   </p>
 <% end %>

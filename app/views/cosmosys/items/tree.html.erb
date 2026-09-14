@@ -21,6 +21,17 @@
           <%= render partial: 'tree_node', locals: { entry: entry, chapter_map: @chapter_map, project: @project, project_ancestor_map: @project_ancestor_map, reorderable_issue_ids: @reorderable_issue_ids, sibling_last: index == root_entries.length - 1, depth: 0 } %>
         <% end %>
       </ul>
+      <% if Array(@tree_orphaned_issues).any? %>
+        <div class="cosmosys-tree-orphaned">
+          <h3 class="cosmosys-tree-orphaned-heading"><%= l(:label_cosmosys_tree_orphaned_items) %></h3>
+          <p class="cosmosys-tree-orphaned-help"><%= l(:text_cosmosys_tree_orphaned_items) %></p>
+          <ul class="cosmosys-tree-root">
+            <% Array(@tree_orphaned_issues).each_with_index do |entry, index| %>
+              <%= render partial: 'tree_node', locals: { entry: entry, chapter_map: @chapter_map, project: @project, project_ancestor_map: @project_ancestor_map, reorderable_issue_ids: @reorderable_issue_ids, sibling_last: index == Array(@tree_orphaned_issues).length - 1, depth: 0 } %>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
     </div>
   </div>
 

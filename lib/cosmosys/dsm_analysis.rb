@@ -6,9 +6,10 @@ module Cosmosys
 
     attr_reader :project, :user
 
-    def initialize(project, user: User.current)
+    def initialize(project, user: User.current, include_negative: false)
       @project = project
       @user = user
+      @include_negative = include_negative
     end
 
     def as_json(*)
@@ -42,6 +43,7 @@ module Cosmosys
     def visible_items
       @visible_items ||= begin
         issues = Issue.visible(user).where(project_id: project.id).includes(:tracker, :project).order(:parent_id, :csposition, :id).to_a
+        issues = issues.select(&:cosmosys_positive?) unless @include_negative
         @chapter_map = project.cosmosys_chapter_map(issues)
         issues.sort_by { |issue| chapter_sort_key(@chapter_map[issue.id]) }
       end

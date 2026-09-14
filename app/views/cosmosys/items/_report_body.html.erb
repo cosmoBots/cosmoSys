@@ -1,9 +1,18 @@
 <div class="cosmosys-report-scrollbox" data-cosmosys-report-scrollbox>
-  <% if @report.sections.empty? %>
+  <% if @report.sections.empty? && Array(@report.orphaned_sections).empty? %>
     <p class="nodata"><%= l(:label_cosmosys_main_report_empty) %></p>
   <% else %>
     <% @report.sections.each do |section| %>
       <%= render partial: 'cosmosys/items/report_section', locals: { section: section, server_export: local_assigns.fetch(:server_export, false) } %>
+    <% end %>
+    <% if Array(@report.orphaned_sections).any? %>
+      <section class="cosmosys-report-orphaned">
+        <h2 class="cosmosys-report-orphaned-heading"><%= l(:label_cosmosys_report_orphaned_items) %></h2>
+        <p class="cosmosys-report-orphaned-help"><%= l(:text_cosmosys_report_orphaned_items) %></p>
+        <% @report.orphaned_sections.each do |section| %>
+          <%= render partial: 'cosmosys/items/report_section', locals: { section: section, server_export: local_assigns.fetch(:server_export, false) } %>
+        <% end %>
+      </section>
     <% end %>
   <% end %>
 </div>
