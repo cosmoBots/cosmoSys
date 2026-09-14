@@ -99,7 +99,8 @@ module Cosmosys
 
     def capture_project(selected)
       issues = selected.issues.visible(user).includes(:tracker, :status, :priority, :author, :assigned_to,
-                                                      :category, :fixed_version, :custom_values, :attachments)
+                                                      :category, :fixed_version, :custom_values, :attachments,
+                                                      :cosmosys_presentation_baselines)
                        .order(:csposition, :id).to_a
       issue_ids = issues.map(&:id).to_set
       documents = selected.documents.visible(user).includes(:category, :attachments).order(:id).to_a
@@ -165,6 +166,18 @@ module Cosmosys
         'is_private' => issue.is_private,
         'closed_on' => issue.closed_on,
         'preferred_report_diagram' => issue.csys_preferred_report_diagram,
+        'presentation_baselines' => issue.cosmosys_presentation_baselines.order(:attribute_name).map do |baseline|
+          {
+            'attribute' => baseline.attribute_name,
+            'source_text' => baseline.source_text,
+            'resolved_text' => baseline.resolved_text,
+            'ledger' => baseline.ledger,
+            'resolved_sha256' => baseline.resolved_sha256,
+            'captured_status' => baseline.captured_status&.name,
+            'captured_maturity' => baseline.captured_maturity || baseline.captured_status&.cosmosys_maturity_level.to_i,
+            'captured_at' => baseline.captured_at&.utc&.iso8601(6)
+          }
+        end,
         'profile_fields' => Cosmosys::OdsItemFieldRegistry.values_for(issue),
         'custom_fields' => visible_custom_values.map { |value| custom_value_payload(value) }.sort_by { |entry| entry['id'] },
         'attachments' => attachment_payloads(issue.attachments)

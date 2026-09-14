@@ -1,4 +1,11 @@
 en:
+  label_cosmosys_approved_presentation_changed: "Consolidated evidence has changed"
+  text_cosmosys_approved_presentation_changed: "The current resolved content differs from the evidence accepted at the last maturity increase. Lower and raise the item's maturity again to accept it."
+  label_cosmosys_approved_text: "Approved resolved text"
+  label_cosmosys_current_text: "Current resolved text"
+  text_cosmosys_approved_blocking_context_changed: "The content or structure of the transitive blocking requirement chain differs from the evidence accepted at the last maturity increase."
+  label_cosmosys_item_profile_approved_baseline: "Maturity evidence"
+  text_cosmosys_item_profile_scope_approved_baseline: "Captures resolved text and blocking context on maturity increases and detects later semantic drift."
   label_cosmosys_item_profile_physical_delete: Physical deletion policy
   text_cosmosys_item_profile_scope_physical_delete: Controls whether Redmine permissions are sufficient for hard deletion or an administrator is required.
   mail_subject_cosmosys_issue_tree_audit: Item-tree anomalies detected

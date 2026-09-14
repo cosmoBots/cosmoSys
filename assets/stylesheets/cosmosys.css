@@ -990,6 +990,28 @@
   font-weight: 600;
 }
 
+.cosmosys-approved-presentation-warning {
+  border-inline-start: 5px solid #c62828;
+}
+
+.cosmosys-approved-presentation-warning table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.cosmosys-approved-presentation-warning pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cosmosys-approved-presentation-warning .cosmosys-approved-old {
+  background: #ffe5e5;
+}
+
+.cosmosys-approved-presentation-warning .cosmosys-approved-new {
+  background: #e5f5e5;
+}
+
 .cosmosys-restricted-document {
   color: #777;
   font-style: italic;

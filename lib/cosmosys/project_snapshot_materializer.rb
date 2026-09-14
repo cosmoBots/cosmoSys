@@ -1,4 +1,5 @@
 require 'set'
+require 'digest'
 
 module Cosmosys
   class ProjectSnapshotMaterializer
@@ -118,6 +119,7 @@ module Cosmosys
         end
       end
       rewrite_internal_references!(items, entries.flat_map { |entry| entry.fetch('items') }, marker_map) if include_items
+      restore_presentation_baselines!(items, entries.flat_map { |entry| entry.fetch('items') }) if include_items && faithful?
       register_copy_maps!(copy_context, items, documents)
       copy_context.summary[:catalog_refs] = marker_map.length if copy_context
     end
@@ -275,6 +277,51 @@ module Cosmosys
         IssueRelation.create!(issue_from: items.fetch(row.fetch('from')), issue_to: items.fetch(row.fetch('to')),
                               relation_type: row.fetch('type'), delay: row['delay'], csys_restricted: row['restricted'])
       end
+    end
+
+    def restore_presentation_baselines!(items, rows)
+      csid_map = rows.to_h { |row| [row.fetch('csid'), items.fetch(row.fetch('key')).csid] }
+      id_map = rows.to_h { |row| ["##{row.fetch('source_id')}", "##{items.fetch(row.fetch('key')).id}"] }
+      rewriter = MaterializationReferenceRewriter.new(issues: [], csid_map: csid_map, id_map: id_map)
+      rows.each do |row|
+        next if @reused_item_keys.include?(row.fetch('key'))
+
+        issue = items.fetch(row.fetch('key'))
+        issue.cosmosys_presentation_baselines.delete_all
+        row.fetch('presentation_baselines', []).each do |baseline|
+          source_text = rewrite_baseline_text(baseline.fetch('attribute'), baseline.fetch('source_text'), rewriter, csid_map)
+          resolved_text = rewrite_baseline_text(baseline.fetch('attribute'), baseline.fetch('resolved_text'), rewriter, csid_map)
+          issue.cosmosys_presentation_baselines.create!(
+            attribute_name: baseline.fetch('attribute'),
+            source_text: source_text,
+            resolved_text: resolved_text,
+            ledger_json: JSON.generate(baseline.fetch('ledger', [])),
+            resolved_sha256: Digest::SHA256.hexdigest(resolved_text),
+            captured_status: IssueStatus.find_by(name: baseline['captured_status']),
+            captured_maturity: baseline.fetch('captured_maturity'),
+            captured_at: Time.zone.parse(baseline.fetch('captured_at'))
+          )
+        end
+      end
+    end
+
+    def rewrite_baseline_text(attribute_name, text, rewriter, csid_map)
+      return rewriter.rewrite_text(text) unless attribute_name == 'blocking_context'
+
+      payload = JSON.parse(text)
+      payload.fetch('nodes', []).each do |node|
+        node['csid'] = csid_map.fetch(node['csid'], node['csid'])
+        node['description'] = rewriter.rewrite_text(node['description'])
+      end
+      payload.fetch('edges', []).each do |edge|
+        edge['from'] = csid_map.fetch(edge['from'], edge['from'])
+        edge['to'] = csid_map.fetch(edge['to'], edge['to'])
+      end
+      payload['nodes'] = payload.fetch('nodes', []).sort_by { |node| node.fetch('csid').to_s.downcase }
+      payload['edges'] = payload.fetch('edges', []).sort_by do |edge|
+        [edge.fetch('from').to_s.downcase, edge.fetch('to').to_s.downcase]
+      end
+      JSON.generate(payload)
     end
 
     def create_documents!(project, rows)

@@ -33,6 +33,7 @@ module Cosmosys
         after_save :cosmosys_normalize_sibling_positions, if: :cosmosys_saved_hierarchy_change?
         after_commit :cosmosys_mark_diagrams_obsolete_after_commit, on: [:create, :update]
         after_commit :cosmosys_bump_tree_revision_after_commit, on: [:create, :update]
+        after_save :cosmosys_capture_approved_presentation_baseline
         after_create :cosmosys_register_project_copy
         after_destroy_commit :cosmosys_mark_diagrams_obsolete_after_destroy
         after_destroy_commit :cosmosys_bump_tree_revision_after_destroy
@@ -60,6 +61,10 @@ module Cosmosys
                 class_name: 'Cosmosys::ReportPlaceholder',
                 foreign_key: :issue_id,
                 dependent: :destroy
+        has_many :cosmosys_presentation_baselines,
+                 class_name: 'Cosmosys::PresentationBaseline',
+                 foreign_key: :issue_id,
+                 dependent: :destroy
         safe_attributes 'csys_report_placeholder_kind'
         safe_attributes 'csys_preferred_report_diagram'
         safe_attributes 'csys_negative_status_id'
@@ -448,9 +453,29 @@ module Cosmosys
     public
 
     def cosmosys_diagram_valid?
-      return true unless cosmosys_item_kind.validate_blocking_maturity
+      maturity_valid = !cosmosys_item_kind.validate_blocking_maturity || cosmosys_blocking_maturity_consistent?
+      maturity_valid && !cosmosys_approved_presentation_inconsistent?
+    end
 
-      cosmosys_blocking_maturity_consistent?
+    def cosmosys_approved_presentation_result(user: User.current)
+      Cosmosys::ApprovedPresentationBaseline.inspect(self, user: user)
+    end
+
+    def cosmosys_approved_presentation_inconsistent?(user: User.current)
+      cosmosys_approved_presentation_result(user: user).inconsistent == true
+    end
+
+    def cosmosys_capture_approved_presentation_baseline
+      return unless cosmosys_item_kind.approved_presentation_baseline == true
+      status_change = previous_changes['status_id']
+      return unless status_change
+
+      old_status = IssueStatus.find_by(id: status_change.first)
+      old_maturity = old_status&.cosmosys_maturity_level.to_i
+      new_maturity = status&.cosmosys_maturity_level.to_i
+      return unless new_maturity > old_maturity
+
+      Cosmosys::ApprovedPresentationBaseline.capture!(self)
     end
 
     def cosmosys_blocking_maturity_consistent?(visited = Set.new)

@@ -11,6 +11,7 @@ module Cosmosys
       { partial: 'hooks/cosmosys/issue_tree_warning' },
       { partial: 'hooks/cosmosys/issue_diagrams' },
       { partial: 'hooks/cosmosys/catalog_refs' },
+      { partial: 'hooks/cosmosys/approved_presentation_baseline' },
       { partial: 'hooks/cosmosys/used_project_data' }
     render_on :view_issues_form_details_bottom,
       { partial: 'hooks/cosmosys/report_placeholder_field' },

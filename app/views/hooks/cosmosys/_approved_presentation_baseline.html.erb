@@ -1,0 +1,20 @@
+<% result = issue.cosmosys_approved_presentation_result(user: User.current) %>
+<% if result.inconsistent %>
+  <div class="warning cosmosys-approved-presentation-warning">
+    <p><strong><%= l(:label_cosmosys_approved_presentation_changed) %></strong></p>
+    <p><%= l(:text_cosmosys_approved_presentation_changed) %></p>
+    <% result.differences.each do |difference| %>
+      <% if difference.attribute_name == 'description' %>
+        <table class="list">
+          <thead><tr><th><%= l(:label_cosmosys_approved_text) %></th><th><%= l(:label_cosmosys_current_text) %></th></tr></thead>
+          <tbody><tr>
+            <td class="cosmosys-approved-old"><pre><%= difference.baseline.resolved_text %></pre></td>
+            <td class="cosmosys-approved-new"><pre><%= difference.current_text %></pre></td>
+          </tr></tbody>
+        </table>
+      <% else %>
+        <p><%= l(:text_cosmosys_approved_blocking_context_changed) %></p>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

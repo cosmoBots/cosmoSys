@@ -10,6 +10,7 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
     add_index :issues, :csys_datum_source_issue_id unless index_exists?(:issues, :csys_datum_source_issue_id)
 
     create_negative_status_selections_table unless table_exists?(:cosmosys_negative_statuses)
+    create_presentation_baselines_table unless table_exists?(:cosmosys_presentation_baselines)
     migrate_legacy_negative_status_selections
 
     install_trackers
@@ -27,6 +28,7 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
     end
 
     remove_negative_status_selections_table if table_exists?(:cosmosys_negative_statuses)
+    drop_table :cosmosys_presentation_baselines if table_exists?(:cosmosys_presentation_baselines)
 
     remove_index :issues, :csys_datum_source_issue_id if index_exists?(:issues, :csys_datum_source_issue_id)
     remove_column :issues, :csys_datum_source_issue_id if column_exists?(:issues, :csys_datum_source_issue_id)
@@ -34,6 +36,23 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
   end
 
   private
+
+  def create_presentation_baselines_table
+    create_table :cosmosys_presentation_baselines do |t|
+      t.references :issue, null: false, foreign_key: { to_table: :issues }
+      t.string :attribute_name, null: false
+      t.text :source_text, null: false
+      t.text :resolved_text, null: false
+      t.text :ledger_json, null: false
+      t.string :resolved_sha256, null: false
+      t.integer :captured_status_id
+      t.integer :captured_maturity, null: false
+      t.datetime :captured_at, null: false
+      t.timestamps null: false
+    end
+    add_index :cosmosys_presentation_baselines, [:issue_id, :attribute_name],
+              unique: true, name: 'index_csys_presentation_baselines_on_issue_and_attribute'
+  end
 
   def create_negative_status_selections_table
     create_table :cosmosys_negative_statuses do |t|

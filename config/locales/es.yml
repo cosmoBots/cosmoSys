@@ -1,4 +1,11 @@
 es:
+  label_cosmosys_approved_presentation_changed: "La evidencia consolidada ha cambiado"
+  text_cosmosys_approved_presentation_changed: "El contenido resuelto actual difiere de la evidencia aceptada en la última subida de madurez. Baje y vuelva a subir la madurez del ítem para aceptarlo."
+  label_cosmosys_approved_text: "Texto resuelto aprobado"
+  label_cosmosys_current_text: "Texto resuelto actual"
+  text_cosmosys_approved_blocking_context_changed: "El contenido o la estructura de la cadena transitiva de requisitos bloqueantes difiere de la evidencia aceptada en la última subida de madurez."
+  label_cosmosys_item_profile_approved_baseline: "Evidencia de madurez"
+  text_cosmosys_item_profile_scope_approved_baseline: "Captura el texto resuelto y el contexto bloqueante al subir la madurez, y detecta deriva semántica posterior."
   label_cosmosys_item_profile_physical_delete: Política de borrado físico
   text_cosmosys_item_profile_scope_physical_delete: Controla si bastan los permisos de Redmine para borrar físicamente o si se requiere un administrador.
   mail_subject_cosmosys_issue_tree_audit: Se han detectado anomalías en árboles de items

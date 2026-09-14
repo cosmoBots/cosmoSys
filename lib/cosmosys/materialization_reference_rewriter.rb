@@ -7,14 +7,20 @@ module Cosmosys
 
     def call
       issues.each do |issue|
-        description = replace_tokens(issue.description.to_s)
+        description = rewrite_text(issue.description.to_s)
         issue.update_columns(description: description, updated_on: Time.current) if description != issue.description.to_s
         issue.custom_field_values.each do |value|
           next unless value.custom_field.field_format.in?(%w[string text link])
 
-          replaced = replace_tokens(value.value.to_s)
+          replaced = rewrite_text(value.value.to_s)
           value.update_columns(value: replaced) if replaced != value.value.to_s
         end
+      end
+    end
+
+    def rewrite_text(text)
+      replacements.sort_by { |source, _target| -source.length }.reduce(text.to_s) do |result, (source, target)|
+        result.gsub(/(?<![A-Za-z0-9_-])#{Regexp.escape(source)}(?![A-Za-z0-9_-])/, target)
       end
     end
 
@@ -22,10 +28,5 @@ module Cosmosys
 
     attr_reader :issues, :replacements
 
-    def replace_tokens(text)
-      replacements.sort_by { |source, _target| -source.length }.reduce(text) do |result, (source, target)|
-        result.gsub(/(?<![A-Za-z0-9_-])#{Regexp.escape(source)}(?![A-Za-z0-9_-])/, target)
-      end
-    end
   end
 end

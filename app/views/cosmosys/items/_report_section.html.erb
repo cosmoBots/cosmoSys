@@ -17,6 +17,8 @@
     <% end %>
   </<%= heading_tag %>>
 
+  <%= render partial: 'hooks/cosmosys/approved_presentation_baseline', locals: { issue: section.issue } %>
+
   <% if @report.options['info_url_link'] && section.issue.cosmosys_item_kind.key == 'info' %>
     <div class="cosmosys-report-info-url-link">
       <%= link_to section.issue.csid, issue_url(section.issue), data: { cosmosys_export_link: true } %>
