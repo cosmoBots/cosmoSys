@@ -9,6 +9,8 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
     add_column :issues, :csys_datum_source_issue_id, :integer unless column_exists?(:issues, :csys_datum_source_issue_id)
     add_index :issues, :csys_datum_source_issue_id unless index_exists?(:issues, :csys_datum_source_issue_id)
 
+    create_negative_status_selections_table unless table_exists?(:cosmosys_negative_statuses)
+
     install_trackers
   end
 
@@ -23,12 +25,27 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
       execute "DELETE FROM trackers WHERE id = #{tracker_id}"
     end
 
+    remove_negative_status_selections_table if table_exists?(:cosmosys_negative_statuses)
+
     remove_index :issues, :csys_datum_source_issue_id if index_exists?(:issues, :csys_datum_source_issue_id)
     remove_column :issues, :csys_datum_source_issue_id if column_exists?(:issues, :csys_datum_source_issue_id)
     remove_column :issues, :csys_value if column_exists?(:issues, :csys_value)
   end
 
   private
+
+  def create_negative_status_selections_table
+    create_table :cosmosys_negative_statuses do |t|
+      t.references :issue, foreign_key: { to_table: :issues }, null: false
+      t.references :issue_status, foreign_key: true, null: false
+      t.timestamps null: false
+    end
+    add_index :cosmosys_negative_statuses, [:issue_id, :issue_status_id], unique: true, name: 'index_cosmosys_negative_statuses_on_issue_and_status'
+  end
+
+  def remove_negative_status_selections_table
+    drop_table :cosmosys_negative_statuses
+  end
 
   def install_trackers
     tracker_class = Class.new(ActiveRecord::Base) { self.table_name = 'trackers' }

@@ -29,6 +29,7 @@ module Cosmosys
         before_destroy :cosmosys_capture_diagram_obsolete_ids
         before_destroy :cosmosys_capture_root_transition
         before_destroy :cosmosys_prevent_used_project_data_deletion
+        before_destroy :cosmosys_prevent_unauthorized_physical_delete
         after_save :cosmosys_normalize_sibling_positions, if: :cosmosys_saved_hierarchy_change?
         after_commit :cosmosys_mark_diagrams_obsolete_after_commit, on: [:create, :update]
         after_commit :cosmosys_bump_tree_revision_after_commit, on: [:create, :update]
@@ -45,6 +46,15 @@ module Cosmosys
         has_many :cosmosys_catalog_refs,
                  class_name: 'Cosmosys::CatalogRef',
                  foreign_key: :issue_id
+        has_many :negative_status_selections,
+                 class_name: 'Cosmosys::NegativeStatusSelection',
+                 foreign_key: :issue_id,
+                 dependent: :destroy,
+                 inverse_of: :issue
+        has_many :selected_negative_statuses,
+                 through: :negative_status_selections,
+                 source: :issue_status,
+                 class_name: 'IssueStatus'
         before_destroy :cosmosys_remove_catalog_refs_with_issue
         has_one :cosmosys_report_placeholder,
                 class_name: 'Cosmosys::ReportPlaceholder',
@@ -53,6 +63,7 @@ module Cosmosys
         safe_attributes 'csys_report_placeholder_kind'
         safe_attributes 'csys_preferred_report_diagram'
         safe_attributes 'csys_negative_status_id'
+        safe_attributes 'csys_negative_status_ids'
         safe_attributes 'csys_value', if: ->(issue, _user) { issue.cosmosys_defines_project_data? }
         safe_attributes 'csid', if: ->(issue, _user) { issue.new_record? && issue.cosmosys_user_defined_csid? }
         validates :csys_preferred_report_diagram,
@@ -100,6 +111,49 @@ module Cosmosys
 
       errors.add(:csys_negative_status_id, :invalid)
     end
+
+    # Multi-status selector for a csNegative. An empty selection means "surface
+    # all unsuccessful items"; a non-empty selection restricts to those closed
+    # unsuccessful statuses whose ids are listed. The stale single column from
+    # the previous release (003) is kept only as a bounded fallback for data
+    # captured before the join table existed; the join table is the source of
+    # truth for the multi-selector.
+    def csys_negative_status_ids
+      return @csys_negative_status_ids.to_a if !persisted? && defined?(@csys_negative_status_ids)
+
+      ids = negative_status_selections.map(&:issue_status_id)
+      ids = [csys_negative_status_id] if ids.blank? && csys_negative_status_id.present?
+      ids.compact.uniq
+    end
+
+    def csys_negative_status_ids=(ids)
+      values = Array(ids).reject(&:blank?).map(&:to_i).uniq
+      if persisted?
+        current = negative_status_selections.map(&:issue_status_id)
+        to_remove = current - values
+        to_add = values - current
+        negative_status_selections.where(issue_status_id: to_remove).delete_all if to_remove.any?
+        to_add.each do |status_id|
+          next unless valid_negative_status_selection?(status_id)
+
+          negative_status_selections.create!(issue_status_id: status_id)
+        end
+      else
+        @csys_negative_status_ids = values
+      end
+    end
+
+    def cosmosys_selected_negative_status_ids
+      ids = csys_negative_status_ids
+      return [] if ids.blank?
+
+      IssueStatus.where(id: ids, is_closed: true, csys_closed_outcome: 'unsuccessful').pluck(:id)
+    end
+
+    def valid_negative_status_selection?(status_id)
+      IssueStatus.exists?(id: status_id, is_closed: true, csys_closed_outcome: 'unsuccessful')
+    end
+    private :valid_negative_status_selection?
 
     def cosmosys_item_kind_key
       cosmosys_item_kind.key
@@ -158,8 +212,19 @@ module Cosmosys
       kinds.uniq
     end
 
+    # An item is visible in a diagram by default only when its profile allows
+    # diagram visibility and it has not closed unsuccessfully (Rejected/Erased).
+    # Retired content stays in its persisted location and can be shown through
+    # the "show negatives in place" option via cosmosys_diagram_content_positive?
     def cosmosys_diagram_visible?
-      cosmosys_item_kind.value(:diagram_visible, self) != false
+      cosmosys_item_kind.value(:diagram_visible, self) != false && cosmosys_positive?
+    end
+
+    # Full control for callers that support the "include negative" view option.
+    def cosmosys_diagram_content_positive?(include_negative: false)
+      return cosmosys_item_kind.value(:diagram_visible, self) != false if include_negative
+
+      cosmosys_diagram_visible?
     end
 
     def cosmosys_tree_visible?
@@ -567,6 +632,19 @@ module Cosmosys
       return if usages.empty?
 
       cosmosys_add_project_data_usage_error(usages)
+      throw :abort
+    end
+
+    # Physical deletes are reserved to administrators. No non-admin profile can
+    # delete any item; retirement is modelled by the Erased state. An
+    # administrator may perform Redmine's hard delete (making the item
+    # disappear) on any item, including a requirement. This is a model-level
+    # guard, independent of the controller's permission checks; disabling the
+    # Redmine delete control for non-admins is handled separately.
+    def cosmosys_prevent_unauthorized_physical_delete
+      return if User.current&.admin?
+
+      errors.add(:base, I18n.t(:error_cosmosys_issue_delete_admin_only))
       throw :abort
     end
 
