@@ -91,7 +91,7 @@ module Cosmosys
             source_identifier.delete_prefix(source_primary_identifier) : "-p#{entry.fetch('source_id')}"
           generated_identifier = "#{attributes.fetch('identifier')}#{suffix}"
           {
-            key: entry.fetch('key'), parent_key: entry['parent_key'], source: source,
+            key: entry.fetch('key'), parent_key: entry['parent_key'], source_id: entry.fetch('source_id'), source: source,
             name: primary ? attributes.fetch('name') : source.fetch('name'),
             identifier: primary ? attributes.fetch('identifier') :
               (project_identifier_overrides[entry.fetch('source_id').to_s].presence || generated_identifier),
@@ -170,7 +170,7 @@ module Cosmosys
     end
 
     def primary_source_id
-      attributes['primary_source_id'].to_s
+      (attributes['primary_source_id'].presence || content['primary_project_source_id']).to_s
     end
 
     def allow_multiple_roots?

@@ -21,6 +21,9 @@ es:
   error_cosmosys_snapshot_file_required: "Seleccione un paquete .csys para importar."
   error_cosmosys_snapshot_upload_too_large: "El paquete .csys es demasiado grande para importarse."
   error_cosmosys_snapshot_upload_expired: "El paquete .csys subido ha expirado. Vuelva a subirlo y revise el nuevo plan."
+  error_cosmosys_snapshot_assets_too_large: "Los recursos descomprimidos del paquete .csys superan el límite de seguridad de importación."
+  error_cosmosys_snapshot_archive_invalid: "La estructura ZIP del paquete .csys no es válida o contiene demasiadas entradas."
+  notice_cosmosys_snapshot_import_cancelled: Se canceló la importación del snapshot y se eliminó su carga temporal.
   text_cosmosys_snapshot_cscode_default: "Déjelo vacío para usar el código de proyecto almacenado en el snapshot."
   error_cosmosys_snapshot_manifest_missing: "El paquete .csys no contiene manifest.json."
   error_cosmosys_snapshot_manifest_too_large: "El manifiesto .csys es demasiado grande."
@@ -33,6 +36,7 @@ es:
   error_cosmosys_snapshot_custom_fields_missing: "No están disponibles los campos personalizados de item requeridos: %{fields}."
   error_cosmosys_snapshot_assets_missing: "No están disponibles %{count} assets requeridos por el snapshot."
   label_cosmosys_snapshot_materialization_preflight: Revisar la materialización del snapshot
+  label_cosmosys_snapshot_destination_projects: Proyectos de destino
   text_cosmosys_snapshot_materialization_confirmation: "Todavía no se ha creado nada. Revise este plan y confirme para crear el proyecto destino."
   text_cosmosys_snapshot_internal_relations_only: "Las relaciones del snapshot son autocontenidas: sólo se restaurarán aquellas cuyos dos extremos fueron capturados."
   label_cosmosys_snapshot_count_items: Items

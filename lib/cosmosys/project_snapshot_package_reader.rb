@@ -9,6 +9,9 @@ module Cosmosys
 
   class ProjectSnapshotPackageReader
     MAX_MANIFEST_BYTES = 50.megabytes
+    MAX_ARCHIVE_ENTRIES = 10_000
+    MAX_ASSET_BYTES = 500.megabytes
+    MAX_TOTAL_ASSET_BYTES = 2.gigabytes
 
     attr_reader :manifest
 
@@ -27,6 +30,7 @@ module Cosmosys
 
     def load!
       Zip::File.open(path) do |archive|
+        validate_archive_shape!(archive)
         entry = archive.find_entry(ProjectSnapshotPackage::MANIFEST_PATH)
         raise ProjectSnapshotPackageError, I18n.t(:error_cosmosys_snapshot_manifest_missing) unless entry
         raise ProjectSnapshotPackageError, I18n.t(:error_cosmosys_snapshot_manifest_too_large) if entry.size > MAX_MANIFEST_BYTES
@@ -63,12 +67,16 @@ module Cosmosys
     end
 
     def extract_assets!(archive)
+      total_bytes = 0
       required_assets.each do |digest|
         unless digest.match?(/\A[0-9a-f]{64}\z/)
           raise ProjectSnapshotPackageError, I18n.t(:error_cosmosys_snapshot_asset_digest, digest: digest)
         end
         entry = archive.find_entry("assets/sha256/#{digest}")
         raise ProjectSnapshotPackageError, I18n.t(:error_cosmosys_snapshot_asset_missing, digest: digest) unless entry
+        if entry.size > MAX_ASSET_BYTES || (total_bytes += entry.size) > MAX_TOTAL_ASSET_BYTES
+          raise ProjectSnapshotPackageError, I18n.t(:error_cosmosys_snapshot_assets_too_large)
+        end
 
         target = File.join(directory, digest)
         entry.get_input_stream do |input|
@@ -78,6 +86,13 @@ module Cosmosys
           raise ProjectSnapshotPackageError, I18n.t(:error_cosmosys_snapshot_asset_digest, digest: digest)
         end
         @assets[digest] = target
+      end
+    end
+
+    def validate_archive_shape!(archive)
+      entries = archive.entries
+      if entries.length > MAX_ARCHIVE_ENTRIES || entries.map(&:name).uniq.length != entries.length
+        raise ProjectSnapshotPackageError, I18n.t(:error_cosmosys_snapshot_archive_invalid)
       end
     end
 

@@ -81,6 +81,7 @@ module Cosmosys
 
       {
         'root' => { 'source_id' => root.id, 'identifier' => root.identifier },
+        'primary_project_source_id' => project.id,
         'platform' => {
           'redmine_version' => Redmine::VERSION.to_s,
           'plugins' => Redmine::Plugin.all.map { |plugin| plugin_payload(plugin) }

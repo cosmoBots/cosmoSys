@@ -18,6 +18,26 @@
       <%= hidden_field_tag 'destination[parent_id]', @destination['parent_id'] %>
       <%= hidden_field_tag 'destination[identity_mode]', @destination['identity_mode'] %>
       <%= hidden_field_tag 'destination[project_data_conflict_policy]', @destination['project_data_conflict_policy'] %>
+      <%= hidden_field_tag 'destination[primary_source_id]', @destination['primary_source_id'] %>
+      <%= hidden_field_tag 'destination[allow_multiple_roots]', @destination['allow_multiple_roots'] %>
+      <h4><%= l(:label_cosmosys_snapshot_destination_projects) %></h4>
+      <table class="list">
+        <thead><tr><th><%= l(:label_cosmosys_copy_source_project) %></th><th><%= l(:field_identifier) %></th></tr></thead>
+        <tbody>
+          <% @import_plan.destination_projects.each do |entry| %>
+            <tr>
+              <td><%= entry[:source]['name'] %></td>
+              <td>
+                <% if entry[:source_id].to_s == @destination['primary_source_id'].to_s %>
+                  <%= entry[:identifier] %>
+                <% else %>
+                  <%= text_field_tag "destination[project_identifiers][#{entry[:source_id]}]", entry[:identifier], size: 40 %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
       <table class="list">
         <thead><tr><th><%= l(:label_cosmosys_copy_preflight_content) %></th><th><%= l(:label_cosmosys_copy_count) %></th></tr></thead>
         <tbody>
@@ -57,7 +77,10 @@
         </tbody>
       </table>
       <p class="info"><%= l(:text_cosmosys_snapshot_internal_relations_only) %></p>
-      <p><%= submit_tag l(:button_cosmosys_confirm_import), class: 'button-positive' %></p>
+      <p>
+        <% if @import_plan.blocking_messages.empty? %><%= submit_tag l(:button_cosmosys_confirm_import), class: 'button-positive' %><% end %>
+        <%= link_to l(:button_cancel), cancel_import_project_cosmosys_snapshot_path(@project, import_token: @import_token), data: { method: :post }, class: 'button' %>
+      </p>
     <% end %>
   </div>
 <% else %>

@@ -42,6 +42,7 @@ RedmineApp::Application.routes.draw do
     post 'cosmosys/snapshots', to: 'cosmosys/project_snapshots#create'
     get 'cosmosys/snapshots/import', to: 'cosmosys/project_snapshots#new_import', as: :new_import_project_cosmosys_snapshot
     post 'cosmosys/snapshots/import', to: 'cosmosys/project_snapshots#import', as: :import_project_cosmosys_snapshot
+    post 'cosmosys/snapshots/import/cancel', to: 'cosmosys/project_snapshots#cancel_import', as: :cancel_import_project_cosmosys_snapshot
     get 'cosmosys/snapshots/:id', to: 'cosmosys/project_snapshots#show', as: :project_cosmosys_snapshot
     get 'cosmosys/snapshots/:id/download', to: 'cosmosys/project_snapshots#download', as: :download_project_cosmosys_snapshot
     get 'cosmosys/snapshots/:id/materialize', to: 'cosmosys/project_snapshots#new_materialization', as: :materialize_project_cosmosys_snapshot

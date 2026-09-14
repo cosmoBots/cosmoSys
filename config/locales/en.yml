@@ -21,6 +21,9 @@ en:
   error_cosmosys_snapshot_file_required: "Select a .csys package to import."
   error_cosmosys_snapshot_upload_too_large: "The .csys package is too large to import."
   error_cosmosys_snapshot_upload_expired: "The uploaded .csys package expired. Upload it again and review the new plan."
+  error_cosmosys_snapshot_assets_too_large: "The uncompressed assets in the .csys package exceed the import safety limit."
+  error_cosmosys_snapshot_archive_invalid: "The .csys ZIP structure is invalid or contains too many entries."
+  notice_cosmosys_snapshot_import_cancelled: Snapshot import cancelled; its temporary upload was removed.
   text_cosmosys_snapshot_cscode_default: "Leave blank to use the project code stored in the snapshot."
   error_cosmosys_snapshot_manifest_missing: "The .csys package has no manifest.json."
   error_cosmosys_snapshot_manifest_too_large: "The .csys manifest is too large."
@@ -33,6 +36,7 @@ en:
   error_cosmosys_snapshot_custom_fields_missing: "Required item custom fields are unavailable: %{fields}."
   error_cosmosys_snapshot_assets_missing: "%{count} required snapshot assets are unavailable."
   label_cosmosys_snapshot_materialization_preflight: Review snapshot materialization
+  label_cosmosys_snapshot_destination_projects: Destination projects
   text_cosmosys_snapshot_materialization_confirmation: "Nothing has been created yet. Review this plan and confirm to create the destination project."
   text_cosmosys_snapshot_internal_relations_only: "Snapshot relations are self-contained: only relations whose two endpoints were captured will be restored."
   label_cosmosys_snapshot_count_items: Items
