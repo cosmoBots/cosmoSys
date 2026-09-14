@@ -1,6 +1,6 @@
 module Cosmosys
   class MainReportService
-    Report = Struct.new(:project, :sections, :toc_entries, :local_issues, :options, keyword_init: true)
+    Report = Struct.new(:project, :sections, :toc_entries, :local_issues, :options, :orphaned_sections, keyword_init: true)
     Section = Struct.new(:issue, :depth, :heading_level, :chapter, :anchor, :metadata_fields, :body_fields, :children, :report_placeholder, :document_catalog_entries, :document_references, :negative_items, :numbered, keyword_init: true)
     OutlineEntry = Struct.new(:issue, :chapter, keyword_init: true)
 
@@ -15,13 +15,15 @@ module Cosmosys
     def build
       chapter_map = report_chapter_map
       root_sections = report_roots.map { |issue| build_section(issue, 0, chapter_map) }
+      orphaned = orphaned_sections
 
       Report.new(
         project: @project,
         sections: root_sections,
         toc_entries: flatten_sections(root_sections),
         local_issues: local_issues,
-        options: Cosmosys::MainReportSettings.normalize_options(@options)
+        options: Cosmosys::MainReportSettings.normalize_options(@options),
+        orphaned_sections: orphaned
       )
     end
 
@@ -78,6 +80,37 @@ module Cosmosys
       end
     end
 
+    # Positive items whose nearest ancestor is negative. They are rescuable
+    # content surfaced under the virtual "orphaned items" section instead of
+    # being silently dropped with their retired parent. The whole positive
+    # subtree that remains below each orphan head is included.
+    def orphaned_sections
+      tree_scope.orphaned_issues.map { |entry| build_section_from_entry(entry, 0) }
+    end
+
+    def build_section_from_entry(entry, depth)
+      issue = entry.issue
+      return build_section(issue, depth, {}) if entry.children.empty?
+
+      fields = field_registry.fields_for(issue)
+      placeholder = issue.cosmosys_report_placeholder
+      Section.new(
+        issue: issue,
+        depth: depth,
+        heading_level: [depth + 1, 6].min,
+        chapter: nil,
+        anchor: "cosmosys-report-issue-#{issue.id}",
+        metadata_fields: fields.select { |field| field.representation == 'metadata' },
+        body_fields: fields.select { |field| field.representation == 'section' },
+        children: entry.children.map { |child| build_section_from_entry(child, depth + 1) },
+        report_placeholder: placeholder,
+        document_catalog_entries: document_catalog_entries_for(placeholder),
+        document_references: document_references_for(issue),
+        negative_items: [],
+        numbered: issue.cosmosys_positive?
+      )
+    end
+
     def report_chapter_map
       @report_chapter_map ||= begin
         map = {}
@@ -124,7 +157,8 @@ module Cosmosys
                      .where(issue_statuses: { csys_closed_outcome: 'unsuccessful' })
                      .joins(:status)
                      .includes(:status)
-      scope = scope.where(status_id: issue.csys_negative_status_id) if issue.csys_negative_status_id.present?
+      selected = issue.cosmosys_selected_negative_status_ids
+      scope = scope.where(status_id: selected) if selected.any?
       scope.order(:root_id, :lft, :csposition, :id).to_a
     end
 

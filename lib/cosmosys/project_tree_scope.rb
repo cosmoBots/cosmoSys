@@ -26,7 +26,55 @@ module Cosmosys
       @local_issues ||= visible_local_issues
     end
 
+    # Positive items whose nearest ancestor in the tree is negative
+    # (Rejected/Erased). They are excluded from the default tree/report because
+    # their parent is retired, but remain fully alive and must be rescuable. In
+    # the "show negatives in place" view there are no orphans: everything is
+    # shown in its persisted location.
+    def orphaned_roots
+      return [] if @include_negative
+
+      @orphaned_roots ||= visible_local_issues_for_scoping.values
+        .select(&:cosmosys_positive?)
+        .select { |issue| negative_ancestor?(issue) }
+        .reject { |issue| positive_ancestor_in_project?(issue) }
+    end
+
+    def orphaned_issues
+      @orphaned_issues ||= orphaned_roots.map { |issue| build_entry(issue) }
+    end
+
     private
+
+    def visible_local_issues_for_scoping
+      @visible_local_issues_for_scoping ||= Issue.visible(@user)
+        .where(project_id: @project.id)
+        .includes(:project, :tracker, :parent)
+        .order(:csposition, :lft, :id)
+        .to_a
+        .select(&:cosmosys_tree_visible?)
+        .index_by(&:id)
+    end
+
+    def negative_ancestor?(issue)
+      current = visible_local_issues_for_scoping[issue.parent_id]
+      while current
+        return true unless current.cosmosys_positive?
+
+        current = visible_local_issues_for_scoping[current.parent_id]
+      end
+      false
+    end
+
+    def positive_ancestor_in_project?(issue)
+      current = visible_local_issues_for_scoping[issue.parent_id]
+      while current
+        return true if current.cosmosys_positive?
+
+        current = visible_local_issues_for_scoping[current.parent_id]
+      end
+      false
+    end
 
     def visible_local_issues
       issues = Issue.visible(@user)
@@ -45,8 +93,21 @@ module Cosmosys
 
           ancestor = issues_by_id[ancestor.parent_id]
         end
-        !issue.cosmosys_positive?
+        !issue.cosmosys_positive? || orphaned_in_default_view?(issue, issues_by_id)
       end
+    end
+
+    # A positive item is orphaned in the default view when its nearest ancestor
+    # is negative (Rejected/Erased): it is excluded from the in-place tree/report
+    # and surfaced through the virtual "orphaned items" chapter instead.
+    def orphaned_in_default_view?(issue, issues_by_id)
+      current = issues_by_id[issue.parent_id]
+      while current
+        return true unless current.cosmosys_positive?
+
+        current = issues_by_id[current.parent_id]
+      end
+      false
     end
 
     def local_issue_ids
