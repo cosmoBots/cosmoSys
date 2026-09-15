@@ -158,7 +158,7 @@ Sub ApplyAlternateOrientationGraphics(oDoc)
     call ApplyPageMarker(oDoc, sEndMarker, &quot;Standard&quot;)
 End Sub
 
-Sub Main(oDoc, HTMLPath as String, Title as String, DelivCode as String, cSysVersion as String, DocDate as String, ProjectAbbrev as String, ProjectName as String, ProjectRef as String)
+Sub Main(oDoc, HTMLPath as String, Title as String, DelivCode as String, cSysVersion as String, DocDate as String, ProjectAbbrev as String, ProjectName as String, ProjectRef as String, IssueValue as String)
 
 dim oSearch as object
 dim oResult as object
@@ -181,6 +181,10 @@ oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("DocDate",ReportD
 oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("ProjectAbbrev",ProjectAbbrev)
 oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("ProjectName",ProjectName)
 oDoc.DocumentProperties.UserDefinedProperties.setPropertyValue("ProjectRef",ProjectRef)
+If oDoc.DocumentProperties.UserDefinedProperties.PropertySetInfo.hasPropertyByName("Issue") Then
+    oDoc.DocumentProperties.UserDefinedProperties.removeProperty("Issue")
+End If
+oDoc.DocumentProperties.UserDefinedProperties.addProperty("Issue",0,IssueValue)
 
 oCursor = oText.createTextCursor()
 rem oCursor=oDoc.CurrentController.getViewCursor()
@@ -223,9 +227,9 @@ function OpenSilent(FilePath as String) as Object
   OpenSilent = StarDesktop.loadComponentFromURL(&quot;file://&quot; &amp; FilePath, &quot;_blank&quot;, 0, FileProperties())
 end function
 
-sub Headless(FilePath as String, HTMLPath as String, Title as String, DelivCode as String, cSysVersion as String, DocDate as String, ProjectAbbrev as String, ProjectName as String, ProjectRef as String)
+sub Headless(FilePath as String, HTMLPath as String, Title as String, DelivCode as String, cSysVersion as String, DocDate as String, ProjectAbbrev as String, ProjectName as String, ProjectRef as String, IssueValue as String)
   Document = OpenSilent(FilePath)
-  call Main(Document,HTMLPath,Title,DelivCode,cSysVersion,DocDate,ProjectAbbrev,ProjectName,ProjectRef)
+  call Main(Document,HTMLPath,Title,DelivCode,cSysVersion,DocDate,ProjectAbbrev,ProjectName,ProjectRef,IssueValue)
 
   call Document.store()
   call Document.close(True)

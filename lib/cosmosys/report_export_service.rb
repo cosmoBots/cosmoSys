@@ -87,6 +87,7 @@ module Cosmosys
         @project.identifier,
         @project.cscode,
         @project.csys_report_code,
+        @project.default_version&.name,
         report_application_version,
         @project.cosmosys_report_landscape_scale_threshold,
         Digest::SHA256.hexdigest(@html),
@@ -428,10 +429,33 @@ module Cosmosys
         add_inline_declarations(image, 'max-width' => '100%', 'height' => 'auto')
       end
 
+      # The browser report gets its table presentation from Redmine's external
+      # stylesheets, which are deliberately not transported into the portable
+      # document. Give every document table a self-contained baseline before
+      # applying the more specific metadata/catalog dimensions below. This
+      # makes Markdown tables and generated tables equivalent to Writer.
+      document.css('table').each do |table|
+        table['align'] = 'center'
+        table['border'] = '1'
+        table['cellspacing'] = '0'
+        table['cellpadding'] = '0'
+        add_inline_declarations(
+          table,
+          'border-collapse' => 'collapse',
+          'margin-left' => 'auto',
+          'margin-right' => 'auto'
+        )
+        table.css('th, td').each do |cell|
+          add_inline_declarations(cell, 'border' => '1px solid #b7c3cf', 'padding' => '4pt', 'vertical-align' => 'top')
+        end
+        table.css('th').each do |header|
+          add_inline_declarations(header, 'background-color' => '#f3f6f9', 'font-weight' => 'bold')
+        end
+      end
+
       document.css('table.cosmosys-report-metadata').each do |table|
-        table.remove_attribute('align')
         table['width'] = METADATA_TABLE_WIDTH_PX.to_s
-        add_inline_declarations(table, 'border-collapse' => 'collapse', 'width' => "#{METADATA_TABLE_WIDTH_PX}px", 'margin-left' => '0', 'margin-right' => '0')
+        add_inline_declarations(table, 'width' => "#{METADATA_TABLE_WIDTH_PX}px")
         table.css('col').each_with_index do |column, index|
           width = index.zero? ? METADATA_LABEL_WIDTH_PX : METADATA_VALUE_WIDTH_PX
           column['width'] = width.to_s
@@ -452,18 +476,8 @@ module Cosmosys
       end
 
       document.css('table.cosmosys-report-document-catalog-table, table.cosmosys-report-document-references-table').each do |table|
-        table.remove_attribute('align')
-        table['border'] = '1'
-        table['cellspacing'] = '0'
-        table['cellpadding'] = '0'
         table['width'] = METADATA_TABLE_WIDTH_PX.to_s
-        add_inline_declarations(table, 'border-collapse' => 'collapse', 'width' => "#{METADATA_TABLE_WIDTH_PX}px", 'margin-left' => '0', 'margin-right' => '0')
-        table.css('th, td').each do |cell|
-          add_inline_declarations(cell, 'border' => '1px solid #b7c3cf', 'padding' => '4pt', 'vertical-align' => 'top')
-        end
-        table.css('th').each do |header|
-          add_inline_declarations(header, 'background-color' => '#f3f6f9', 'font-weight' => 'bold')
-        end
+        add_inline_declarations(table, 'width' => "#{METADATA_TABLE_WIDTH_PX}px")
       end
 
       document.css('table.cosmosys-report-document-catalog-table').each do |table|
@@ -553,7 +567,8 @@ module Cosmosys
         Date.current.iso8601,
         @project.cscode.to_s,
         @project.name,
-        @project.identifier.to_s
+        @project.identifier.to_s,
+        @project.default_version&.name.to_s
       ].map { |value| macro_argument(value) }.join(',')
       "macro:///Standard.csys.Headless(#{args})"
     end
