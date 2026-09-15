@@ -6,6 +6,7 @@ module Cosmosys
 
     included do
       has_one :cosmosys_report_setting_record, class_name: 'Cosmosys::ProjectReportSetting', foreign_key: :project_id, dependent: :destroy
+      has_one :cosmosys_branding_asset, class_name: 'Cosmosys::BrandingAsset', foreign_key: :project_id, dependent: :destroy
       belongs_to :cosmosys_ods_template_asset,
                  class_name: 'Cosmosys::TemplateAsset',
                  foreign_key: :csys_ods_template_asset_id,
@@ -73,6 +74,10 @@ module Cosmosys
     end
 
     def cosmosys_effective_language = cosmosys_locale.to_s
+
+    def cosmosys_effective_branding
+      Cosmosys::BrandingResolver.for(self)
+    end
 
     def with_cosmosys_locale(&block)
       I18n.with_locale(cosmosys_locale, &block)

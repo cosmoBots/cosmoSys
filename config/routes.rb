@@ -20,6 +20,10 @@ RedmineApp::Application.routes.draw do
             path: 'admin/cosmosys/templates',
             controller: 'cosmosys/template_assets',
             only: [:index, :create, :destroy]
+  get 'admin/cosmosys/branding', to: 'cosmosys/branding_assets#index', as: :cosmosys_branding
+  put 'admin/cosmosys/branding', to: 'cosmosys/branding_assets#update_instance'
+  get 'cosmosys/branding/:id/:filename', to: 'cosmosys/branding_assets#show', as: :cosmosys_branding_asset,
+      constraints: { filename: /[^\/]+/ }
 
   scope ':project_id', constraints: { project_id: /[^\/]+/ } do
     get 'cosmosys', to: 'cosmosys/items#index'
@@ -53,6 +57,7 @@ RedmineApp::Application.routes.draw do
     get 'cosmosys/templates/report/profile', to: 'cosmosys/project_templates#report_profile', as: :project_cosmosys_profile_report_template
     get 'cosmosys/templates/report/effective', to: 'cosmosys/project_templates#report_effective', as: :project_cosmosys_effective_report_template
     put 'cosmosys/settings', to: 'cosmosys/project_settings#update', as: :project_cosmosys_settings
+    put 'cosmosys/branding', to: 'cosmosys/branding_assets#update_project', as: :project_cosmosys_branding
     get 'cosmosys/tree', to: 'cosmosys/items#tree'
     get 'cosmosys/dsm', to: 'cosmosys/items#dsm', as: :project_cosmosys_dsm
     get 'cosmosys/diagram_panel/:kind', to: 'cosmosys/items#diagram_panel', as: :cosmosys_diagram_panel

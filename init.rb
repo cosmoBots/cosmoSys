@@ -30,6 +30,11 @@ Redmine::Plugin.register :cosmosys do
     icon: 'file',
     html: { class: 'icon icon-file' }
 
+  menu :admin_menu, :cosmosys_branding, { controller: 'cosmosys/branding_assets', action: 'index' },
+    caption: :label_cosmosys_branding,
+    icon: 'image',
+    html: { class: 'icon icon-picture' }
+
   settings default: {
     'precedes_direction' => 'forward',
     'instance_passphrase' => 'admin',
@@ -122,6 +127,8 @@ require_dependency File.expand_path('lib/cosmosys/odf_package_normalizer', __dir
 require_dependency File.expand_path('lib/cosmosys/ods_item_field_registry', __dir__)
 require_dependency File.expand_path('lib/cosmosys/ods_fields', __dir__)
 require_dependency File.expand_path('app/models/cosmosys/template_asset', __dir__)
+require_dependency File.expand_path('app/models/cosmosys/branding_asset', __dir__)
+require_dependency File.expand_path('lib/cosmosys/branding_resolver', __dir__)
 require_dependency File.expand_path('lib/cosmosys/template_resolver', __dir__)
 require_dependency File.expand_path('lib/cosmosys/ods_protection_service', __dir__)
 require_dependency File.expand_path('lib/cosmosys/ods_row_writer', __dir__)
@@ -148,6 +155,7 @@ require_dependency File.expand_path('lib/cosmosys/ods_import_service', __dir__)
 require_dependency File.expand_path('lib/cosmosys/ods_import_job', __dir__)
 require_dependency File.expand_path('lib/cosmosys/ods_project_materializer', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_settings_controller', __dir__)
+require_dependency File.expand_path('app/controllers/cosmosys/branding_assets_controller', __dir__)
 require_dependency File.expand_path('lib/cosmosys/performance_trace', __dir__)
 require_dependency File.expand_path('lib/cosmosys/diagram_cache_support', __dir__)
 require_dependency File.expand_path('lib/cosmosys/hierarchy_diagram_renderer', __dir__)

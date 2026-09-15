@@ -212,3 +212,36 @@
 
   <p><%= submit_tag l(:button_save) %></p>
 <% end %>
+
+<% branding_override = @project.cosmosys_branding_asset %>
+<% branding_resolution = @project.cosmosys_effective_branding %>
+<div class="box tabular cosmosys-settings-box">
+  <h3><%= l(:label_cosmosys_branding) %></h3>
+  <%= form_tag(project_cosmosys_branding_path(@project), method: :put, multipart: true) do %>
+    <p>
+      <%= label_tag :branding_file, l(:label_cosmosys_branding_logo) %>
+      <%= file_field_tag :branding_file, accept: 'image/png,image/webp,image/jpeg' %>
+    </p>
+    <p>
+      <%= hidden_field_tag :diffuse_effect, '0' %>
+      <%= check_box_tag :diffuse_effect, '1', branding_override ? branding_override.diffuse_effect? : branding_resolution.diffuse_effect %>
+      <%= label_tag :diffuse_effect, l(:label_cosmosys_branding_diffuse_effect) %>
+    </p>
+    <% if branding_override %>
+      <p>
+        <%= hidden_field_tag :remove_branding, '0' %>
+        <%= check_box_tag :remove_branding, '1', false %>
+        <%= label_tag :remove_branding, l(:label_cosmosys_branding_remove_override) %>
+      </p>
+    <% end %>
+    <% source = if branding_resolution.source_project
+         branding_resolution.source_project.name
+       elsif branding_resolution.custom?
+         l(:label_cosmosys_branding_instance)
+       else
+         l(:label_cosmosys_branding_builtin)
+       end %>
+    <p class="info"><%= l(:text_cosmosys_project_branding_help, source: source) %></p>
+    <p><%= submit_tag l(:button_save) %></p>
+  <% end %>
+</div>

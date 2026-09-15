@@ -1,0 +1,22 @@
+<% html_title l(:label_cosmosys_branding) %>
+<h2><%= l(:label_cosmosys_branding) %></h2>
+
+<div class="box tabular">
+  <%= form_tag(cosmosys_branding_path, method: :put, multipart: true) do %>
+    <p><%= file_field_tag :branding_file, accept: 'image/png,image/webp,image/jpeg' %></p>
+    <p>
+      <%= hidden_field_tag :diffuse_effect, '0' %>
+      <%= check_box_tag :diffuse_effect, '1', @asset ? @asset.diffuse_effect? : true %>
+      <%= label_tag :diffuse_effect, l(:label_cosmosys_branding_diffuse_effect) %>
+    </p>
+    <% if @asset %>
+      <p>
+        <%= hidden_field_tag :remove_branding, '0' %>
+        <%= check_box_tag :remove_branding, '1', false %>
+        <%= label_tag :remove_branding, l(:label_cosmosys_branding_remove) %>
+      </p>
+    <% end %>
+    <p class="info"><%= l(:text_cosmosys_instance_branding_help) %></p>
+    <p><%= submit_tag l(:button_save) %></p>
+  <% end %>
+</div>
