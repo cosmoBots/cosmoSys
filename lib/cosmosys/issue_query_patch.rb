@@ -27,11 +27,26 @@ module Cosmosys
         csid_index = base.available_columns.find_index { |available_column| available_column.name == :csid }
         base.available_columns.insert(csid_index ? csid_index + 1 : base.available_columns.length, chapter_column)
       end
+
+      {
+        cs_ext_code: { caption: :field_cosmosys_ext_code },
+        cs_wload: { caption: :field_cosmosys_wload }
+      }.each do |name, options|
+        next if base.available_columns.any? { |available_column| available_column.name == name }
+
+        base.available_columns << QueryColumn.new(
+          name,
+          sortable: "#{Issue.table_name}.#{name}",
+          caption: options.fetch(:caption)
+        )
+      end
     end
 
     def initialize_available_filters
       super
       add_available_filter('csid', type: :string, name: :label_cosmosys_csid) unless available_filters.key?('csid')
+      add_available_filter('cs_ext_code', type: :string, name: :field_cosmosys_ext_code) unless available_filters.key?('cs_ext_code')
+      add_available_filter('cs_wload', type: :float, name: :field_cosmosys_wload) unless available_filters.key?('cs_wload')
       if IssueStatus.column_names.include?('csys_closed_outcome') && !available_filters.key?(POSITIVE_FILTER)
         add_available_filter(
           POSITIVE_FILTER,

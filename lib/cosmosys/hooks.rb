@@ -17,9 +17,11 @@ module Cosmosys
       { partial: 'hooks/cosmosys/report_placeholder_field' },
       { partial: 'hooks/cosmosys/negative_status_field' },
       { partial: 'hooks/cosmosys/preferred_report_diagram_field' },
+      { partial: 'hooks/cosmosys/item_external_metadata_fields' },
       { partial: 'hooks/cosmosys/datum_fields' }
     render_on :view_issues_show_details_bottom,
       { partial: 'hooks/cosmosys/preferred_report_diagram_detail' },
+      { partial: 'hooks/cosmosys/item_external_metadata_details' },
       { partial: 'hooks/cosmosys/datum_details' }
     render_on :view_layouts_base_html_head,
       { partial: 'hooks/cosmosys/html_head' }

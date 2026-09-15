@@ -69,10 +69,15 @@ module Cosmosys
         safe_attributes 'csys_preferred_report_diagram'
         safe_attributes 'csys_negative_status_id'
         safe_attributes 'csys_negative_status_ids'
+        safe_attributes 'cs_ext_code'
+        safe_attributes 'cs_wload'
         safe_attributes 'csys_value', if: ->(issue, _user) { issue.cosmosys_defines_project_data? }
         safe_attributes 'csid', if: ->(issue, _user) { issue.new_record? && issue.cosmosys_user_defined_csid? }
         validates :csys_preferred_report_diagram,
                   inclusion: { in: PREFERRED_REPORT_DIAGRAMS }
+        validates :cs_wload,
+                  numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 },
+                  allow_nil: true
         validate :cosmosys_validate_negative_status
         validate :cosmosys_validate_report_placeholder
         after_save :cosmosys_sync_report_placeholder
@@ -80,7 +85,9 @@ module Cosmosys
       end
 
       searchable_columns = Array(base.searchable_options[:columns]).dup
-      base.searchable_options = base.searchable_options.merge(columns: searchable_columns | ["#{base.table_name}.csid"])
+      base.searchable_options = base.searchable_options.merge(
+        columns: searchable_columns | ["#{base.table_name}.csid", "#{base.table_name}.cs_ext_code"]
+      )
     end
 
     def csid

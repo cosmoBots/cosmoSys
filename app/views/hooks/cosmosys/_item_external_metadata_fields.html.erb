@@ -1,0 +1,11 @@
+<fieldset class="box cosmosys-item-external-metadata-fields">
+  <legend><%= l(:label_cosmosys_external_metadata) %></legend>
+  <div class="splitcontent">
+    <div class="splitcontentleft">
+      <p><%= form.text_field :cs_ext_code, label: l(:field_cosmosys_ext_code) %></p>
+    </div>
+    <div class="splitcontentright">
+      <p><%= form.number_field :cs_wload, label: l(:field_cosmosys_wload), min: 0, max: 100, step: 'any' %></p>
+    </div>
+  </div>
+</fieldset>

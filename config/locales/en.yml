@@ -644,3 +644,6 @@ en:
   text_cosmosys_item_profile_scope_consumes_csid_sequence: "Controls whether creation advances the project's ordinary positive CSID counter."
   label_cosmosys_item_profile_data_links: "Resolved data links"
   text_cosmosys_item_profile_scope_data_links: "Controls whether users may turn resolved project data into links to their defining items."
+  label_cosmosys_external_metadata: "External metadata"
+  field_cosmosys_ext_code: "csExtCode"
+  field_cosmosys_wload: "csWLoad"

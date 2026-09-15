@@ -20,16 +20,24 @@ module Cosmosys
         )
       end
 
-      name = 'preferred_report_diagram'
-      return if Cosmosys::OdsItemFieldRegistry.names.include?(name)
+      unless Cosmosys::OdsItemFieldRegistry.names.include?('preferred_report_diagram')
+        Cosmosys::OdsItemFieldRegistry.register(
+          'preferred_report_diagram',
+          reader: ->(issue) { issue.cosmosys_preferred_report_diagram },
+          writer: lambda do |issue, value|
+            issue.cosmosys_preferred_report_diagram = value.to_s.strip.presence || 'combined'
+          end
+        )
+      end
 
-      Cosmosys::OdsItemFieldRegistry.register(
-        name,
-        reader: ->(issue) { issue.cosmosys_preferred_report_diagram },
-        writer: lambda do |issue, value|
-          issue.cosmosys_preferred_report_diagram = value.to_s.strip.presence || 'combined'
-        end
-      )
+      %w[cs_ext_code cs_wload].each do |name|
+        next if Cosmosys::OdsItemFieldRegistry.names.include?(name)
+
+        Cosmosys::OdsItemFieldRegistry.register(
+          name,
+          writer: ->(issue, value) { issue.public_send("#{name}=", value.presence) }
+        )
+      end
     end
   end
 end

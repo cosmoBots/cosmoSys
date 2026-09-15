@@ -1,0 +1,15 @@
+<% if issue.cs_ext_code.present? || issue.cs_wload.present? %>
+  <div class="box cosmosys-item-external-metadata-details">
+    <h3><%= l(:label_cosmosys_external_metadata) %></h3>
+    <table class="attributes">
+      <tbody>
+        <% if issue.cs_ext_code.present? %>
+          <tr><th><%= l(:field_cosmosys_ext_code) %></th><td><%= issue.cs_ext_code %></td></tr>
+        <% end %>
+        <% if issue.cs_wload.present? %>
+          <tr><th><%= l(:field_cosmosys_wload) %></th><td><%= number_with_precision(issue.cs_wload, strip_insignificant_zeros: true) %>%</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>
