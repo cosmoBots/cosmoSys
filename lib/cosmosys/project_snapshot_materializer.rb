@@ -180,7 +180,8 @@ module Cosmosys
           start_date: faithful? ? row['start_date'] : nil,
           due_date: faithful? ? row['due_date'] : nil,
           estimated_hours: row['estimated_hours'], done_ratio: faithful? ? row['done_ratio'] : 0,
-          is_private: row['is_private'], csys_preferred_report_diagram: row['preferred_report_diagram']
+          is_private: row['is_private'],
+          csys_preferred_report_diagram: row['preferred_report_diagram'].to_s.strip.presence || 'combined'
         }.merge(identity))
         issue.category = project.issue_categories.find_or_create_by!(name: row['category']) if row['category'].present?
         issue.fixed_version = project.versions.find_or_create_by!(name: row['fixed_version']) if row['fixed_version'].present?
