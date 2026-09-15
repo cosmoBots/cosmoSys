@@ -45,7 +45,7 @@ en:
   label_cosmosys_snapshot_materialization_preflight: Review snapshot materialization
   label_cosmosys_snapshot_destination_projects: Destination projects
   text_cosmosys_snapshot_materialization_confirmation: "Nothing has been created yet. Review this plan and confirm to create the destination project."
-  text_cosmosys_snapshot_internal_relations_only: "Snapshot relations are self-contained: only relations whose two endpoints were captured will be restored."
+  text_cosmosys_snapshot_internal_relations_only: "Internal relations are restored from captured endpoints. External relations are restored when project and CSID resolve uniquely inside the destination tree; missing endpoints are reported and omitted."
   label_cosmosys_snapshot_count_items: Items
   label_cosmosys_snapshot_count_projects: Projects
   label_cosmosys_snapshot_plugins: Source plugin compatibility
@@ -61,8 +61,15 @@ en:
   error_cosmosys_snapshot_duplicate_cscodes: "Destination project codes would collide: %{cscodes}"
   label_cosmosys_snapshot_count_documents: Documents
   label_cosmosys_snapshot_count_internal_relations: Internal relations
+  label_cosmosys_snapshot_count_external_relations: External relations
+  label_cosmosys_snapshot_external_relations: External relation resolution
+  label_cosmosys_snapshot_external_relation_resolved: Resolved
+  label_cosmosys_snapshot_external_relation_missing: Missing from destination tree
+  label_cosmosys_snapshot_external_relation_ambiguous: Ambiguous
+  label_cosmosys_snapshot_external_relation_invalid: Invalid package entry
+  error_cosmosys_snapshot_external_relations_unresolved: "%{count} external snapshot relations are ambiguous or invalid and must be corrected before materialization."
   label_cosmosys_snapshot_count_attachments: Unique attachment contents
-  notice_cosmosys_project_snapshot_materialized_summary: "Project %{project} created from the snapshot: %{items} items, %{documents} documents, %{relations} internal relations and %{attachments} unique attachment contents."
+  notice_cosmosys_project_snapshot_materialized_summary: "Project %{project} created from the snapshot: %{items} items, %{documents} documents, %{relations} relations and %{attachments} unique attachment contents."
   label_cosmosys_copy_mode_clean: Clean working copy
   label_cosmosys_copy_mode_faithful: Faithful baseline
   field_cosmosys_archive_baseline: Archive after copying

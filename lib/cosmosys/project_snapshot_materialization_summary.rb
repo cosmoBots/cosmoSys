@@ -3,6 +3,9 @@ module Cosmosys
     def initialize(project:, plan:)
       @project = project
       @counts = plan.counts
+      @restored_external_relations = plan.external_relation_reconciliation.count do |entry|
+        entry.fetch(:classification) == 'resolved'
+      end
     end
 
     def message
@@ -11,7 +14,7 @@ module Cosmosys
         project: @project.name,
         items: @counts.fetch(:items),
         documents: @counts.fetch(:documents),
-        relations: @counts.fetch(:internal_relations),
+        relations: @counts.fetch(:internal_relations) + @restored_external_relations,
         attachments: @counts.fetch(:attachments)
       )
     end

@@ -100,7 +100,9 @@ module Cosmosys
     def materialize
       deny_access unless User.current.admin?
       attributes = params.require(:destination).permit(:name, :identifier, :cscode, :parent_id, :identity_mode, :project_data_conflict_policy)
-      plan = Cosmosys::ProjectSnapshotMaterializationPlan.new(source: @snapshot, attributes: attributes)
+      plan = Cosmosys::ProjectSnapshotMaterializationPlan.new(
+        source: @snapshot, attributes: attributes, user: User.current
+      )
       confirmed_digest = Cosmosys::ProjectSnapshotMaterializationPlan.verified_digest(params[:confirmed_plan])
       unless confirmed_digest && ActiveSupport::SecurityUtils.secure_compare(confirmed_digest, plan.digest)
         @destination = attributes.to_h
@@ -174,7 +176,9 @@ module Cosmosys
         Cosmosys::ProjectSnapshotPackageReader.open(path) do |source|
           attributes = complete_import_attributes(attributes, source)
           @destination = attributes
-          @import_plan = Cosmosys::ProjectSnapshotMaterializationPlan.new(source: source, attributes: attributes)
+          @import_plan = Cosmosys::ProjectSnapshotMaterializationPlan.new(
+            source: source, attributes: attributes, user: User.current
+          )
         end
       rescue StandardError
         # An invalid or unplanable package must not keep a staged upload: the
@@ -203,7 +207,9 @@ module Cosmosys
 
       Cosmosys::ProjectSnapshotPackageReader.open(path) do |source|
         attributes = complete_import_attributes(attributes, source)
-        plan = Cosmosys::ProjectSnapshotMaterializationPlan.new(source: source, attributes: attributes)
+        plan = Cosmosys::ProjectSnapshotMaterializationPlan.new(
+          source: source, attributes: attributes, user: User.current
+        )
         unless ActiveSupport::SecurityUtils.secure_compare(confirmed_digest, plan.digest)
           @import_plan = plan
           @import_token = token

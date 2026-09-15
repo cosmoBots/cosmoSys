@@ -211,7 +211,8 @@ module Cosmosys
           'local_side' => from_inside ? 'from' : 'to',
           'external_csid' => external.csid,
           'external_project_identifier' => external.project.identifier,
-          'type' => relation.relation_type, 'delay' => relation.delay
+          'type' => relation.relation_type, 'delay' => relation.delay,
+          'restricted' => relation.csys_restricted
         }
       end
     end

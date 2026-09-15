@@ -28,7 +28,8 @@ module Cosmosys
         yield projects if block_given?
         materialize_contents!(
           content, entries, projects,
-          selected_parts: selected_parts && Array(selected_parts).map(&:to_s)
+          selected_parts: selected_parts && Array(selected_parts).map(&:to_s),
+          include_external_relations: true
         )
         projects
       end
@@ -61,7 +62,7 @@ module Cosmosys
     end
 
     def preflight!
-      plan = ProjectSnapshotMaterializationPlan.new(source: source, attributes: attributes)
+      plan = ProjectSnapshotMaterializationPlan.new(source: source, attributes: attributes, user: user)
       return plan if plan.blocking_messages.empty?
 
       raise ProjectCopyError, plan.blocking_messages.join(' ')
@@ -86,7 +87,8 @@ module Cosmosys
       projects
     end
 
-    def materialize_contents!(content, entries, projects, selected_parts: nil, copy_context: nil)
+    def materialize_contents!(content, entries, projects, selected_parts: nil, copy_context: nil,
+                              include_external_relations: false)
       @reused_item_keys = Set.new
       include_items = selected_parts.nil? || selected_parts.include?('issues')
       include_documents = selected_parts.nil? || selected_parts.include?('documents')
@@ -102,6 +104,7 @@ module Cosmosys
         apply_deferred_profile_fields!(items, rows)
         restore_hierarchy!(items, rows)
         restore_relations!(items, content.fetch('relations'))
+        restore_external_relations!(items) if include_external_relations
       end
 
       documents = {}
@@ -276,6 +279,26 @@ module Cosmosys
       rows.each do |row|
         IssueRelation.create!(issue_from: items.fetch(row.fetch('from')), issue_to: items.fetch(row.fetch('to')),
                               relation_type: row.fetch('type'), delay: row['delay'], csys_restricted: row['restricted'])
+      end
+    end
+
+    def restore_external_relations!(items)
+      plan.external_relation_reconciliation.each do |entry|
+        next unless entry.fetch(:classification) == 'resolved'
+
+        row = entry.fetch(:row)
+        local = items.fetch(row.fetch('local'))
+        external = Issue.find(entry.fetch(:target_id))
+        attributes = {
+          relation_type: row.fetch('type'), delay: row['delay'],
+          csys_restricted: row.fetch('restricted', false)
+        }
+        relation = if row.fetch('local_side') == 'from'
+                     IssueRelation.new(attributes.merge(issue_from: local, issue_to: external))
+                   else
+                     IssueRelation.new(attributes.merge(issue_from: external, issue_to: local))
+                   end
+        relation.save!
       end
     end
 

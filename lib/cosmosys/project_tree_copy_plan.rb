@@ -22,6 +22,7 @@ module Cosmosys
         project_identifiers.to_unsafe_h : project_identifiers.to_h
       @materialization_plan = ProjectSnapshotMaterializationPlan.new(
         source: snapshot_source,
+        user: user,
         attributes: attributes.merge(
           'identity_mode' => context.identity_mode,
           'project_identifiers' => overrides,

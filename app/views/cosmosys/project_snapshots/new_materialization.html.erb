@@ -40,6 +40,7 @@
             <% end %>
           </tbody>
         </table>
+        <%= render partial: 'external_relation_preflight', locals: { plan: @materialization_plan } %>
         <% if @materialization_plan.project_data_reconciliation.entries.any? %>
           <h4><%= l(:label_cosmosys_project_data_reconciliation) %></h4>
           <table class="list">

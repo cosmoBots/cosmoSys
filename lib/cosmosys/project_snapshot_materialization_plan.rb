@@ -7,10 +7,11 @@ module Cosmosys
 
     attr_reader :source, :attributes, :identity_collisions, :missing_trackers,
                 :missing_custom_fields, :missing_assets, :plugin_compatibility,
-                :project_data_reconciliation
+                :project_data_reconciliation, :external_relation_reconciliation
 
-    def initialize(source:, attributes:)
+    def initialize(source:, attributes:, user: User.current)
       @source = source
+      @user = user || User.anonymous
       raw = attributes.respond_to?(:to_unsafe_h) ? attributes.to_unsafe_h : attributes.to_h
       @attributes = raw.stringify_keys
       validate_schema!
@@ -22,6 +23,7 @@ module Cosmosys
       @missing_custom_fields = find_missing_custom_fields
       @missing_assets = find_missing_assets
       @plugin_compatibility = compare_plugins
+      @external_relation_reconciliation = inspect_external_relations
     end
 
     def blocking_messages
@@ -75,6 +77,13 @@ module Cosmosys
         messages << I18n.t(:error_cosmosys_snapshot_assets_missing,
                            count: missing_assets.length)
       end
+      unsafe_external = external_relation_reconciliation.select do |entry|
+        %w[ambiguous invalid].include?(entry.fetch(:classification))
+      end
+      if unsafe_external.any?
+        messages << I18n.t(:error_cosmosys_snapshot_external_relations_unresolved,
+                           count: unsafe_external.length)
+      end
       messages
     end
 
@@ -107,6 +116,7 @@ module Cosmosys
         items: items.length,
         documents: documents.length,
         internal_relations: content.fetch('relations').length,
+        external_relations: content.fetch('external_relations', []).length,
         attachments: required_asset_digests.length
       }
     end
@@ -238,6 +248,40 @@ module Cosmosys
       end
     end
 
+    def inspect_external_relations
+      rows = content.fetch('external_relations', [])
+      item_keys = items.map { |row| row.fetch('key') }.to_set
+      rows.map do |row|
+        classification = 'missing'
+        target_id = nil
+        if item_keys.exclude?(row['local']) || !IssueRelation::TYPES.key?(row['type'].to_s) ||
+           !%w[from to].include?(row['local_side'].to_s) || row['external_project_identifier'].blank? ||
+           row['external_csid'].blank?
+          classification = 'invalid'
+        elsif parent
+          project = Project.find_by(identifier: row['external_project_identifier'].to_s)
+          if project && project.root.id == parent.root.id
+            matches = Issue.visible(@user)
+                           .where(project_id: project.id)
+                           .where('LOWER(csid) = ?', row['external_csid'].to_s.downcase)
+                           .pluck(:id)
+            if matches.one?
+              classification = 'resolved'
+              target_id = matches.first
+            elsif matches.many?
+              classification = 'ambiguous'
+            end
+          end
+        end
+        {
+          row: row, local: row['local'], local_side: row['local_side'],
+          external_project_identifier: row['external_project_identifier'],
+          external_csid: row['external_csid'], relation_type: row['type'],
+          classification: classification, target_id: target_id
+        }
+      end
+    end
+
     def older_version?(destination, source)
       Gem::Version.new(destination) < Gem::Version.new(source)
     rescue ArgumentError
@@ -268,6 +312,7 @@ module Cosmosys
         missing_trackers: missing_trackers.sort,
         missing_custom_fields: missing_custom_fields.sort,
         missing_assets: missing_assets.sort,
+        external_relation_reconciliation: external_relation_reconciliation,
         plugin_compatibility: plugin_compatibility
       }
     end
