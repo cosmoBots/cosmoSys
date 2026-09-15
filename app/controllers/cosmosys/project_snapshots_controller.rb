@@ -236,6 +236,14 @@ module Cosmosys
       content = source.manifest.fetch('content')
       values['primary_source_id'] = content['primary_project_source_id'].to_s if values['primary_source_id'].blank?
       values['allow_multiple_roots'] = '1'
+      overrides = (values['project_identifiers'] || {}).stringify_keys
+      content.fetch('projects').each do |entry|
+        source_id = entry.fetch('source_id').to_s
+        next if source_id == values['primary_source_id']
+
+        overrides[source_id] ||= entry.fetch('project').fetch('identifier')
+      end
+      values['project_identifiers'] = overrides
       values
     end
 
