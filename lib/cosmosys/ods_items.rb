@@ -13,6 +13,7 @@ module Cosmosys
       poris_max poris_default_text version priority
     ].freeze
     SOURCE_TRACKER_NAMES = {
+      'normal' => 'normal',
       'csinfo' => 'csInfo',
       'csrefdoc' => 'csRefDoc',
       'csdocref' => 'csRefDoc'
@@ -86,7 +87,11 @@ module Cosmosys
 
       def normalize_tracker(value)
         tracker = text(value)
-        SOURCE_TRACKER_NAMES.fetch(tracker.downcase, 'csRq')
+        # This reader only maintains the historical csysARC test fixture. Its
+        # hierarchy predates requirement item profiles and contains children at
+        # many levels, so an unrecognised legacy tracker must remain a normal
+        # item. Mapping it to csRq would create an invalid requirement tree.
+        SOURCE_TRACKER_NAMES.fetch(tracker.downcase, 'normal')
       end
 
       def references(value)

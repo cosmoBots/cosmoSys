@@ -113,8 +113,10 @@ module Cosmosys
 
     def copy_memberships!(source, target)
       source.members.includes(:member_roles).each do |member|
-        copy = target.members.create!(user_id: member.user_id)
-        member.member_roles.each { |role| copy.member_roles.create!(role_id: role.role_id) }
+        role_ids = member.member_roles.map(&:role_id).uniq
+        next if role_ids.empty?
+
+        target.members.create!(user_id: member.user_id, role_ids: role_ids)
       end
     end
 
