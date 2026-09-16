@@ -33,7 +33,7 @@ module Cosmosys
       'landscape' => ['COSMOSYS_REPORT_LANDSCAPE_START', 'COSMOSYS_REPORT_LANDSCAPE_END'],
       'portrait' => ['COSMOSYS_REPORT_PORTRAIT_START', 'COSMOSYS_REPORT_PORTRAIT_END']
     }.freeze
-    CACHE_SCHEMA = 'cosmosys-report-artifact-v14'.freeze
+    CACHE_SCHEMA = 'cosmosys-report-artifact-v15'.freeze
     MAX_CACHED_REPORTS_PER_PROJECT = 5
 
     class ExportError < StandardError; end
@@ -231,7 +231,7 @@ module Cosmosys
           .sub('<svg', '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"')
         File.binwrite(svg_path, standalone_svg)
         output, status = Open3.capture2e(
-          '/usr/bin/magick', '-density', '96',
+          '/usr/bin/magick', '-density', (96 * DIAGRAM_RASTER_SCALE).to_s,
           '-background', 'none', svg_path, '-resize', "#{DIAGRAM_RASTER_SCALE * 100}%", png_path
         )
         unless status.success? && File.file?(png_path)
@@ -242,11 +242,8 @@ module Cosmosys
         replacement = Nokogiri::XML::Node.new('img', document)
         replacement['src'] = "data:image/png;base64,#{Base64.strict_encode64(File.binread(png_path))}"
         replacement['alt'] = svg['aria-label'].presence || 'cosmoSys diagram'
-        # Rasterise at high density, but retain the SVG's original CSS size.
-        # Scaling both the bitmap and these layout dimensions made diagrams
-        # physically three times larger instead of merely sharper.
-        replacement['width'] = dimensions[:width].round.to_s
-        replacement['height'] = dimensions[:height].round.to_s
+        replacement['width'] = (dimensions[:width] * DIAGRAM_RASTER_SCALE).round.to_s
+        replacement['height'] = (dimensions[:height] * DIAGRAM_RASTER_SCALE).round.to_s
         alternate_orientation = report_diagram?(svg) && alternate_orientation_for(dimensions)
         svg.replace(replacement)
         add_orientation_markers(replacement, document, alternate_orientation) if alternate_orientation
