@@ -1,6 +1,11 @@
 <section class="cosmosys-report-negative-items">
   <% if section.negative_items.present? %>
     <table class="list cosmosys-report-negative-items-table">
+      <colgroup>
+        <col class="cosmosys-report-negative-items-csid-column">
+        <col class="cosmosys-report-negative-items-status-column">
+        <col class="cosmosys-report-negative-items-subject-column">
+      </colgroup>
       <thead>
         <tr>
           <th><%= l(:label_cosmosys_csid) %></th>

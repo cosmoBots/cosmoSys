@@ -132,6 +132,8 @@ module Cosmosys
         'description' => selected.description.to_s, 'cscode' => selected.cscode,
         'profile' => profile.key, 'language' => selected.cosmosys_effective_language,
         'report_code' => selected.csys_report_code,
+        'wp' => selected.csys_wp,
+        'wp_title' => selected.csys_wp_title,
         'report_export_format' => selected.cosmosys_effective_report_export_format,
         'enabled_modules' => selected.enabled_module_names.map(&:to_s).sort,
         'trackers' => selected.trackers.map { |tracker| tracker_identity(tracker) }.sort_by { |entry| entry['key'].to_s }

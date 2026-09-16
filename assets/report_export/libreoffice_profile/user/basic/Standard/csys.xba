@@ -158,7 +158,7 @@ Sub ApplyAlternateOrientationGraphics(oDoc)
     call ApplyPageMarker(oDoc, sEndMarker, &quot;Standard&quot;)
 End Sub
 
-Sub Main(oDoc, HTMLPath as String, Title as String, DelivCode as String, cSysVersion as String, DocDate as String, ProjectAbbrev as String, ProjectName as String, ProjectRef as String, IssueValue as String)
+Sub Main(oDoc, HTMLPath as String, Title as String, DelivCode as String, cSysVersion as String, DocDate as String, ProjectAbbrev as String, ProjectName as String, ProjectRef as String, IssueValue as String, WPValue as String, WPTitleValue as String)
 
 dim oSearch as object
 dim oResult as object
@@ -185,6 +185,14 @@ If oDoc.DocumentProperties.UserDefinedProperties.PropertySetInfo.hasPropertyByNa
     oDoc.DocumentProperties.UserDefinedProperties.removeProperty("Issue")
 End If
 oDoc.DocumentProperties.UserDefinedProperties.addProperty("Issue",0,IssueValue)
+If oDoc.DocumentProperties.UserDefinedProperties.PropertySetInfo.hasPropertyByName("WP") Then
+    oDoc.DocumentProperties.UserDefinedProperties.removeProperty("WP")
+End If
+oDoc.DocumentProperties.UserDefinedProperties.addProperty("WP",0,WPValue)
+If oDoc.DocumentProperties.UserDefinedProperties.PropertySetInfo.hasPropertyByName("WPTitle") Then
+    oDoc.DocumentProperties.UserDefinedProperties.removeProperty("WPTitle")
+End If
+oDoc.DocumentProperties.UserDefinedProperties.addProperty("WPTitle",0,WPTitleValue)
 
 oCursor = oText.createTextCursor()
 rem oCursor=oDoc.CurrentController.getViewCursor()
@@ -227,9 +235,9 @@ function OpenSilent(FilePath as String) as Object
   OpenSilent = StarDesktop.loadComponentFromURL(&quot;file://&quot; &amp; FilePath, &quot;_blank&quot;, 0, FileProperties())
 end function
 
-sub Headless(FilePath as String, HTMLPath as String, Title as String, DelivCode as String, cSysVersion as String, DocDate as String, ProjectAbbrev as String, ProjectName as String, ProjectRef as String, IssueValue as String)
+sub Headless(FilePath as String, HTMLPath as String, Title as String, DelivCode as String, cSysVersion as String, DocDate as String, ProjectAbbrev as String, ProjectName as String, ProjectRef as String, IssueValue as String, WPValue as String, WPTitleValue as String)
   Document = OpenSilent(FilePath)
-  call Main(Document,HTMLPath,Title,DelivCode,cSysVersion,DocDate,ProjectAbbrev,ProjectName,ProjectRef,IssueValue)
+  call Main(Document,HTMLPath,Title,DelivCode,cSysVersion,DocDate,ProjectAbbrev,ProjectName,ProjectRef,IssueValue,WPValue,WPTitleValue)
 
   call Document.store()
   call Document.close(True)

@@ -18,7 +18,7 @@ module Cosmosys
                  optional: true,
                  inverse_of: :report_overriding_projects
 
-      safe_attributes 'cscode', 'csys_language', 'csys_report_code', 'csys_report_export_format'
+      safe_attributes 'cscode', 'csys_language', 'csys_report_code', 'csys_report_export_format', 'csys_wp', 'csys_wp_title'
       safe_attributes 'csys_project_profile', if: ->(project, _user) { project.new_record? }
       safe_attributes 'csys_modules_explicit', if: ->(project, _user) { project.new_record? }
 
@@ -30,6 +30,7 @@ module Cosmosys
       validates :cscode, format: { with: /\A[a-zA-Z0-9]+\z/ }
       validates :csys_language, inclusion: { in: ->(_project) { Cosmosys::ProjectLanguage.available }, allow_blank: true }
       validates :csys_report_code, length: { maximum: 255 }
+      validates :csys_wp, :csys_wp_title, length: { maximum: 255 }
       validates :csys_report_export_format, inclusion: { in: Cosmosys::ReportFormat::FORMATS, allow_blank: true }
       validate :cosmosys_validate_project_profile
 

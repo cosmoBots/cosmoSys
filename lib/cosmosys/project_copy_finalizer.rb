@@ -33,6 +33,8 @@ module Cosmosys
         csys_report_template_key: source.csys_report_template_key,
         csys_language: source.csys_language,
         csys_report_code: source.csys_report_code,
+        csys_wp: source.csys_wp,
+        csys_wp_title: source.csys_wp_title,
         csys_report_export_format: source.csys_report_export_format,
         cslast_id: destination.issues.maximum(:csidnum).to_i
       )

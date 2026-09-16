@@ -139,6 +139,8 @@ module Cosmosys
         csys_project_profile: source.fetch('profile'),
         csys_language: source['language'],
         csys_report_code: source['report_code'],
+        csys_wp: source['wp'],
+        csys_wp_title: source['wp_title'],
         csys_report_export_format: source['report_export_format']
       )
       tracker_keys = source.fetch('trackers').map { |entry| entry['key'] }

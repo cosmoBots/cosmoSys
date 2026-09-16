@@ -24,12 +24,16 @@ module Cosmosys
     METADATA_VALUE_WIDTH_PX = METADATA_TABLE_WIDTH_PX - METADATA_LABEL_WIDTH_PX
     DOCUMENT_CATALOG_ID_WIDTH_PX = 68
     DOCUMENT_CATALOG_METADATA_WIDTH_PX = (METADATA_TABLE_WIDTH_PX - DOCUMENT_CATALOG_ID_WIDTH_PX) / 3
+    NEGATIVE_ITEMS_CSID_WIDTH_PX = 120
+    NEGATIVE_ITEMS_STATUS_WIDTH_PX = 90
+    NEGATIVE_ITEMS_SUBJECT_WIDTH_PX = METADATA_TABLE_WIDTH_PX - NEGATIVE_ITEMS_CSID_WIDTH_PX - NEGATIVE_ITEMS_STATUS_WIDTH_PX
+    DIAGRAM_RASTER_SCALE = 3
     PORTRAIT_CONTENT_WIDTH_PX = METADATA_TABLE_WIDTH_PX
     ORIENTATION_MARKERS = {
       'landscape' => ['COSMOSYS_REPORT_LANDSCAPE_START', 'COSMOSYS_REPORT_LANDSCAPE_END'],
       'portrait' => ['COSMOSYS_REPORT_PORTRAIT_START', 'COSMOSYS_REPORT_PORTRAIT_END']
     }.freeze
-    CACHE_SCHEMA = 'cosmosys-report-artifact-v4'.freeze
+    CACHE_SCHEMA = 'cosmosys-report-artifact-v14'.freeze
     MAX_CACHED_REPORTS_PER_PROJECT = 5
 
     class ExportError < StandardError; end
@@ -87,6 +91,8 @@ module Cosmosys
         @project.identifier,
         @project.cscode,
         @project.csys_report_code,
+        @project.csys_wp,
+        @project.csys_wp_title,
         @project.default_version&.name,
         report_application_version,
         @project.cosmosys_report_landscape_scale_threshold,
@@ -224,7 +230,10 @@ module Cosmosys
           .gsub(/\s+xmlns(?::[A-Za-z0-9_-]+)?="[^"]*"/, '')
           .sub('<svg', '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"')
         File.binwrite(svg_path, standalone_svg)
-        output, status = Open3.capture2e('/usr/bin/magick', svg_path, png_path)
+        output, status = Open3.capture2e(
+          '/usr/bin/magick', '-density', '96',
+          '-background', 'none', svg_path, '-resize', "#{DIAGRAM_RASTER_SCALE * 100}%", png_path
+        )
         unless status.success? && File.file?(png_path)
           Rails.logger.error("cosmoSys SVG rasterization failed: #{output}")
           raise ExportError, 'A report diagram could not be converted'
@@ -233,6 +242,11 @@ module Cosmosys
         replacement = Nokogiri::XML::Node.new('img', document)
         replacement['src'] = "data:image/png;base64,#{Base64.strict_encode64(File.binread(png_path))}"
         replacement['alt'] = svg['aria-label'].presence || 'cosmoSys diagram'
+        # Rasterise at high density, but retain the SVG's original CSS size.
+        # Scaling both the bitmap and these layout dimensions made diagrams
+        # physically three times larger instead of merely sharper.
+        replacement['width'] = dimensions[:width].round.to_s
+        replacement['height'] = dimensions[:height].round.to_s
         alternate_orientation = report_diagram?(svg) && alternate_orientation_for(dimensions)
         svg.replace(replacement)
         add_orientation_markers(replacement, document, alternate_orientation) if alternate_orientation
@@ -439,14 +453,23 @@ module Cosmosys
         table['border'] = '1'
         table['cellspacing'] = '0'
         table['cellpadding'] = '0'
+        table['width'] = METADATA_TABLE_WIDTH_PX.to_s
         add_inline_declarations(
           table,
           'border-collapse' => 'collapse',
+          'font-size' => '9pt',
           'margin-left' => 'auto',
-          'margin-right' => 'auto'
+          'margin-right' => 'auto',
+          'width' => "#{METADATA_TABLE_WIDTH_PX}px"
         )
         table.css('th, td').each do |cell|
-          add_inline_declarations(cell, 'border' => '1px solid #b7c3cf', 'padding' => '4pt', 'vertical-align' => 'top')
+          add_inline_declarations(
+            cell,
+            'border' => '1px solid #b7c3cf',
+            'font-size' => '9pt',
+            'padding' => '4pt',
+            'vertical-align' => 'top'
+          )
         end
         table.css('th').each do |header|
           add_inline_declarations(header, 'background-color' => '#f3f6f9', 'font-weight' => 'bold')
@@ -493,6 +516,30 @@ module Cosmosys
         table.css('tr.cosmosys-report-document-catalog-metadata-row td:first-child').each do |cell|
           add_inline_declarations(cell, 'background-color' => '#f3f6f9')
         end
+      end
+
+
+      document.css('table.cosmosys-report-negative-items-table').each do |table|
+        widths = [NEGATIVE_ITEMS_CSID_WIDTH_PX, NEGATIVE_ITEMS_STATUS_WIDTH_PX, NEGATIVE_ITEMS_SUBJECT_WIDTH_PX]
+        table.css('col').each_with_index do |column, index|
+          width = widths.fetch(index)
+          column['width'] = width.to_s
+          add_inline_declarations(column, 'width' => "#{width}px")
+        end
+        table.css('tr').each do |row|
+          row.css('th, td').each_with_index do |cell, index|
+            width = widths.fetch(index)
+            add_inline_declarations(cell, 'width' => "#{width}px")
+            add_inline_declarations(cell, 'white-space' => 'nowrap') if index < 2
+          end
+        end
+      end
+
+      # Writer does not reliably preserve background/border styling attached
+      # to an HTML article. A text colour applied to every descendant is a
+      # portable, unambiguous indication that the item closed unsuccessfully.
+      document.css('.cosmosys-report-negative-item, .cosmosys-report-negative-item *').each do |node|
+        add_inline_declarations(node, 'color' => '#8b1a1a')
       end
     end
 
@@ -561,14 +608,16 @@ module Cosmosys
       args = [
         odt_path,
         html_path,
-        "#{@project.name} report",
+        "#{@project.name}",
         @project.csys_report_code.to_s,
         report_application_version,
         Date.current.iso8601,
         @project.cscode.to_s,
         @project.name,
         @project.identifier.to_s,
-        @project.default_version&.name.to_s
+        @project.default_version&.name.to_s,
+        @project.csys_wp.to_s,
+        @project.csys_wp_title.to_s
       ].map { |value| macro_argument(value) }.join(',')
       "macro:///Standard.csys.Headless(#{args})"
     end

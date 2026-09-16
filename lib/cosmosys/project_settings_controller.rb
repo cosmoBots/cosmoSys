@@ -81,6 +81,8 @@ module Cosmosys
       language = params.dig(:cosmosys_setting, :language).to_s
       @project.csys_language = Cosmosys::ProjectLanguage.normalize(language, allow_blank: true)
       @project.csys_report_code = params.dig(:cosmosys_setting, :report_code).to_s.strip.presence
+      @project.csys_wp = params.dig(:cosmosys_setting, :wp).to_s.strip.presence
+      @project.csys_wp_title = params.dig(:cosmosys_setting, :wp_title).to_s.strip.presence
       @project.csys_report_export_format = Cosmosys::ReportFormat.normalize(
         params.dig(:cosmosys_setting, :report_export_format),
         allow_blank: true

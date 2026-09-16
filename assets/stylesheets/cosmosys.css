@@ -1111,36 +1111,37 @@
 
 .cosmosys-header-logo {
   position: absolute;
-  inset-inline-start: 4px;
-  inset-block-start: 50%;
+  inset-inline-start: -6px;
+  inset-block-start: 41%;
   transform: translateY(-50%);
   display: block;
   width: auto;
-  height: 44px;
-  max-width: min(35vw, 360px);
+  height: 106px;
   object-fit: contain;
-  opacity: 1;
+  filter: brightness(0) saturate(100%) invert(76%) sepia(18%) saturate(782%) hue-rotate(166deg) brightness(90%) contrast(94%);
+  opacity: 0.45;
   pointer-events: none;
 }
 
-.cosmosys-header-logo--diffuse {
-  inset-inline-start: -6px;
-  inset-block-start: 41%;
-  height: 106px;
-  max-width: none;
-  filter: brightness(0) saturate(100%) invert(76%) sepia(18%) saturate(782%) hue-rotate(166deg) brightness(90%) contrast(94%);
-  opacity: 0.45;
+.cosmosys-header-logo--normal {
+  inset-inline-start: 4px;
+  inset-block-start: 50%;
+  transform: translateY(-46%);
+  height: 50px;
+  max-width: min(35vw, 360px);
+  filter: none;
+  opacity: 1;
 }
 
 #header > h1:has(.cosmosys-header-logo) {
   position: relative;
   min-height: 50px;
-  padding-inline-start: 56px;
+  padding-inline-start: 105px;
   overflow: visible;
 }
 
-#header > h1.cosmosys-header-has-diffuse-logo {
-  padding-inline-start: 105px;
+#header > h1.cosmosys-header-has-normal-logo {
+  padding-inline-start: 64px;
 }
 
 .cosmosys-sidebar-brand {
@@ -1383,4 +1384,24 @@ a.issue.closed.cosmosys-closure-successful:visited {
   font-size: 0.8em;
   font-weight: 700;
   letter-spacing: 0.05em;
+}
+
+.cosmosys-report-negative-items-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.cosmosys-report-negative-items-csid-column {
+  width: 7.5rem;
+}
+
+.cosmosys-report-negative-items-status-column {
+  width: 5.625rem;
+}
+
+.cosmosys-report-negative-items-table th:nth-child(1),
+.cosmosys-report-negative-items-table td:nth-child(1),
+.cosmosys-report-negative-items-table th:nth-child(2),
+.cosmosys-report-negative-items-table td:nth-child(2) {
+  white-space: nowrap;
 }

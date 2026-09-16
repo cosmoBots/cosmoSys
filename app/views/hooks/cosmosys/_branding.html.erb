@@ -6,9 +6,13 @@
      image_path('cosmobots-round-logo.svg', plugin: 'cosmosys')
    end %>
 <div id="cosmosys-branding-assets" hidden>
-  <%= image_tag header_source,
-                class: "cosmosys-header-logo #{'cosmosys-header-logo--diffuse' if branding.diffuse_effect}",
-                alt: branding.custom? ? branding.asset.attachment.filename : 'cosmoBots' %>
+  <% if branding.custom? %>
+    <%= image_tag header_source,
+                  class: "cosmosys-header-logo #{'cosmosys-header-logo--normal' unless branding.diffuse_effect}",
+                  alt: branding.asset.attachment.filename %>
+  <% else %>
+    <%= image_tag 'cosmobots-round-logo.svg', plugin: 'cosmosys', class: 'cosmosys-header-logo', alt: 'cosmoBots' %>
+  <% end %>
   <%= image_tag 'cosmobots-round-logo.svg', plugin: 'cosmosys', class: 'cosmosys-sidebar-logo', alt: 'cosmoBots' %>
 </div>
 
@@ -21,7 +25,7 @@
     const headerLogo = assets.querySelector('.cosmosys-header-logo');
     if (heading && headerLogo && !heading.querySelector('.cosmosys-header-logo')) {
       heading.prepend(headerLogo);
-      heading.classList.toggle('cosmosys-header-has-diffuse-logo', headerLogo.classList.contains('cosmosys-header-logo--diffuse'));
+      heading.classList.toggle('cosmosys-header-has-normal-logo', headerLogo.classList.contains('cosmosys-header-logo--normal'));
     }
 
     const sidebar = document.querySelector('#main.collapsiblesidebar #sidebar-wrapper');

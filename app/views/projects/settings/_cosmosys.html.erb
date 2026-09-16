@@ -83,6 +83,16 @@
       <em class="info"><%= l(:text_cosmosys_report_code_help) %></em>
     </p>
     <p>
+      <%= label_tag 'cosmosys_setting_wp', l(:field_cosmosys_wp) %>
+      <%= text_field_tag 'cosmosys_setting[wp]', @project.csys_wp, id: 'cosmosys_setting_wp', maxlength: 255 %>
+      <em class="info"><%= l(:text_cosmosys_wp_help) %></em>
+    </p>
+    <p>
+      <%= label_tag 'cosmosys_setting_wp_title', l(:field_cosmosys_wp_title) %>
+      <%= text_field_tag 'cosmosys_setting[wp_title]', @project.csys_wp_title, id: 'cosmosys_setting_wp_title', maxlength: 255 %>
+      <em class="info"><%= l(:text_cosmosys_wp_title_help) %></em>
+    </p>
+    <p>
       <%= label_tag 'cosmosys_setting_report_export_format', l(:label_cosmosys_report_format_default) %>
       <%= select_tag 'cosmosys_setting[report_export_format]',
                      options_for_select(
