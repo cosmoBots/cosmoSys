@@ -364,6 +364,46 @@ module Cosmosys
       end
     end
 
+    # The description's inline `width`/`height` are what Writer actually sees;
+    # they are the authoritative declared size. The legacy `width`/`height`
+    # HTML attributes are ignored by Writer's HTML importer and can be stale
+    # (e.g. a resized image kept its original pixel attributes), so they must
+    # not be used to derive the proportional height.
+    def declared_image_width_px(image)
+      px = css_length_to_px(style_declaration(image, 'width'))
+      px if px&.positive?
+    end
+
+    def declared_image_height_px(image)
+      px = css_length_to_px(style_declaration(image, 'height'))
+      px if px&.positive?
+    end
+
+    def style_declaration(image, property)
+      regexp = /\A#{Regexp.escape(property)}\s*:\s*(.+)\z/i
+      image['style'].to_s.split(';').map(&:strip).detect { |declaration| declaration.match?(regexp) }&.[](regexp, 1)
+    end
+
+    # Reads the intrinsic dimensions of an embedded PNG from its IHDR chunk so
+    # the proportional height can be derived without invoking ImageMagick for
+    # every pasted image. Only PNG data URLs produced by `secure_embedded_resources!`
+    # are expected here.
+    def image_native_dimensions_px(image)
+      source = image['src'].to_s
+      match = source.match(%r{\Adata:image/png;base64,([A-Za-z0-9+/=]+)\z}i)
+      return unless match
+
+      bytes = Base64.strict_decode64(match[1])
+      return unless bytes.start_with?("\x89PNG\r\n\x1a\n".b)
+
+      width, height = bytes.byteslice(16, 8).unpack('NN')
+      return unless width.positive? && height.positive?
+
+      { width: width, height: height }
+    rescue ArgumentError
+      nil
+    end
+
     def prepare_export_document(document)
       # `chapter` is useful in the browser report, but Writer already numbers the
       # imported heading styles. Keeping both produces headings such as
@@ -431,7 +471,26 @@ module Cosmosys
       # width and margins, since CSS max-width is not consistently honoured by
       # Writer's HTML importer.
       document.css('img').each do |image|
-        add_inline_declarations(image, 'max-width' => '100%', 'height' => 'auto')
+        # Writer's HTML importer distorts an image when an explicit CSS width is
+        # paired with `height: auto` and no concrete pixel height: with e.g.
+        # `style="width: 695px"` on a portrait PNG it lays the graphic out with
+        # the native height unscaled, stretching it horizontally. When the
+        # description declares a width but no measurable height, derive the
+        # proportional height from the image's intrinsic PNG dimensions so the
+        # aspect ratio survives the import. Declaration of an explicit height is
+        # trusted as-is.
+        declared_width_px = declared_image_width_px(image)
+        declared_height_px = declared_image_height_px(image)
+        if declared_width_px && declared_width_px.positive? && !declared_height_px
+          native = image_native_dimensions_px(image)
+          if native && native.fetch(:width).positive?
+            height = (declared_width_px * native.fetch(:height).to_f / native.fetch(:width)).round
+            add_inline_declarations(image, 'width' => "#{declared_width_px}px", 'height' => "#{height}px")
+            declared_height_px = height
+          end
+        end
+        add_inline_declarations(image, 'max-width' => '100%')
+        add_inline_declarations(image, 'height' => 'auto') unless declared_height_px
       end
 
       # The browser report gets its table presentation from Redmine's external
