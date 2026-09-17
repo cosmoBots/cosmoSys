@@ -1,4 +1,22 @@
 es:
+  activerecord:
+    errors:
+      messages:
+        cant_link_an_issue_with_a_descendant: "Un ítem no puede relacionarse con uno de sus subítems"
+        open_issue_with_closed_parent: "Un ítem abierto no puede asociarse a un ítem padre cerrado"
+  notice_issue_not_closable_by_open_tasks: "Este ítem no se puede cerrar porque tiene al menos un subítem abierto."
+  error_move_of_child_not_possible: "No se pudo mover el subítem %{child} al proyecto nuevo: %{errors}"
+  setting_cross_project_subtasks: "Permitir subítems entre proyectos"
+  setting_related_issues_default_columns: "Columnas predeterminadas de las listas de ítems relacionados y subítems"
+  permission_manage_subtasks: "Gestionar subítems"
+  label_subtask_plural: "Subítems"
+  label_subtask_remove: "Eliminar subítem"
+  label_copy_subtasks: "Copiar subítems"
+  label_delete_link_to_subtask: "Eliminar enlace al subítem"
+  label_parent_task_attributes_derived: "Calculada a partir de los subítems"
+  label_parent_task_attributes_independent: "Independiente de los subítems"
+  button_add_subtask: "Añadir subítem"
+  text_issues_destroy_descendants_confirmation: "También se eliminarán los subítems descendientes (%{count})."
   label_cosmosys_approved_presentation_changed: "La evidencia consolidada ha cambiado"
   text_cosmosys_approved_presentation_changed: "El contenido resuelto actual difiere de la evidencia aceptada en la última subida de madurez. Baje y vuelva a subir la madurez del ítem para aceptarlo."
   label_cosmosys_approved_text: "Texto resuelto aprobado"

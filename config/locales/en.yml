@@ -1,4 +1,22 @@
 en:
+  activerecord:
+    errors:
+      messages:
+        cant_link_an_issue_with_a_descendant: "An item cannot be linked to one of its subitems"
+        open_issue_with_closed_parent: "An open item cannot be attached to a closed parent item"
+  notice_issue_not_closable_by_open_tasks: "This item cannot be closed because it has at least one open subitem."
+  error_move_of_child_not_possible: "Subitem %{child} could not be moved to the new project: %{errors}"
+  setting_cross_project_subtasks: "Allow cross-project subitems"
+  setting_related_issues_default_columns: "Related items and subitems list defaults"
+  permission_manage_subtasks: "Manage subitems"
+  label_subtask_plural: "Subitems"
+  label_subtask_remove: "Remove subitem"
+  label_copy_subtasks: "Copy subitems"
+  label_delete_link_to_subtask: "Delete link to subitem"
+  label_parent_task_attributes_derived: "Calculated from subitems"
+  label_parent_task_attributes_independent: "Independent of subitems"
+  button_add_subtask: "Add subitem"
+  text_issues_destroy_descendants_confirmation: "The %{count} descendant subitem(s) will also be deleted."
   label_cosmosys_approved_presentation_changed: "Consolidated evidence has changed"
   text_cosmosys_approved_presentation_changed: "The current resolved content differs from the evidence accepted at the last maturity increase. Lower and raise the item's maturity again to accept it."
   label_cosmosys_approved_text: "Approved resolved text"
