@@ -10,7 +10,7 @@ Redmine::Plugin.register :cosmosys do
   name 'cosmoSys'
   author 'cosmoBots.eu'
   description 'Base plugin for cosmoSys on top of Redmine.'
-  version '0.1.1'
+  version '0.1.2'
   url 'https://github.com/cosmoBots/cosmoSys'
   author_url 'https://cosmobots.eu'
 
