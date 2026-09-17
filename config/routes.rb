@@ -59,6 +59,7 @@ RedmineApp::Application.routes.draw do
     put 'cosmosys/settings', to: 'cosmosys/project_settings#update', as: :project_cosmosys_settings
     put 'cosmosys/branding', to: 'cosmosys/branding_assets#update_project', as: :project_cosmosys_branding
     get 'cosmosys/tree', to: 'cosmosys/items#tree'
+    get 'cosmosys/data', to: 'cosmosys/items#data', as: :project_cosmosys_data
     get 'cosmosys/dsm', to: 'cosmosys/items#dsm', as: :project_cosmosys_dsm
     get 'cosmosys/diagram_panel/:kind', to: 'cosmosys/items#diagram_panel', as: :cosmosys_diagram_panel
     get 'cosmosys/diagrams/:kind/:diagram_format', to: 'cosmosys/items#diagram_export', as: :cosmosys_diagram_export

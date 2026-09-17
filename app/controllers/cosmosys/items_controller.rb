@@ -9,7 +9,7 @@ module Cosmosys
     before_action :find_project_by_project_id
     before_action :authenticate_api_user!, only: [:diagram_export, :resolve]
     before_action :find_export_issue, only: [:diagram_export, :diagram_panel]
-    before_action :authorize_project_read, only: [:index, :overview, :report, :report_diagram, :report_export, :ods_export, :tree, :dsm, :details, :resolve]
+    before_action :authorize_project_read, only: [:index, :overview, :report, :report_diagram, :report_export, :ods_export, :tree, :data, :dsm, :details, :resolve]
     before_action :find_report_diagram_issue, only: :report_diagram
     before_action :authorize_diagram_read, only: [:diagram_export, :diagram_panel]
     before_action :authorize_diagram_layout_change, only: :diagram_panel
@@ -18,7 +18,7 @@ module Cosmosys
     before_action :find_rebuild_issue, only: :rebuild_tree
     before_action :authorize_tree_repair, only: :rebuild_tree
     before_action :find_detail_issue, only: :details
-    around_action :use_project_language, only: :report_diagram
+    around_action :use_project_language, only: [:report_diagram, :data]
 
     accept_api_auth :resolve
 
@@ -155,6 +155,23 @@ module Cosmosys
         expand: l(:label_cosmosys_dsm_expand), compact: l(:label_cosmosys_dsm_compact),
         empty: l(:label_no_data)
       }
+    end
+
+    def data
+      @data_mode = params[:mode].to_s == 'used' ? :used : :available
+      dictionary = Cosmosys::ProjectDataDictionary.current(project: @project, user: User.current)
+      @data_entries =
+        case @data_mode
+        when :available
+          dictionary.definitions
+        when :used
+          Cosmosys::ProjectDataScopeScanner.new(@project, user: User.current).call.map do |entry|
+            Cosmosys::ProjectDataDictionary::Entry.new(
+              key: entry.fetch(:key), name: entry.fetch(:name),
+              value: entry.fetch(:value), issue: entry.fetch(:issue)
+            )
+          end
+        end
     end
 
     def details

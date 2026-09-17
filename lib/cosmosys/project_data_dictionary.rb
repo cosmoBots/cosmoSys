@@ -51,6 +51,18 @@ module Cosmosys
       ledger.values.sort_by { |entry| entry.fetch(:key).downcase }
     end
 
+    # All visible definitions in the project-root tree, ordered by case-normalized key.
+    def definitions
+      profile_keys = Cosmosys::ItemKindRegistry.all.select(&:defines_project_data).map(&:key)
+      Issue.visible(user)
+           .joins(:tracker)
+           .where(project_id: project.root.self_and_descendants.select(:id))
+           .where(trackers: { csys_item_kind: profile_keys })
+           .includes(:project, :tracker)
+           .order(Arel.sql('LOWER(issues.csid) ASC'), :id)
+           .map { |issue| Entry.new(key: issue.csid, name: issue.subject, value: issue.csys_value, issue: issue) }
+    end
+
     private
 
     attr_reader :project, :user
@@ -58,6 +70,7 @@ module Cosmosys
     def find_entry(key)
       profile_keys = Cosmosys::ItemKindRegistry.all.select(&:defines_project_data).map(&:key)
       issue = Issue.visible(user)
+                   .includes(:project)
                    .joins(:tracker)
                    .where(project_id: project.root.self_and_descendants.select(:id))
                    .where(trackers: { csys_item_kind: profile_keys })

@@ -1,0 +1,81 @@
+<%= render partial: 'nav', locals: { current: :data } %>
+
+<h2><%= l(:label_cosmosys_project_data) %></h2>
+
+<div class="tabs" id="cosmosys-project-data-scopes">
+  <ul>
+    <li><%= link_to l(:label_cosmosys_project_data_available), project_cosmosys_data_path(@project), class: (@data_mode == :available ? 'selected' : nil) %></li>
+    <li><%= link_to l(:label_cosmosys_project_data_used), project_cosmosys_data_path(@project, mode: 'used'), class: (@data_mode == :used ? 'selected' : nil) %></li>
+  </ul>
+</div>
+
+<% if @data_mode == :used %>
+  <p class="info"><%= l(:text_cosmosys_project_data_used_scope) %></p>
+<% else %>
+  <p class="info"><%= l(:text_cosmosys_project_data_available_scope) %></p>
+<% end %>
+
+<% if @data_entries.any? %>
+  <table class="list issues cosmosys-project-data-viewer" data-cosmosys-sortable>
+    <thead>
+      <tr>
+        <th role="columnheader" aria-sort="none"><%= l(:field_cosmosys_datum_key) %></th>
+        <th role="columnheader" aria-sort="none"><%= l(:field_subject) %></th>
+        <th role="columnheader" aria-sort="none"><%= l(:field_cosmosys_datum_value) %></th>
+        <th role="columnheader" aria-sort="none"><%= l(:label_cosmosys_project) %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @data_entries.each do |entry| %>
+        <tr>
+          <td>
+            <% if entry.issue %>
+              <%= link_to entry.key, issue_path(entry.issue) %>
+            <% else %>
+              <%= entry.key %>
+            <% end %>
+          </td>
+          <td><%= entry.name %></td>
+          <td class="wiki"><%= entry.value.present? ? textilizable(entry.value.to_s, object: entry.issue, project: entry.issue&.project) : '-' %></td>
+          <td><%= entry.issue&.project&.name || '' %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% end %>
+
+<% content_for :header_tags do %>
+<script type="text/javascript">
+  (function () {
+    function cellText(row, index) {
+      if (!row.children[index]) return '';
+      var node = row.children[index];
+      return (node.getAttribute('data-sort') || node.textContent).trim().toLowerCase();
+    }
+    document.querySelectorAll('table[data-cosmosys-sortable]').forEach(function (table) {
+      table.querySelectorAll('thead th[role="columnheader"]').forEach(function (th, index) {
+        th.classList.add('no-sort');
+        th.addEventListener('click', function () {
+          var tbody = table.querySelector('tbody');
+          var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+          var ascending = th.getAttribute('aria-sort') !== 'ascending';
+          table.querySelectorAll('thead th[role="columnheader"]').forEach(function (h) {
+            h.setAttribute('aria-sort', 'none');
+          });
+          th.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
+          rows.forEach(function (row) { row.parentNode.removeChild(row); });
+          rows.sort(function (a, b) {
+            var av = cellText(a, index);
+            var bv = cellText(b, index);
+            if (av === bv) return 0;
+            return (av < bv ? -1 : 1) * (ascending ? 1 : -1);
+          });
+          rows.forEach(function (row) { tbody.appendChild(row); });
+        });
+      });
+    });
+  })();
+</script>
+<% end %>

@@ -3,6 +3,7 @@
     <li><%= link_to l(:label_cosmosys_overview), { controller: '/cosmosys/items', action: :overview, project_id: @project }, class: (local_assigns[:current] == :overview ? 'selected' : nil) %></li>
     <li><%= link_to l(:label_cosmosys_report), { controller: '/cosmosys/items', action: :report, project_id: @project }, class: (local_assigns[:current] == :report ? 'selected' : nil) %></li>
     <li><%= link_to l(:label_cosmosys_tree), { controller: '/cosmosys/items', action: :tree, project_id: @project }, class: (local_assigns[:current] == :tree ? 'selected' : nil) %></li>
+    <li><%= link_to l(:label_cosmosys_project_data), project_cosmosys_data_path(@project), class: (local_assigns[:current] == :data ? 'selected' : nil) %></li>
     <li><%= link_to l(:label_cosmosys_dsm), project_cosmosys_dsm_path(@project), class: (local_assigns[:current] == :dsm ? 'selected' : nil) %></li>
     <li><%= link_to l(:label_cosmosys_document_catalog), project_cosmosys_document_catalog_path(@project), class: (local_assigns[:current] == :document_catalog ? 'selected' : nil) %></li>
     <li><%= link_to l(:label_cosmosys_ods_transfer_history), project_cosmosys_ods_transfers_path(@project), class: (local_assigns[:current] == :ods_transfers ? 'selected' : nil) %></li>

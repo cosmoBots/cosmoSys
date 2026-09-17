@@ -176,6 +176,7 @@ require_dependency File.expand_path('lib/cosmosys/presentation_text_registry', _
 require_dependency File.expand_path('lib/cosmosys/project_data_dictionary', __dir__)
 require_dependency File.expand_path('lib/cosmosys/approved_presentation_baseline', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_data_report_scanner', __dir__)
+require_dependency File.expand_path('lib/cosmosys/project_data_scope_scanner', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_data_usage_scanner', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_data_reconciliation', __dir__)
 require_dependency File.expand_path('lib/cosmosys/application_helper_patch', __dir__)
