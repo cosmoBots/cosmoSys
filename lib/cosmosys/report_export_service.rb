@@ -27,13 +27,12 @@ module Cosmosys
     NEGATIVE_ITEMS_CSID_WIDTH_PX = 120
     NEGATIVE_ITEMS_STATUS_WIDTH_PX = 90
     NEGATIVE_ITEMS_SUBJECT_WIDTH_PX = METADATA_TABLE_WIDTH_PX - NEGATIVE_ITEMS_CSID_WIDTH_PX - NEGATIVE_ITEMS_STATUS_WIDTH_PX
-    DIAGRAM_RASTER_SCALE = 3
     PORTRAIT_CONTENT_WIDTH_PX = METADATA_TABLE_WIDTH_PX
     ORIENTATION_MARKERS = {
       'landscape' => ['COSMOSYS_REPORT_LANDSCAPE_START', 'COSMOSYS_REPORT_LANDSCAPE_END'],
       'portrait' => ['COSMOSYS_REPORT_PORTRAIT_START', 'COSMOSYS_REPORT_PORTRAIT_END']
     }.freeze
-    CACHE_SCHEMA = 'cosmosys-report-artifact-v15'.freeze
+    CACHE_SCHEMA = 'cosmosys-report-artifact-v23'.freeze
     MAX_CACHED_REPORTS_PER_PROJECT = 5
 
     class ExportError < StandardError; end
@@ -230,10 +229,7 @@ module Cosmosys
           .gsub(/\s+xmlns(?::[A-Za-z0-9_-]+)?="[^"]*"/, '')
           .sub('<svg', '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"')
         File.binwrite(svg_path, standalone_svg)
-        output, status = Open3.capture2e(
-          '/usr/bin/magick', '-density', (96 * DIAGRAM_RASTER_SCALE).to_s,
-          '-background', 'none', svg_path, '-resize', "#{DIAGRAM_RASTER_SCALE * 100}%", png_path
-        )
+        output, status = Open3.capture2e('/usr/bin/magick', svg_path, png_path)
         unless status.success? && File.file?(png_path)
           Rails.logger.error("cosmoSys SVG rasterization failed: #{output}")
           raise ExportError, 'A report diagram could not be converted'
@@ -242,8 +238,6 @@ module Cosmosys
         replacement = Nokogiri::XML::Node.new('img', document)
         replacement['src'] = "data:image/png;base64,#{Base64.strict_encode64(File.binread(png_path))}"
         replacement['alt'] = svg['aria-label'].presence || 'cosmoSys diagram'
-        replacement['width'] = (dimensions[:width] * DIAGRAM_RASTER_SCALE).round.to_s
-        replacement['height'] = (dimensions[:height] * DIAGRAM_RASTER_SCALE).round.to_s
         alternate_orientation = report_diagram?(svg) && alternate_orientation_for(dimensions)
         svg.replace(replacement)
         add_orientation_markers(replacement, document, alternate_orientation) if alternate_orientation
