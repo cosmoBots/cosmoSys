@@ -532,14 +532,25 @@
   }
 
   var reportDiagramQueue = [];
+  var reportDiagramRequestControllers = [];
   var activeReportDiagramLoads = 0;
   var maxReportDiagramLoads = 3;
+
+  function trackReportDiagramRequestController(controller) {
+    reportDiagramRequestControllers.push(controller);
+    return controller;
+  }
+
+  function releaseReportDiagramRequestController(controller) {
+    var index = reportDiagramRequestControllers.indexOf(controller);
+    if (index !== -1) reportDiagramRequestControllers.splice(index, 1);
+  }
 
   function pumpReportDiagramQueue() {
     while (!diagramPageLeaving && activeReportDiagramLoads < maxReportDiagramLoads && reportDiagramQueue.length) {
       let job = reportDiagramQueue.shift();
       activeReportDiagramLoads += 1;
-      let controller = trackDiagramRequestController(new AbortController());
+      let controller = trackReportDiagramRequestController(new AbortController());
       window.fetch(job.node.dataset.url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' }, signal: controller.signal })
         .then(function(response) {
           if (!response.ok) throw new Error('Diagram request failed');
@@ -555,7 +566,7 @@
           job.reject(error);
         })
         .finally(function() {
-          releaseDiagramRequestController(controller);
+          releaseReportDiagramRequestController(controller);
           activeReportDiagramLoads -= 1;
           pumpReportDiagramQueue();
         });
@@ -588,8 +599,14 @@
     progress.className = 'cosmosys-page-diagram-progress cosmosys-report-diagram-progress';
     progress.setAttribute('role', 'status');
     progress.setAttribute('aria-live', 'polite');
-    progress.innerHTML = '<span class="cosmosys-spinner" aria-hidden="true"></span>' +
+    progress.innerHTML =
+      '<span class="cosmosys-spinner" aria-hidden="true"></span>' +
       '<span data-cosmosys-report-diagram-progress-text></span>' +
+      '<button type="button" class="cosmosys-report-diagram-progress-cancel" ' +
+        'data-cosmosys-report-diagram-cancel aria-label="' +
+        (report.dataset.diagramCancelText || 'Cancel diagram loading') + '" title="' +
+        (report.dataset.diagramCancelText || 'Cancel diagram loading') + '">' +
+        '&times;</button>' +
       '<progress max="' + total + '" value="0"></progress>';
     document.body.appendChild(progress);
 
@@ -599,9 +616,53 @@
       }, template);
     }
 
+    var diagramLoadCancelled = false;
+
+    function markUnloadedAsPlaceholder() {
+      nodes.forEach(function(node) {
+        if (node.dataset.loaded !== '1') {
+          node.dataset.failed = '1';
+          node.classList.add('cosmosys-report-diagram-cancelled');
+          node.innerHTML = '<p class="cosmosys-report-diagram-cancelled-text"></p>';
+          node.querySelector('p').textContent = report.dataset.diagramCancelledText ||
+            'This diagram did not load';
+        }
+      });
+    }
+
+    function cancelDiagramLoading() {
+      if (diagramLoadCancelled) return;
+      diagramLoadCancelled = true;
+      // Cancel every in-flight report diagram request. Page/panel diagrams use
+      // a separate controller registry and are intentionally left untouched.
+      reportDiagramRequestControllers.forEach(function(controller) { controller.abort(); });
+      reportDiagramRequestControllers.length = 0;
+      // Reject every queued report diagram job so their own .finally settles them.
+      reportDiagramQueue.splice(0).forEach(function(job) {
+        job.reject(new DOMException('Cancelled', 'AbortError'));
+      });
+      markUnloadedAsPlaceholder();
+      progress.classList.add('cosmosys-report-diagram-progress-cancelled');
+      progress.classList.remove('cosmosys-progress-running');
+      progress.classList.add('cosmosys-progress-failure');
+      settled = total;
+      var text = interpolate(report.dataset.diagramCancelledTotalText || 'Diagram loading cancelled', { total: total });
+      progress.querySelector('[data-cosmosys-report-diagram-progress-text]').textContent = text;
+      progress.querySelector('progress').value = settled;
+      progress.querySelector('[data-cosmosys-report-diagram-cancel]').setAttribute('disabled', 'disabled');
+      // Stop the spinner and dismiss the toast so it does not stay pinned on
+      // screen after a cancellation.
+      var spinner = progress.querySelector('.cosmosys-spinner');
+      if (spinner) spinner.style.visibility = 'hidden';
+      window.setTimeout(function() { progress.remove(); }, 1800);
+    }
+
     function updateProgress() {
       var text;
-      if (settled < total) {
+      if (diagramLoadCancelled) {
+        text = interpolate(report.dataset.diagramCancelledTotalText || 'Diagram loading cancelled', { total: total });
+        progress.querySelector('progress').value = settled;
+      } else if (settled < total) {
         text = interpolate(report.dataset.diagramProgressText, { loaded: settled, total: total });
       } else if (failed) {
         text = interpolate(report.dataset.diagramFailedText, { failed: failed, total: total });
@@ -618,13 +679,20 @@
       progress.querySelector('progress').value = settled;
     }
 
+    var cancelButton = progress.querySelector('[data-cosmosys-report-diagram-cancel]');
+    cancelButton.addEventListener('click', cancelDiagramLoading);
+
     updateProgress();
     nodes.forEach(function(node) {
       loadReportDiagram(node)
-        .catch(function() {
-          failed += 1;
-          node.innerHTML = '<p class="nodata"></p>';
-          node.querySelector('p').textContent = report.dataset.diagramErrorText;
+        .catch(function(error) {
+          // A user cancellation already replaces every not-yet-loaded node with
+          // its placeholder; do not overwrite it with the generic error text.
+          if (!diagramLoadCancelled) {
+            failed += 1;
+            node.innerHTML = '<p class="nodata"></p>';
+            node.querySelector('p').textContent = report.dataset.diagramErrorText;
+          }
         })
         .finally(function() {
           settled += 1;

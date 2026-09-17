@@ -99,6 +99,53 @@
   color: #8e1b1b;
 }
 
+.cosmosys-report-diagram-progress-cancel {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  margin-left: 0.5rem;
+  width: 1.4rem;
+  height: 1.4rem;
+  line-height: 1;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: #5f6b73;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cosmosys-report-diagram-progress-cancel:hover,
+.cosmosys-report-diagram-progress-cancel:focus {
+  border-color: #c62828;
+  color: #c62828;
+  background: #fff0f0;
+}
+
+.cosmosys-report-diagram-progress-cancel:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.cosmosys-report-diagram-progress-cancelled {
+  border-color: #c62828;
+  color: #8e1b1b;
+}
+
+.cosmosys-report-diagram-cancelled {
+  border: 1px dashed #c62828;
+  background: #fff6f6;
+  color: #8e1b1b;
+  padding: 1rem;
+  text-align: center;
+}
+
+.cosmosys-report-diagram-cancelled-text {
+  margin: 0;
+}
+
 .cosmosys-project-profile-impact {
   background: #fff8dc;
   border: 1px solid #d9c77c;

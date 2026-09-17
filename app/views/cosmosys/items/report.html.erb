@@ -41,7 +41,10 @@
      data-diagram-progress-text="<%= l(:text_cosmosys_diagrams_loading, loaded: '__LOADED__', total: '__TOTAL__') %>"
      data-diagram-ready-text="<%= l(:text_cosmosys_report_diagrams_ready, total: '__TOTAL__') %>"
      data-diagram-failed-text="<%= l(:text_cosmosys_report_diagrams_failed, failed: '__FAILED__', total: '__TOTAL__') %>"
-     data-diagram-error-text="<%= l(:text_cosmosys_diagram_unavailable) %>">
+     data-diagram-error-text="<%= l(:text_cosmosys_diagram_unavailable) %>"
+     data-diagram-cancel-text="<%= l(:label_cosmosys_report_diagram_cancel) %>"
+     data-diagram-cancelled-text="<%= l(:text_cosmosys_report_diagram_cancelled) %>"
+     data-diagram-cancelled-total-text="<%= l(:text_cosmosys_report_diagrams_cancelled, total: '__TOTAL__') %>">
   <div class="cosmosys-report-export-toolbar hide-when-print">
     <% if @report.toc_entries.none?(&:report_placeholder) && User.current.allowed_to?(:add_issues, @project) %>
       <%= button_to l(:button_cosmosys_add_related_documents_section),
