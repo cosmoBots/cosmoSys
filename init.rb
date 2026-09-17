@@ -32,8 +32,8 @@ Redmine::Plugin.register :cosmosys do
 
   menu :admin_menu, :cosmosys_branding, { controller: 'cosmosys/branding_assets', action: 'index' },
     caption: :label_cosmosys_branding,
-    icon: 'image',
-    html: { class: 'icon icon-picture' }
+    icon: 'photo',
+    html: { class: 'icon icon-photo' }
 
   settings default: {
     'precedes_direction' => 'forward',
