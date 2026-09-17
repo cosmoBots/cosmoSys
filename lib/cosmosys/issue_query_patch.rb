@@ -2,6 +2,12 @@ require_dependency 'issue_query'
 
 module Cosmosys
   module IssueQueryPatch
+    class RichTextQueryColumn < QueryColumn
+      def cosmosys_report_rich_text?
+        true
+      end
+    end
+
     POSITIVE_FILTER = 'cosmosys_positive'.freeze
 
     def self.prepended(base)
@@ -30,11 +36,13 @@ module Cosmosys
 
       {
         cs_ext_code: { caption: :field_cosmosys_ext_code },
-        cs_wload: { caption: :field_cosmosys_wload }
+        cs_wload: { caption: :field_cosmosys_wload },
+        csys_value: { caption: :field_cosmosys_datum_value, rich_text: true }
       }.each do |name, options|
         next if base.available_columns.any? { |available_column| available_column.name == name }
 
-        base.available_columns << QueryColumn.new(
+        column_class = options[:rich_text] ? RichTextQueryColumn : QueryColumn
+        base.available_columns << column_class.new(
           name,
           sortable: "#{Issue.table_name}.#{name}",
           caption: options.fetch(:caption)
@@ -47,6 +55,7 @@ module Cosmosys
       add_available_filter('csid', type: :string, name: :label_cosmosys_csid) unless available_filters.key?('csid')
       add_available_filter('cs_ext_code', type: :string, name: :field_cosmosys_ext_code) unless available_filters.key?('cs_ext_code')
       add_available_filter('cs_wload', type: :float, name: :field_cosmosys_wload) unless available_filters.key?('cs_wload')
+      add_available_filter('csys_value', type: :text, name: :field_cosmosys_datum_value) unless available_filters.key?('csys_value')
       if IssueStatus.column_names.include?('csys_closed_outcome') && !available_filters.key?(POSITIVE_FILTER)
         add_available_filter(
           POSITIVE_FILTER,
