@@ -115,6 +115,7 @@ module Cosmosys
         projects: project_entries.length,
         items: items.length,
         documents: documents.length,
+        wiki_pages: wiki_pages.length,
         internal_relations: content.fetch('relations').length,
         external_relations: content.fetch('external_relations', []).length,
         attachments: required_asset_digests.length
@@ -164,6 +165,13 @@ module Cosmosys
 
     def documents
       project_entries.flat_map { |entry| entry.fetch('documents') }
+    end
+
+    def wiki_pages
+      project_entries.flat_map do |entry|
+        wiki = entry['wiki']
+        wiki && wiki['present'] ? wiki.fetch('pages') : []
+      end
     end
 
     def validate_schema!
@@ -297,7 +305,8 @@ module Cosmosys
     def required_asset_digests
       @required_asset_digests ||= (
         items.flat_map { |row| row.fetch('attachments') } +
-        documents.flat_map { |row| row.fetch('attachments') }
+        documents.flat_map { |row| row.fetch('attachments') } +
+        wiki_pages.flat_map { |row| row.fetch('attachments') }
       ).map { |row| row.fetch('content_sha256') }.uniq.sort
     end
 

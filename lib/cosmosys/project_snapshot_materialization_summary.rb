@@ -14,6 +14,7 @@ module Cosmosys
         project: @project.name,
         items: @counts.fetch(:items),
         documents: @counts.fetch(:documents),
+        wiki_pages: @counts.fetch(:wiki_pages),
         relations: @counts.fetch(:internal_relations) + @restored_external_relations,
         attachments: @counts.fetch(:attachments)
       )

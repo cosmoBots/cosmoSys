@@ -11,9 +11,12 @@ class CreateCosmosysProjectSnapshots < ActiveRecord::Migration[6.1]
         t.integer :item_count, null: false, default: 0
         t.integer :document_count, null: false, default: 0
         t.integer :relation_count, null: false, default: 0
+        t.integer :wiki_page_count, null: false, default: 0
         t.timestamps null: false
       end
     end
+
+    add_column :cosmosys_project_snapshots, :wiki_page_count, :integer, null: false, default: 0 unless column_exists?(:cosmosys_project_snapshots, :wiki_page_count)
 
     add_index :cosmosys_project_snapshots, [:project_id, :created_at], name: 'idx_cosmosys_project_snapshots_history' unless index_exists?(:cosmosys_project_snapshots, [:project_id, :created_at], name: 'idx_cosmosys_project_snapshots_history')
     add_index :cosmosys_project_snapshots, :content_sha256 unless index_exists?(:cosmosys_project_snapshots, :content_sha256)
@@ -24,6 +27,7 @@ class CreateCosmosysProjectSnapshots < ActiveRecord::Migration[6.1]
     # Also cleans databases which briefly ran the retired PendingRelation
     # proof of concept before this development migration was consolidated.
     drop_table :cosmosys_pending_relations if table_exists?(:cosmosys_pending_relations)
+    remove_column :cosmosys_project_snapshots, :wiki_page_count if column_exists?(:cosmosys_project_snapshots, :wiki_page_count)
     remove_index :cosmosys_project_snapshots, :content_sha256 if index_exists?(:cosmosys_project_snapshots, :content_sha256)
     remove_index :cosmosys_project_snapshots, name: 'idx_cosmosys_project_snapshots_history' if index_exists?(:cosmosys_project_snapshots, name: 'idx_cosmosys_project_snapshots_history')
     drop_table :cosmosys_project_snapshots if table_exists?(:cosmosys_project_snapshots)

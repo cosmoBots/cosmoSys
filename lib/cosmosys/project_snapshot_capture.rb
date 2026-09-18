@@ -28,7 +28,11 @@ module Cosmosys
           manifest_gzip: gzip(CanonicalJson.generate(payload)),
           item_count: project_entries.sum { |entry| entry.fetch('items').length },
           document_count: project_entries.sum { |entry| entry.fetch('documents').length },
-          relation_count: payload.fetch('content').fetch('relations').length
+          relation_count: payload.fetch('content').fetch('relations').length,
+          wiki_page_count: project_entries.sum do |entry|
+            payload = entry['wiki']
+            payload && payload['present'] ? payload.fetch('pages').length : 0
+          end
         )
         retain_attachment_payloads!(snapshot)
         # Attachment creation happens after the snapshot has been persisted.  A
@@ -105,9 +109,12 @@ module Cosmosys
       issue_ids = issues.map(&:id).to_set
       documents = selected.documents.visible(user).includes(:category, :attachments).order(:id).to_a
       document_ids = documents.map(&:id).to_set
+      wiki = selected.wiki
+      wiki_payload = wiki ? wiki_payload(wiki) : { 'present' => false }
       @source_attachments ||= []
       @source_attachments.concat(issues.flat_map { |issue| issue.attachments.to_a })
       @source_attachments.concat(documents.flat_map { |document| document.attachments.to_a })
+      @source_attachments.concat(wiki.pages.includes(:attachments).flat_map { |page| page.attachments.to_a }) if wiki
 
       {
         'key' => "project:#{selected.id}",
@@ -117,8 +124,36 @@ module Cosmosys
         'items' => issues.map { |issue| issue_payload(issue, issue_ids) },
         'documents' => documents.map { |document| document_payload(document) },
         'document_catalog' => catalog_payloads(selected, issue_ids, document_ids),
+        'wiki' => wiki_payload,
         '_issues' => issues
       }
+    end
+
+    def wiki_payload(wiki)
+      pages = wiki.pages.includes(:content, :parent).to_a
+                  .sort_by { |page| [page.title.to_s.downcase, page.id] }
+      {
+        'present' => true,
+        'start_page' => wiki.start_page,
+        'pages' => pages.map { |page| wiki_page_payload(page) }
+      }
+    end
+
+    def wiki_page_payload(page)
+      payload = {
+        'title' => page.title,
+        'protected' => page.protected,
+        'parent_title' => page.parent&.title,
+        'attachments' => attachment_payloads(page.attachments)
+      }
+      if page.content
+        payload['content'] = {
+          'text' => page.content.text,
+          'author' => page.content.author&.login,
+          'comments' => page.content.comments
+        }
+      end
+      payload
     end
 
     def project_entries

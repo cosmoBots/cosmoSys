@@ -78,6 +78,7 @@ es:
   error_cosmosys_snapshot_identifiers_invalid: "Estos identificadores de proyecto de destino no son válidos: %{identifiers}"
   error_cosmosys_snapshot_duplicate_cscodes: "Los códigos de proyecto de destino colisionarían: %{cscodes}"
   label_cosmosys_snapshot_count_documents: Documentos
+  label_cosmosys_snapshot_count_wiki_pages: Páginas de wiki
   label_cosmosys_snapshot_count_internal_relations: Relaciones internas
   label_cosmosys_snapshot_count_external_relations: Relaciones externas
   label_cosmosys_snapshot_external_relations: Resolución de relaciones externas
@@ -87,7 +88,7 @@ es:
   label_cosmosys_snapshot_external_relation_invalid: Entrada no válida del paquete
   error_cosmosys_snapshot_external_relations_unresolved: "%{count} relaciones externas del snapshot son ambiguas o no válidas y deben corregirse antes de materializar."
   label_cosmosys_snapshot_count_attachments: Contenidos de adjunto únicos
-  notice_cosmosys_project_snapshot_materialized_summary: "Proyecto %{project} creado desde el snapshot: %{items} items, %{documents} documentos, %{relations} relaciones y %{attachments} contenidos de adjunto únicos."
+  notice_cosmosys_project_snapshot_materialized_summary: "Proyecto %{project} creado desde el snapshot: %{items} items, %{documents} documentos, %{wiki_pages} páginas de wiki, %{relations} relaciones y %{attachments} contenidos de adjunto únicos."
   label_cosmosys_copy_mode_clean: Copia de trabajo limpia
   label_cosmosys_copy_mode_faithful: Baseline fiel
   field_cosmosys_archive_baseline: Archivar después de copiar
@@ -612,7 +613,7 @@ es:
   button_cosmosys_materialize_project_snapshot: "Crear proyecto desde este snapshot"
   notice_cosmosys_project_snapshot_materialized: "Se ha creado el proyecto desde el snapshot."
   text_cosmosys_project_snapshot_v1_scope: "Este snapshot captura únicamente el estado visible de este proyecto. Excluye journals, comentarios y tiempo dedicado. Conserva sus adjuntos y toda descarga es un paquete portable completo. Todavía no es una versión nombrada ni una baseline."
-  text_cosmosys_snapshot_counts: "%{projects} proyectos, %{items} ítems, %{documents} documentos y %{relations} relaciones"
+  text_cosmosys_snapshot_counts: "%{projects} proyectos, %{items} ítems, %{documents} documentos, %{wiki_pages} páginas de wiki y %{relations} relaciones"
   label_cosmosys_closed_outcome: "Resultado del cierre"
   label_cosmosys_closed_outcome_unspecified: "Sin clasificar"
   label_cosmosys_closed_outcome_successful: "Satisfactorio"

@@ -15,7 +15,8 @@ module Cosmosys
     validates :name, length: { maximum: 255 }, allow_blank: true
 
     attr_readonly :project_id, :created_by_id, :schema_version, :content_sha256,
-                  :manifest_gzip, :item_count, :document_count, :relation_count
+                  :manifest_gzip, :item_count, :document_count, :relation_count,
+                  :wiki_page_count
 
     scope :recent_first, -> { order(created_at: :desc, id: :desc) }
 

@@ -99,8 +99,13 @@ module Cosmosys
     def required_assets
       content = manifest.fetch('content')
       projects = content.fetch('projects')
+      wiki_attachments = projects.flat_map do |project|
+        wiki = project['wiki']
+        wiki && wiki['present'] ? wiki.fetch('pages') : []
+      end.flat_map { |row| row.fetch('attachments') }
       (projects.flat_map { |project| project.fetch('items') }.flat_map { |row| row.fetch('attachments') } +
-       projects.flat_map { |project| project.fetch('documents') }.flat_map { |row| row.fetch('attachments') })
+       projects.flat_map { |project| project.fetch('documents') }.flat_map { |row| row.fetch('attachments') } +
+       wiki_attachments)
         .map { |row| row.fetch('content_sha256') }.uniq.sort
     end
   end

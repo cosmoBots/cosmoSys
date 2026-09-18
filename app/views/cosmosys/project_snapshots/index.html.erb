@@ -38,7 +38,7 @@
         <td><%= link_to format_time(snapshot.created_at), project_cosmosys_snapshot_path(@project, snapshot) %></td>
         <td><%= snapshot.name.presence || '-' %></td>
         <td><%= link_to_user snapshot.created_by %></td>
-        <td><%= l(:text_cosmosys_snapshot_counts, projects: snapshot.project_count, items: snapshot.item_count, documents: snapshot.document_count, relations: snapshot.relation_count) %></td>
+        <td><%= l(:text_cosmosys_snapshot_counts, projects: snapshot.project_count, items: snapshot.item_count, documents: snapshot.document_count, wiki_pages: snapshot.wiki_page_count, relations: snapshot.relation_count) %></td>
         <td><code><%= snapshot.content_sha256.first(12) %></code></td>
       </tr>
     <% end %>

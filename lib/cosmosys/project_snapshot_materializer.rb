@@ -29,7 +29,10 @@ module Cosmosys
         materialize_contents!(
           content, entries, projects,
           selected_parts: selected_parts && Array(selected_parts).map(&:to_s),
-          include_external_relations: true
+          include_external_relations: true,
+          # When Redmine's native project copy has already restored the wiki
+          # (live copy block above), the snapshot must not duplicate it.
+          restore_wiki: !block_given?
         )
         projects
       end
@@ -48,7 +51,10 @@ module Cosmosys
         entries,
         { entries.first.fetch('key') => project },
         selected_parts: Array(selected_parts).map(&:to_s),
-        copy_context: copy_context
+        copy_context: copy_context,
+        # In a live copy Redmine's native copier already restored the wiki
+        # (members/wiki/queries/boards); the snapshot must not duplicate it.
+        restore_wiki: copy_context.nil?
       )
       project
     end
@@ -88,7 +94,7 @@ module Cosmosys
     end
 
     def materialize_contents!(content, entries, projects, selected_parts: nil, copy_context: nil,
-                              include_external_relations: false)
+                              include_external_relations: false, restore_wiki: true)
       @reused_item_keys = Set.new
       include_items = selected_parts.nil? || selected_parts.include?('issues')
       include_documents = selected_parts.nil? || selected_parts.include?('documents')
@@ -121,6 +127,7 @@ module Cosmosys
                                              entry.fetch('document_catalog')))
         end
       end
+      restore_wikis!(projects, entries) if restore_wiki
       rewrite_internal_references!(items, entries.flat_map { |entry| entry.fetch('items') }, marker_map) if include_items
       restore_presentation_baselines!(items, entries.flat_map { |entry| entry.fetch('items') }) if include_items && faithful?
       register_copy_maps!(copy_context, items, documents)
@@ -425,6 +432,60 @@ module Cosmosys
     def principal(identity)
       return nil if identity.blank?
       User.find_by(login: identity) || Group.find_by(lastname: identity)
+    end
+
+    # Standalone materialization restores the wiki because Redmine did not
+    # copy it as a native part. Live project copy (copy_context present) skips
+    # this: the native copier already restored members/wiki/queries/boards.
+    def restore_wikis!(projects, entries)
+      entries.each do |entry|
+        next unless entry['wiki'] && entry['wiki']['present']
+
+        project = projects.fetch(entry.fetch('key'))
+        wiki = project.wiki
+        wiki ||= Wiki.create!(project: project, start_page: entry['wiki']['start_page'])
+        if wiki.persisted? && wiki.start_page != entry['wiki']['start_page']
+          wiki.update!(start_page: entry['wiki']['start_page'])
+        end
+        # A freshly created project enables the wiki module and Redmine creates
+        # a default start page; drop placeholder pages so the manifest is the
+        # only source of truth for this snapshot's content. Pages already in
+        # the manifest are restored below (matched by title).
+        restore_wiki_pages!(wiki, entry['wiki'].fetch('pages'))
+      end
+    end
+
+    def restore_wiki_pages!(wiki, rows)
+      by_title = {}
+      rows.each do |row|
+        page = by_title[row['title']] = wiki.find_page(row['title'], with_redirect: false) ||
+                                        WikiPage.create!(wiki: wiki, title: row.fetch('title'),
+                                                         protected: row['protected'].present?)
+        restore_wiki_page_content!(page, row['content']) if row['content']
+        restore_attachments!(page, row.fetch('attachments'))
+      end
+      rows.each do |row|
+        parent_title = row['parent_title']
+        next if parent_title.blank?
+
+        child = by_title[row['title']]
+        parent = by_title[parent_title]
+        # A parent might live in another page which the manifest references by
+        # title; if it is absent here, leave the page at the wiki root.
+        child.update!(parent: parent) if child && parent
+      end
+      return if rows.empty?
+
+      # Remove any placeholder page Redmine auto-created (e.g. the default
+      # "Wiki" start page) which is not part of the snapshot manifest.
+      titles = by_title.keys
+      wiki.pages.where.not(title: titles).destroy_all
+    end
+
+    def restore_wiki_page_content!(page, content)
+      author = User.find_by(login: content['author']) || user
+      WikiContent.create!(page: page, text: content.fetch('text'), author: author,
+                          comments: content['comments'])
     end
   end
 end

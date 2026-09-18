@@ -78,6 +78,7 @@ en:
   error_cosmosys_snapshot_identifiers_invalid: "Destination project identifiers are invalid: %{identifiers}"
   error_cosmosys_snapshot_duplicate_cscodes: "Destination project codes would collide: %{cscodes}"
   label_cosmosys_snapshot_count_documents: Documents
+  label_cosmosys_snapshot_count_wiki_pages: Wiki pages
   label_cosmosys_snapshot_count_internal_relations: Internal relations
   label_cosmosys_snapshot_count_external_relations: External relations
   label_cosmosys_snapshot_external_relations: External relation resolution
@@ -87,7 +88,7 @@ en:
   label_cosmosys_snapshot_external_relation_invalid: Invalid package entry
   error_cosmosys_snapshot_external_relations_unresolved: "%{count} external snapshot relations are ambiguous or invalid and must be corrected before materialization."
   label_cosmosys_snapshot_count_attachments: Unique attachment contents
-  notice_cosmosys_project_snapshot_materialized_summary: "Project %{project} created from the snapshot: %{items} items, %{documents} documents, %{relations} relations and %{attachments} unique attachment contents."
+  notice_cosmosys_project_snapshot_materialized_summary: "Project %{project} created from the snapshot: %{items} items, %{documents} documents, %{wiki_pages} wiki pages, %{relations} relations and %{attachments} unique attachment contents."
   label_cosmosys_copy_mode_clean: Clean working copy
   label_cosmosys_copy_mode_faithful: Faithful baseline
   field_cosmosys_archive_baseline: Archive after copying
@@ -612,7 +613,7 @@ en:
   button_cosmosys_materialize_project_snapshot: "Create project from this snapshot"
   notice_cosmosys_project_snapshot_materialized: "The project was created from the snapshot."
   text_cosmosys_project_snapshot_v1_scope: "This snapshot captures the visible state of this project only. It excludes journals, comments and time entries. Its attachments are retained and every download is a complete portable package. It is not yet a named release or baseline."
-  text_cosmosys_snapshot_counts: "%{projects} projects, %{items} items, %{documents} documents and %{relations} relations"
+  text_cosmosys_snapshot_counts: "%{projects} projects, %{items} items, %{documents} documents, %{wiki_pages} wiki pages and %{relations} relations"
   label_cosmosys_closed_outcome: "Closed outcome"
   label_cosmosys_closed_outcome_unspecified: "Not classified"
   label_cosmosys_closed_outcome_successful: "Successful"
