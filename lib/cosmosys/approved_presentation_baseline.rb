@@ -129,6 +129,11 @@ module Cosmosys
     end
 
     def resolve_description(text, resolving_user)
+      # Canonical approved evidence intentionally resolves project data only.
+      # Keep stable document:di<ID> markers untouched here: RD.n/AD.n/CD.n are
+      # ephemeral presentation labels, and catalog reordering must not change
+      # this hash or create phantom inconsistencies. See DEC-012 and the
+      # regression contract in docs/approved_presentation_baselines.md.
       dictionary = Cosmosys::ProjectDataDictionary.new(project: issue.project, user: resolving_user)
       [dictionary.resolve(text), serialize_ledger(dictionary)]
     end
