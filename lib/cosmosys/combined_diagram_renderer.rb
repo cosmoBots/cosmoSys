@@ -1,7 +1,10 @@
 require 'open3'
+require_relative 'graphviz_text_support'
 
 module Cosmosys
   class CombinedDiagramRenderer
+    include Cosmosys::GraphvizTextSupport
+
     CURRENT_ISSUE_HIGHLIGHT = '#2F6FDE'.freeze
     DEFAULT_LAYOUT_MODE = 'dot'.freeze
     VALID_LAYOUT_MODES = %w[dot fdp].freeze
@@ -227,7 +230,7 @@ module Cosmosys
         shape: node_shape(issue: issue, container: container),
         URL: issue_url(issue),
         target: '_top',
-        tooltip: issue.description.to_s,
+        tooltip: graphviz_tooltip(issue.description),
         fontsize: 10,
         margin: node_margin(container: container),
         width: node_width(container: container),
@@ -254,7 +257,7 @@ module Cosmosys
         margin: '2',
         style: 'solid',
         URL: issue_url(issue),
-        tooltip: issue.description.to_s
+        tooltip: graphviz_tooltip(issue.description)
       }
 
       if @current_issue && issue.id == @current_issue.id

@@ -158,6 +158,7 @@ require_dependency File.expand_path('lib/cosmosys/project_settings_controller', 
 require_dependency File.expand_path('app/controllers/cosmosys/branding_assets_controller', __dir__)
 require_dependency File.expand_path('lib/cosmosys/performance_trace', __dir__)
 require_dependency File.expand_path('lib/cosmosys/diagram_cache_support', __dir__)
+require_dependency File.expand_path('lib/cosmosys/graphviz_text_support', __dir__)
 require_dependency File.expand_path('lib/cosmosys/hierarchy_diagram_renderer', __dir__)
 require_dependency File.expand_path('lib/cosmosys/hierarchy_diagram_service', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_hierarchy_diagram_service', __dir__)

@@ -1,7 +1,10 @@
 require 'open3'
+require_relative 'graphviz_text_support'
 
 module Cosmosys
   class DependencyDiagramRenderer
+    include Cosmosys::GraphvizTextSupport
+
     CURRENT_ISSUE_HIGHLIGHT = '#2F6FDE'.freeze
 
     def initialize(current_issue: nil)
@@ -157,7 +160,7 @@ module Cosmosys
         shape: issue.cosmosys_diagram_shape('dependency'),
         URL: issue_url(issue),
         target: '_top',
-        tooltip: issue.description.to_s,
+        tooltip: graphviz_tooltip(issue.description),
         fontsize: 10,
         margin: '0.03,0.03',
         width: 0,
