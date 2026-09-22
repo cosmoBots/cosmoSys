@@ -18,7 +18,7 @@ module Cosmosys
     before_action :find_rebuild_issue, only: :rebuild_tree
     before_action :authorize_tree_repair, only: :rebuild_tree
     before_action :find_detail_issue, only: :details
-    around_action :use_project_language, only: [:report_diagram, :data]
+    around_action :use_project_language, only: :report_diagram
 
     accept_api_auth :resolve
 
@@ -73,7 +73,8 @@ module Cosmosys
       @report_query = Cosmosys::MainReportFieldRegistry.query_for_project(@project, user: User.current)
       @report_selected_column_names, @report_field_presentations, @report_options = report_view_field_selection
       @report_query.column_names = @report_selected_column_names
-      @report_columns_by_name = @report_query.available_inline_columns.index_by { |column| column.name.to_s }
+      @report_available_columns = Cosmosys::MainReportFieldRegistry.available_inline_columns_for_project(@project, user: User.current)
+      @report_columns_by_name = @report_available_columns.index_by { |column| column.name.to_s }
       @report = @project.with_cosmosys_locale do
         Cosmosys::MainReportService.new(
           @project,

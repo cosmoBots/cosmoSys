@@ -83,7 +83,11 @@
           </legend>
           <div class="hidden">
             <div id="list-definition" class="cosmosys-report-columns-selection">
-              <%= render_query_columns_selection(@report_query, name: 'report_columns') %>
+              <%= render_cosmosys_report_columns_selection(
+                    columns: @report_available_columns,
+                    selected_names: @report_selected_column_names,
+                    name: 'report_columns'
+                  ) %>
             </div>
 
             <div class="cosmosys-report-options-selection">

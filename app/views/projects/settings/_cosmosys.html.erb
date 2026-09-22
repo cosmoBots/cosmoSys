@@ -132,7 +132,11 @@
       <em class="info"><%= l(:text_cosmosys_report_landscape_scale_threshold_help) %></em>
     </p>
     <div id="list-definition" class="cosmosys-report-columns-selection">
-      <%= render_query_columns_selection(query, name: 'cosmosys_setting[column_names]') %>
+      <%= render_cosmosys_report_columns_selection(
+            columns: Cosmosys::MainReportFieldRegistry.available_inline_columns_for_project(@project, user: User.current),
+            selected_names: selected_column_names,
+            name: 'cosmosys_setting[column_names]'
+          ) %>
     </div>
 
     <h4><%= l(:label_cosmosys_item_list_columns) %></h4>

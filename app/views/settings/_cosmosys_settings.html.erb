@@ -1,9 +1,8 @@
-<% global_query = Cosmosys::MainReportFieldRegistry.query(user: User.current) %>
 <% global_column_names = Cosmosys::MainReportSettings.global_column_names(user: User.current) %>
 <% global_field_presentations = Cosmosys::MainReportSettings.global_field_presentations(user: User.current) %>
 <% global_report_options = Cosmosys::MainReportSettings.global_options %>
-<% global_query.column_names = global_column_names %>
-<% global_columns_by_name = global_query.available_inline_columns.index_by { |column| column.name.to_s } %>
+<% global_report_columns = Cosmosys::MainReportFieldRegistry.available_inline_columns(user: User.current) %>
+<% global_columns_by_name = global_report_columns.index_by { |column| column.name.to_s } %>
 
 <fieldset class="box tabular settings">
   <p>
@@ -52,7 +51,11 @@
   <legend><%= l(:label_cosmosys_report_defaults) %></legend>
   <p class="info"><%= l(:text_cosmosys_report_defaults_help) %></p>
   <div id="list-definition" class="cosmosys-report-columns-selection">
-    <%= render_query_columns_selection(global_query, name: 'settings[main_report_default_columns]') %>
+    <%= render_cosmosys_report_columns_selection(
+          columns: global_report_columns,
+          selected_names: global_column_names,
+          name: 'settings[main_report_default_columns]'
+        ) %>
   </div>
 
   <div class="cosmosys-report-options-selection">
