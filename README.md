@@ -133,14 +133,41 @@ The migration base is developed fast and the project is still in alpha: the
 schema is not yet backward-compatible by design, so back up the database
 before upgrading.
 
-### Deployment with Docker Compose (optional)
+## Installation with Docker Compose
 
-If you prefer a packaged, reproducible deployment instead of installing into
-an existing Redmine, a sister project provides a Docker Compose stack (Redmine
-+ cosmoSys, and a variant with cosmoSys-Req) with pinned plugin revisions,
-health checks, backups and restore scripts. It is currently being published at
-<https://github.com/cosmoBots/cosmoSys_deploy> and should be available there
-shortly.
+For a reproducible Docker installation, use the separate
+[`cosmoSys_deploy`](https://github.com/cosmoBots/cosmoSys_deploy) repository.
+It defines the Redmine image, pins compatible cosmoSys revisions, runs the
+migrations and bootstrap, and provides health checks, backups and update/restore
+scripts. You do not need to clone or install this plugin separately.
+
+Clone the deployment repository, create its environment file and set the
+required database, Redmine secret and initial administrator credentials as
+described in its [README](https://github.com/cosmoBots/cosmoSys_deploy#configure):
+
+```bash
+git clone https://github.com/cosmoBots/cosmoSys_deploy.git
+cd cosmoSys_deploy
+cp .env.example .env
+# Edit .env and replace the required example credentials.
+```
+
+To run Redmine with cosmoSys only:
+
+```bash
+docker compose -f compose.yml build
+docker compose -f compose.yml up -d
+```
+
+The deployment repository also provides a Requirements variant with
+cosmoSys-Req. Its full setup, configuration, upgrade and backup instructions
+are maintained in [`cosmoSys_deploy/README.md`](https://github.com/cosmoBots/cosmoSys_deploy#requirements-variant).
+For a manual Compose start, use both files:
+
+```bash
+docker compose -f compose.yml -f compose.requirements.yml build
+docker compose -f compose.yml -f compose.requirements.yml up -d
+```
 
 ## Repository
 
