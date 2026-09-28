@@ -1,4 +1,5 @@
 <% entries = Cosmosys::ProjectDataDictionary.current(project: @project, user: User.current).used_entries %>
+<% link_entries = Cosmosys::ProjectDataRenderState.link_resolutions %>
 <section class="cosmosys-report-project-data">
   <% if entries.any? %>
     <table class="list cosmosys-project-data-table">
@@ -12,7 +13,13 @@
       <tbody>
         <% entries.each do |entry| %>
           <tr>
-            <td><%= link_to entry.fetch(:key), issue_url(entry.fetch(:issue)), data: { cosmosys_export_link: true } %></td>
+            <td>
+              <% if link_entries %>
+                <%= link_to entry.fetch(:key), issue_url(entry.fetch(:issue)), data: { cosmosys_export_link: true } %>
+              <% else %>
+                <%= entry.fetch(:key) %>
+              <% end %>
+            </td>
             <td><%= entry.fetch(:name) %></td>
             <td><%= entry.fetch(:value) %></td>
           </tr>

@@ -92,9 +92,11 @@ Redmine plugin. You do not need Docker or the deployment repository for this.
    ```
 
    For a development or test environment, set `RAILS_ENV=development` (or
-   `test`) accordingly. The migration base is sealed from `001` to `008` for
-   the current release line; an upgrade from an earlier release migrates `001`
-   through the latest sealed number.
+   `test`) accordingly. Migrations `001`–`009` are sealed by releases through
+   0.1.6. Migration `009` adds the snapshot wiki-page count only if the column
+   is absent, so it also repairs databases where an earlier 0.1.5 build already
+   added it. An upgrade from an earlier release migrates through the latest
+   available migration.
 
 5. **Normalise item query names (recommended).** cosmoSys sets the visible
    domain vocabulary to `item`/`items` (and `ítem`/`ítems` in Spanish) and
