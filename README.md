@@ -12,6 +12,8 @@ open source, and has no per-seat limits.
 Domain extensions such as [cosmoSys-Req](https://github.com/cosmoBots/cosmoSys_Req)
 add specialised capabilities on top of this base.
 
+You can find more information about cosmoSys in the [cosmoBots.eu site](https://cosmobots.eu/projects/csys/wiki/CosmoSys)
+
 ## Project history
 
 This is not a new project created by this repository. It is a refactoring and
