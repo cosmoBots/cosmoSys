@@ -34,7 +34,7 @@ module Cosmosys
       'landscape' => ['COSMOSYS_REPORT_LANDSCAPE_START', 'COSMOSYS_REPORT_LANDSCAPE_END'],
       'portrait' => ['COSMOSYS_REPORT_PORTRAIT_START', 'COSMOSYS_REPORT_PORTRAIT_END']
     }.freeze
-    CACHE_SCHEMA = 'cosmosys-report-artifact-v24'.freeze
+    CACHE_SCHEMA = 'cosmosys-report-artifact-v25'.freeze
     MAX_CACHED_REPORTS_PER_PROJECT = 5
 
     class ExportError < StandardError; end
@@ -222,10 +222,11 @@ module Cosmosys
         png_path = File.join(work_dir, "diagram-#{index}.png")
         standalone_svg = sanitized_report_svg(svg)
         File.binwrite(svg_path, standalone_svg)
-        output, status = Open3.capture2e('/usr/bin/magick', svg_path, png_path)
-        unless status.success? && File.file?(png_path)
-          Rails.logger.error("cosmoSys SVG rasterization failed: #{output}")
-          raise ExportError, 'A report diagram could not be converted'
+        output, converted = rasterize_report_svg(svg_path, png_path)
+        unless converted
+          Rails.logger.error("cosmoSys SVG rasterization failed (diagram #{index}): #{output}")
+          replace_with_diagram_export_warning(svg, document)
+          next
         end
 
         replacement = Nokogiri::XML::Node.new('img', document)
@@ -238,16 +239,31 @@ module Cosmosys
       document.to_html
     end
 
+    def rasterize_report_svg(svg_path, png_path)
+      output, status = Open3.capture2e('/usr/bin/magick', svg_path, png_path)
+      [output, status.success? && File.file?(png_path)]
+    end
+
+    def replace_with_diagram_export_warning(svg, document)
+      warning = Nokogiri::XML::Node.new('p', document)
+      warning['class'] = 'cosmosys-report-diagram-export-warning'
+      warning.content = I18n.t(:text_cosmosys_report_diagram_export_failed)
+      svg.replace(warning)
+    end
+
     def sanitized_report_svg(svg)
       export_svg = svg.dup
       export_svg.css('metadata, foreignObject').remove
       ([export_svg] + export_svg.css('*').to_a).each do |node|
         namespace_uri = node.namespace&.href
         node.remove if namespace_uri.present? && namespace_uri != SVG_NAMESPACE
+        qualified_name = node.name.to_s
+        node.remove if qualified_name.include?(':') && !qualified_name.start_with?('svg:')
       end
       ([export_svg] + export_svg.css('*').to_a).each do |node|
         node.attribute_nodes.each do |attribute|
           prefix = attribute.namespace&.prefix
+          prefix ||= attribute.name.to_s.split(':', 2).first if attribute.name.to_s.include?(':')
           if prefix.present? && !%w[xlink xml xmlns].include?(prefix)
             attribute.remove
             next
@@ -291,7 +307,10 @@ module Cosmosys
       document.css('img').each do |image|
         image.remove_attribute('srcset')
         source = image['src'].to_s
-        next if bounded_image_data_url?(source)
+        if (data_url = normalized_image_data_url(source))
+          image['src'] = data_url
+          next
+        end
 
         attachment = authorized_attachment_for(source)
         unless attachment
@@ -303,11 +322,19 @@ module Cosmosys
       end
     end
 
-    def bounded_image_data_url?(source)
-      match = source.match(%r{\Adata:(image/(?:png|jpeg|gif|webp));base64,([A-Za-z0-9+/=]+)\z}i)
-      return false unless match
+    def normalized_image_data_url(source)
+      source = source.to_s
+      return if source.bytesize > 80.megabytes
 
-      match[2].bytesize <= 40.megabytes
+      match = source.match(%r{\A(data:image/(?:png|jpeg|gif|webp);base64,)(.+)\z}im)
+      return unless match
+
+      encoded = match[2].gsub(/(?:%0[ad]|[\t\n\f\r ])+/i, '')
+      return if encoded.blank? || encoded.bytesize > 40.megabytes
+
+      "#{match[1]}#{Base64.strict_encode64(Base64.strict_decode64(encoded))}"
+    rescue ArgumentError
+      nil
     end
 
     def authorized_attachment_for(source)

@@ -362,6 +362,7 @@ es:
   text_cosmosys_diagram_loading: "Cargando diagrama..."
   text_cosmosys_diagrams_loading: "Cargando diagramas: %{loaded}/%{total}"
   text_cosmosys_report_export_failed: "No se pudo generar el documento."
+  text_cosmosys_report_diagram_export_failed: "No se pudo convertir un diagrama y se ha omitido de este documento."
   text_cosmosys_report_diagram_loading: "Diagrama pendiente; se está cargando en segundo plano."
   text_cosmosys_report_diagrams_ready: "%{total} diagramas del informe cargados."
   text_cosmosys_report_diagrams_failed: "No se pudieron cargar en pantalla %{failed} de %{total} diagramas del informe. La exportación en servidor continúa disponible."

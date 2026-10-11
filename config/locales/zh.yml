@@ -363,6 +363,7 @@ zh:
   text_cosmosys_diagram_loading: "正在加载图表..."
   text_cosmosys_diagrams_loading: "正在加载图表：%{loaded}/%{total}"
   text_cosmosys_report_export_failed: "无法生成文档。"
+  text_cosmosys_report_diagram_export_failed: "有一个图表无法转换，已从本文档中省略。"
   text_cosmosys_report_diagram_loading: "图表尚未就绪；正在后台加载。"
   text_cosmosys_report_diagrams_ready: "已加载 %{total} 个报告图表。"
   text_cosmosys_report_diagrams_failed: "%{total} 个报告图表中有 %{failed} 个无法在屏幕上加载。服务器端导出仍可使用。"
