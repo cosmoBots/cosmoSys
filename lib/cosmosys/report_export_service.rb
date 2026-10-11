@@ -28,11 +28,13 @@ module Cosmosys
     NEGATIVE_ITEMS_STATUS_WIDTH_PX = 90
     NEGATIVE_ITEMS_SUBJECT_WIDTH_PX = METADATA_TABLE_WIDTH_PX - NEGATIVE_ITEMS_CSID_WIDTH_PX - NEGATIVE_ITEMS_STATUS_WIDTH_PX
     PORTRAIT_CONTENT_WIDTH_PX = METADATA_TABLE_WIDTH_PX
+    SVG_NAMESPACE = 'http://www.w3.org/2000/svg'.freeze
+    EXTERNAL_URL_REFERENCE = /url\s*\(\s*(?!['"]?\s*#)/i
     ORIENTATION_MARKERS = {
       'landscape' => ['COSMOSYS_REPORT_LANDSCAPE_START', 'COSMOSYS_REPORT_LANDSCAPE_END'],
       'portrait' => ['COSMOSYS_REPORT_PORTRAIT_START', 'COSMOSYS_REPORT_PORTRAIT_END']
     }.freeze
-    CACHE_SCHEMA = 'cosmosys-report-artifact-v23'.freeze
+    CACHE_SCHEMA = 'cosmosys-report-artifact-v24'.freeze
     MAX_CACHED_REPORTS_PER_PROJECT = 5
 
     class ExportError < StandardError; end
@@ -218,16 +220,7 @@ module Cosmosys
         end
         svg_path = File.join(work_dir, "diagram-#{index}.svg")
         png_path = File.join(work_dir, "diagram-#{index}.png")
-        export_svg = svg.dup
-        export_svg.css('metadata').remove
-        export_svg.css('*').each do |node|
-          node.remove_attribute('href')
-          node.remove_attribute('xlink:href')
-        end
-        standalone_svg = export_svg.to_xml
-          .gsub(/(<\/?)(?:svg:)/, '\\1')
-          .gsub(/\s+xmlns(?::[A-Za-z0-9_-]+)?="[^"]*"/, '')
-          .sub('<svg', '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"')
+        standalone_svg = sanitized_report_svg(svg)
         File.binwrite(svg_path, standalone_svg)
         output, status = Open3.capture2e('/usr/bin/magick', svg_path, png_path)
         unless status.success? && File.file?(png_path)
@@ -245,6 +238,41 @@ module Cosmosys
       document.to_html
     end
 
+    def sanitized_report_svg(svg)
+      export_svg = svg.dup
+      export_svg.css('metadata, foreignObject').remove
+      ([export_svg] + export_svg.css('*').to_a).each do |node|
+        namespace_uri = node.namespace&.href
+        node.remove if namespace_uri.present? && namespace_uri != SVG_NAMESPACE
+      end
+      ([export_svg] + export_svg.css('*').to_a).each do |node|
+        node.attribute_nodes.each do |attribute|
+          prefix = attribute.namespace&.prefix
+          if prefix.present? && !%w[xlink xml xmlns].include?(prefix)
+            attribute.remove
+            next
+          end
+
+          value = attribute.value.to_s
+          if attribute.name == 'href' && !value.strip.start_with?('#')
+            # Keep fragment-only references (markers, patterns, <use>), but no
+            # local-file, data: or network resource can be loaded while exporting.
+            attribute.remove
+          elsif value.match?(EXTERNAL_URL_REFERENCE)
+            attribute.remove
+          end
+        end
+      end
+      export_svg.css('style').each do |node|
+        node.remove if node.text.match?(EXTERNAL_URL_REFERENCE) || node.text.match?(/@import/i)
+      end
+
+      export_svg.to_xml
+        .gsub(/(<\/?)(?:svg:)/, '\\1')
+        .gsub(/\s+xmlns(?::[A-Za-z0-9_-]+)?="[^"]*"/, '')
+        .sub('<svg', "<svg xmlns=\"#{SVG_NAMESPACE}\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"")
+    end
+
     def secure_embedded_resources!(document)
       document.css('object, embed, iframe, video, audio, source, link[rel="stylesheet"]').remove
       document.css('*').each do |node|
@@ -254,10 +282,10 @@ module Cosmosys
           node.remove_attribute('poster')
           node.remove_attribute('background')
         end
-        node.remove_attribute('style') if node['style'].to_s.match?(/url\s*\(/i)
+        node.remove_attribute('style') if node['style'].to_s.match?(EXTERNAL_URL_REFERENCE)
       end
       document.css('style').each do |node|
-        node.remove if node.text.match?(/url\s*\(|@import/i)
+        node.remove if node.text.match?(EXTERNAL_URL_REFERENCE) || node.text.match?(/@import/i)
       end
 
       document.css('img').each do |image|
@@ -283,7 +311,7 @@ module Cosmosys
     end
 
     def authorized_attachment_for(source)
-      path = URI.parse(source).path
+      path = URI.parse(source).path.to_s
       match = path.match(%r{\A/attachments/(?:download/)?(\d+)(?:/|\z)})
       return unless match
 
