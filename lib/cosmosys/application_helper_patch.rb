@@ -91,6 +91,10 @@ module Cosmosys
       fragment.to_html
     end
 
+    def cosmosys_report_textilizable(*args, **kwargs)
+      Cosmosys::InlineSvgStyleScope.call(textilizable(*args, **kwargs)).html_safe
+    end
+
     def cosmosys_tree_issue_link(issue, chapter_map: nil, boundary: false)
       chapter =
         if issue.respond_to?(:cosmosys_chapter)

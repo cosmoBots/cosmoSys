@@ -27,7 +27,7 @@
 
   <% if @report.options['description'] && section.issue.description.present? %>
     <div class="wiki cosmosys-report-description">
-      <%= textilizable(
+      <%= cosmosys_report_textilizable(
             Cosmosys::MainReportTextNormalizer.normalize(section.issue.description),
             object: section.issue,
             attachments: section.issue.attachments
@@ -46,7 +46,7 @@
       <% section.body_fields.each do |field| %>
         <section class="cosmosys-report-body-field cosmosys-report-body-field-<%= field.key %>">
           <h6><%= field.label %></h6>
-          <div class="cosmosys-report-body-field-value"><%= field.rich_text ? textilizable(section.issue, field.key.to_sym) : field.value %></div>
+          <div class="cosmosys-report-body-field-value"><%= field.rich_text ? cosmosys_report_textilizable(section.issue, field.key.to_sym) : field.value %></div>
         </section>
       <% end %>
     </section>
@@ -79,7 +79,7 @@
 <article id="<%= section.anchor %>" class="cosmosys-report-orphaned-item" data-cosmosys-report-item data-cosmosys-report-text="<%= [section.issue.csid, section.issue.subject, section.issue.description].compact.join(' ').downcase %>">
   <h6><%= link_to section.issue.csid, issue_path(section.issue) %> — <%= section.issue.subject %></h6>
   <% if @report.options['description'] && section.issue.description.present? %>
-    <div class="wiki cosmosys-report-description"><%= textilizable(Cosmosys::MainReportTextNormalizer.normalize(section.issue.description), object: section.issue, attachments: section.issue.attachments) %></div>
+    <div class="wiki cosmosys-report-description"><%= cosmosys_report_textilizable(Cosmosys::MainReportTextNormalizer.normalize(section.issue.description), object: section.issue, attachments: section.issue.attachments) %></div>
   <% end %>
   <% section.children.each do |child| %>
     <%= render partial: 'cosmosys/items/report_section', locals: { section: child, server_export: local_assigns.fetch(:server_export, false) } %>
@@ -95,7 +95,7 @@
   </div>
   <% if section.issue.description.present? %>
     <div class="wiki cosmosys-report-description">
-      <%= textilizable(
+      <%= cosmosys_report_textilizable(
             Cosmosys::MainReportTextNormalizer.normalize(section.issue.description),
             object: section.issue,
             attachments: section.issue.attachments
