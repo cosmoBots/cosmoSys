@@ -22,6 +22,7 @@ module Cosmosys
 
     def create
       project_params = params[:project]
+      apply_cosmosys_profile_tracker_defaults(project_params)
       if project_params.respond_to?(:key?) && project_params.key?(:enabled_module_names)
         project_params[:csys_modules_explicit] = '1'
       end
@@ -33,6 +34,18 @@ module Cosmosys
     def requested_cosmosys_project_profile
       raw = params[:project_profile].presence || params.dig(:project, :csys_project_profile).presence
       raw && Cosmosys::ProjectProfileRegistry.normalize_key(raw)
+    end
+
+    def apply_cosmosys_profile_tracker_defaults(project_params)
+      return unless project_params.respond_to?(:key?)
+      return if project_params.key?(:tracker_ids)
+
+      profile_key = requested_cosmosys_project_profile
+      return if profile_key.blank? || profile_key == Cosmosys::ProjectProfileRegistry::DEFAULT_KEY
+      return unless Cosmosys::ProjectProfileRegistry.registered?(profile_key)
+
+      tracker_keys = Cosmosys::ProjectProfileRegistry.fetch(profile_key).required_trackers.map { |entry| entry.fetch(:key) }
+      project_params[:tracker_ids] = Tracker.where(csys_key: tracker_keys).pluck(:id)
     end
   end
 end
