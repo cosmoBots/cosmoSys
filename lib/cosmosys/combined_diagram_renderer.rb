@@ -19,18 +19,19 @@ module Cosmosys
       VALID_RENDER_VARIANTS.include?(variant.to_s)
     end
 
-    def initialize(current_issue: nil, cluster_title_issue_ids: Set.new, cluster_anchor_issue_ids: Set.new, layout_mode: DEFAULT_LAYOUT_MODE)
+    def initialize(current_issue: nil, cluster_title_issue_ids: Set.new, cluster_anchor_issue_ids: Set.new, layout_mode: DEFAULT_LAYOUT_MODE, rankdir: 'TB')
       @current_issue = current_issue
       @cluster_title_issue_ids = cluster_title_issue_ids
       @cluster_anchor_issue_ids = cluster_anchor_issue_ids
       @ancestor_ids_by_issue = {}
       @layout_mode = self.class.valid_layout_mode?(layout_mode) ? layout_mode.to_s : DEFAULT_LAYOUT_MODE
+      @rankdir = %w[TB LR].include?(rankdir.to_s.upcase) ? rankdir.to_s.upcase : 'TB'
     end
 
     def build_graph(title:)
       lines = []
       lines << %(digraph #{title} {)
-      lines << %(  graph [bgcolor="transparent", margin=0, pad=0.5, rankdir=TB,#{layout_attr} nodesep=0.3, ranksep=0.3, compound=true, pack=1, overlap=false, mclimit=10];)
+      lines << %(  graph [bgcolor="transparent", margin=0, pad=0.5, rankdir=#{@rankdir},#{layout_attr} nodesep=0.3, ranksep=0.3, compound=true, pack=1, overlap=false, mclimit=10];)
       lines << '  node [shape=record, style="filled", fontname="times", fontsize=10, margin="0.03,0.03", width=0, height=0, penwidth=0.5];'
       lines << '  subgraph "cluster_diagram_root" {'
       lines << '    label="";'

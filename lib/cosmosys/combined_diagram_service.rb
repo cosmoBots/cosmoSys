@@ -23,6 +23,7 @@ module Cosmosys
       @relation_types = Array(relation_types).map(&:to_s) & SUPPORTED_RELATION_TYPES
       @render_variant = Cosmosys::CombinedDiagramRenderer.valid_render_variant?(render_variant) ? render_variant.to_s : @issue.project.cosmosys_combined_diagram_render_variant
       @layout_mode = Cosmosys::CombinedDiagramRenderer.valid_layout_mode?(layout_mode) ? layout_mode.to_s : @issue.project.cosmosys_combined_diagram_layout_mode
+      @profile_rankdir = @issue.project.cosmosys_project_profile_definition.combined_diagram_rankdir
     end
 
     def fetch
@@ -177,6 +178,13 @@ module Cosmosys
         @issue.cosmosys_dependency_relation_visible?(relation.relation_type)
     end
 
+    def graph_rankdir
+      has_directional_relations = visible_relations.any? do |relation|
+        %w[blocks precedes].include?(relation.relation_type.to_s)
+      end
+      has_directional_relations ? @profile_rankdir : 'TB'
+    end
+
     def combined_signature
       payload = []
       payload << "mode:#{@mode}"
@@ -184,6 +192,7 @@ module Cosmosys
       payload << "relations:#{@relation_types.sort.join(',')}"
       payload << "render_variant:#{@render_variant}"
       payload << "layout_mode:#{@layout_mode}"
+      payload << "rankdir:#{graph_rankdir}"
       root_entries.each { |entry| append_entry_signature(entry, payload) }
       payload.concat(dependency_boundary_issues.map { |issue| renderer.node_signature(issue, boundary: true, container: false) })
       payload.concat(visible_relations.filter_map { |relation| renderer.edge_signature(relation) })
@@ -448,7 +457,8 @@ module Cosmosys
         current_issue: @issue,
         cluster_title_issue_ids: cluster_title_issue_ids,
         cluster_anchor_issue_ids: cluster_anchor_issue_ids,
-        layout_mode: @layout_mode
+        layout_mode: @layout_mode,
+        rankdir: graph_rankdir
       )
     end
   end

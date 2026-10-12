@@ -6,7 +6,7 @@ module Cosmosys
       :default_enabled_modules, :default_disabled_modules, :required_modules,
       :default_report_columns,
       :default_report_field_presentations, :default_report_options,
-      :default_item_list_columns,
+      :default_item_list_columns, :combined_diagram_rankdir,
       keyword_init: true
     )
     DEFAULT_KEY = 'items'.freeze
@@ -29,11 +29,11 @@ module Cosmosys
 
     module_function
 
-    def register(key, label:, description:, provider:, required_trackers:, default_root_tracker: nil, ods_export_template: DEFAULT_ODS_EXPORT_TEMPLATE, report_export_template: DEFAULT_REPORT_EXPORT_TEMPLATE, default_enabled_modules: [], default_disabled_modules: [], required_modules: [], default_report_columns: DEFAULT_REPORT_COLUMNS, default_report_field_presentations: {}, default_report_options: DEFAULT_REPORT_OPTIONS, default_item_list_columns: DEFAULT_ITEM_LIST_COLUMNS)
+    def register(key, label:, description:, provider:, required_trackers:, default_root_tracker: nil, ods_export_template: DEFAULT_ODS_EXPORT_TEMPLATE, report_export_template: DEFAULT_REPORT_EXPORT_TEMPLATE, default_enabled_modules: [], default_disabled_modules: [], required_modules: [], default_report_columns: DEFAULT_REPORT_COLUMNS, default_report_field_presentations: {}, default_report_options: DEFAULT_REPORT_OPTIONS, default_item_list_columns: DEFAULT_ITEM_LIST_COLUMNS, combined_diagram_rankdir: 'TB')
       key = normalize_key(key)
       raise ArgumentError, "#{DEFAULT_KEY} is the reserved project profile" if key == DEFAULT_KEY
       raise ArgumentError, "project profile #{key} is already registered" if profiles.key?(key)
-      candidate = build(key:, label:, description:, provider:, required_trackers: BASE_TRACKERS + required_trackers, default_root_tracker:, ods_export_template:, report_export_template:, default_enabled_modules:, default_disabled_modules:, required_modules:, default_report_columns:, default_report_field_presentations:, default_report_options:, default_item_list_columns:)
+      candidate = build(key:, label:, description:, provider:, required_trackers: BASE_TRACKERS + required_trackers, default_root_tracker:, ods_export_template:, report_export_template:, default_enabled_modules:, default_disabled_modules:, required_modules:, default_report_columns:, default_report_field_presentations:, default_report_options:, default_item_list_columns:, combined_diagram_rankdir:)
       validate_contract!(candidate)
       profiles[key] = candidate
     end
@@ -60,7 +60,8 @@ module Cosmosys
           default_report_columns: DEFAULT_REPORT_COLUMNS,
           default_report_field_presentations: {},
           default_report_options: DEFAULT_REPORT_OPTIONS,
-          default_item_list_columns: DEFAULT_ITEM_LIST_COLUMNS
+          default_item_list_columns: DEFAULT_ITEM_LIST_COLUMNS,
+          combined_diagram_rankdir: 'TB'
         )
       }
     end
@@ -73,12 +74,17 @@ module Cosmosys
       attributes[:default_report_columns] = Array(attributes[:default_report_columns]).map(&:to_s).reject(&:blank?).uniq.freeze
       attributes[:default_report_field_presentations] = Hash(attributes[:default_report_field_presentations]).stringify_keys.transform_values(&:to_s).freeze
       attributes[:default_report_options] = Hash(attributes[:default_report_options]).stringify_keys.transform_values { |value| ActiveModel::Type::Boolean.new.cast(value) }.freeze
+      attributes[:combined_diagram_rankdir] = attributes[:combined_diagram_rankdir].to_s.upcase.presence || 'TB'
       item_list_columns = Array(attributes[:default_item_list_columns]).map(&:to_s).reject(&:blank?).uniq
       attributes[:default_item_list_columns] = (%w[chapter_label subject] + (item_list_columns - %w[chapter_label subject])).freeze
       Profile.new(**attributes.transform_values { |value| value.frozen? ? value : value.freeze }).freeze
     end
 
     def validate_contract!(candidate)
+      unless %w[TB LR].include?(candidate.combined_diagram_rankdir)
+        raise ArgumentError, "invalid combined diagram rankdir #{candidate.combined_diagram_rankdir.inspect}"
+      end
+
       template_path = Pathname(candidate.ods_export_template.to_s)
       raise ArgumentError, 'ODS export template path is required' if template_path.to_s.blank?
       raise ArgumentError, 'ODS export template path must be relative to Rails.root' if template_path.absolute? || template_path.each_filename.include?('..')
