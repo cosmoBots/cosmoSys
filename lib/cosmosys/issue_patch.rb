@@ -294,6 +294,14 @@ module Cosmosys
       'record'
     end
 
+    def cosmosys_diagram_node_margin(_kind = 'hierarchy')
+      '0.03,0.03'
+    end
+
+    def cosmosys_diagram_sibling_rank(_kind = 'hierarchy')
+      nil
+    end
+
     def cosmosys_diagram_fill_color(_kind = 'hierarchy')
       profile_value = cosmosys_item_kind.value(:diagram_fill_color, self, kind: _kind)
       return profile_value if profile_value.present?
@@ -345,6 +353,10 @@ module Cosmosys
 
     def cosmosys_hierarchy_cluster_color
       cosmosys_diagram_valid? ? 'black' : 'red'
+    end
+
+    def cosmosys_hierarchy_cluster_fill_color
+      nil
     end
 
     def cosmosys_hierarchy_cluster_font_name(boundary: false)

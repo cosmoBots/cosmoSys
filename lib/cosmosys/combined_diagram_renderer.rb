@@ -30,7 +30,7 @@ module Cosmosys
     def build_graph(title:)
       lines = []
       lines << %(digraph #{title} {)
-      lines << %(  graph [bgcolor="transparent", margin=0, pad=0.5, rankdir=TB,#{layout_attr} nodesep=0.5, ranksep=0.3, compound=true, pack=1, overlap=false, mclimit=10];)
+      lines << %(  graph [bgcolor="transparent", margin=0, pad=0.5, rankdir=TB,#{layout_attr} nodesep=0.3, ranksep=0.3, compound=true, pack=1, overlap=false, mclimit=10];)
       lines << '  node [shape=record, style="filled", fontname="times", fontsize=10, margin="0.03,0.03", width=0, height=0, penwidth=0.5];'
       lines << '  subgraph "cluster_diagram_root" {'
       lines << '    label="";'
@@ -98,6 +98,7 @@ module Cosmosys
         attrs[:color],
         attrs[:fontcolor],
         attrs[:fontname],
+        attrs[:margin],
         attrs[:penwidth]
       ].join(':')
     end
@@ -112,6 +113,7 @@ module Cosmosys
         attrs[:label],
         attrs[:color],
         attrs[:pencolor],
+        attrs[:fillcolor],
         attrs[:fontname],
         attrs[:penwidth]
       ].join(':')
@@ -196,6 +198,7 @@ module Cosmosys
       lines << %(  penwidth="#{attrs[:penwidth]}";)
       lines << %(  margin="#{escape(attrs[:margin])}";)
       lines << %(  style="#{escape(attrs[:style])}";)
+      lines << %(  fillcolor="#{escape(attrs[:fillcolor])}";) if attrs[:fillcolor].present?
       lines << %(  URL="#{escape(attrs[:URL])}";)
       lines << %(  tooltip="#{escape(attrs[:tooltip])}";)
       lines << '  labeljust="l";'
@@ -232,7 +235,7 @@ module Cosmosys
         target: '_top',
         tooltip: graphviz_tooltip(issue.description),
         fontsize: 10,
-        margin: node_margin(container: container),
+        margin: node_margin(issue: issue, container: container),
         width: node_width(container: container),
         height: node_height(container: container),
         penwidth: node_penwidth(issue, container: container)
@@ -255,7 +258,8 @@ module Cosmosys
         pencolor: issue.cosmosys_hierarchy_cluster_color,
         penwidth: issue.cosmosys_hierarchy_cluster_penwidth,
         margin: '2',
-        style: 'solid',
+        style: issue.cosmosys_hierarchy_cluster_fill_color.present? ? 'filled' : 'solid',
+        fillcolor: issue.cosmosys_hierarchy_cluster_fill_color,
         URL: issue_url(issue),
         tooltip: graphviz_tooltip(issue.description)
       }
@@ -306,8 +310,8 @@ module Cosmosys
       issue.cosmosys_diagram_penwidth('combined')
     end
 
-    def node_margin(container:)
-      container ? '0.02,0.02' : '0.03,0.03'
+    def node_margin(issue:, container:)
+      container ? '0.02,0.02' : issue.cosmosys_diagram_node_margin('combined')
     end
 
     def node_width(container:)

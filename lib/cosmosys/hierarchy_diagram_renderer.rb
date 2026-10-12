@@ -14,7 +14,7 @@ module Cosmosys
     def build_graph(title:)
       lines = []
       lines << %(digraph #{title} {)
-      lines << '  graph [bgcolor="transparent", margin=0, pad=0.5, rankdir=TB, nodesep=0.5, ranksep=0.3, compound=true, pack=1, overlap=false, mclimit=10];'
+      lines << '  graph [bgcolor="transparent", margin=0, pad=0.5, rankdir=TB, nodesep=0.3, ranksep=0.3, compound=true, pack=1, overlap=false, mclimit=10];'
       lines << '  node [shape=record, style="filled", fontname="times", fontsize=10, margin="0.03,0.03", width=0, height=0, penwidth=0.5];'
       lines << '  subgraph "cluster_diagram_root" {'
       lines << '    label="";'
@@ -34,7 +34,9 @@ module Cosmosys
       children = Array(entry[:children])
       nested_lines = children.flat_map { |child| build_tree(child) }
 
-      build_issue_box(issue, nested_lines: nested_lines, boundary: boundary)
+      rank_lines = sibling_rank_constraints(children)
+      rank_anchor_lines = hierarchy_rank_anchor_constraints(issue, children)
+      build_issue_box(issue, nested_lines: nested_lines + rank_lines + rank_anchor_lines, boundary: boundary)
     end
 
     def render_svg(dot_body)
@@ -47,12 +49,13 @@ module Cosmosys
     def node_signature(issue, boundary: false)
       attrs = issue_node_attrs(issue, boundary: boundary)
       [issue.id, boundary ? 1 : 0, attrs[:label], attrs[:shape], attrs[:fillcolor], attrs[:color],
-       attrs[:fontcolor], attrs[:fontname], attrs[:penwidth]].join(':')
+       attrs[:fontcolor], attrs[:fontname], attrs[:margin], issue.cosmosys_diagram_sibling_rank('hierarchy'),
+       attrs[:penwidth]].join(':')
     end
 
     def cluster_signature(issue, boundary: false)
       attrs = cluster_attrs(issue, boundary: boundary)
-      [issue.id, boundary ? 1 : 0, attrs[:label], attrs[:color], attrs[:fontname], attrs[:penwidth]].join(':')
+      [issue.id, boundary ? 1 : 0, attrs[:label], attrs[:color], attrs[:fillcolor], attrs[:fontname], attrs[:penwidth]].join(':')
     end
 
     private
@@ -71,6 +74,7 @@ module Cosmosys
       lines << %(  penwidth="#{attrs[:penwidth]}";)
       lines << %(  margin="#{escape(attrs[:margin])}";)
       lines << %(  style="#{escape(attrs[:style])}";)
+      lines << %(  fillcolor="#{escape(attrs[:fillcolor])}";) if attrs[:fillcolor].present?
       lines << %(  URL="#{escape(attrs[:URL])}";)
       lines << %(  tooltip="#{escape(attrs[:tooltip])}";)
       lines << '  labeljust="l";'
@@ -98,7 +102,7 @@ module Cosmosys
         target: '_top',
         tooltip: graphviz_tooltip(issue.description),
         fontsize: 10,
-        margin: '0.03,0.03',
+        margin: issue.cosmosys_diagram_node_margin('hierarchy'),
         width: 0,
         height: 0,
         penwidth: issue.cosmosys_diagram_penwidth('hierarchy')
@@ -121,7 +125,8 @@ module Cosmosys
         pencolor: issue.cosmosys_hierarchy_cluster_color,
         penwidth: issue.cosmosys_hierarchy_cluster_penwidth,
         margin: '2',
-        style: 'solid',
+        style: issue.cosmosys_hierarchy_cluster_fill_color.present? ? 'filled' : 'solid',
+        fillcolor: issue.cosmosys_hierarchy_cluster_fill_color,
         URL: issue_url(issue),
         tooltip: graphviz_tooltip(issue.description)
       }
@@ -134,6 +139,56 @@ module Cosmosys
       end
 
       attrs
+    end
+
+    def sibling_rank_constraints(children)
+      groups = children.filter_map do |entry|
+        issue = entry.fetch(:issue)
+        rank = issue.cosmosys_diagram_sibling_rank('hierarchy')
+        [rank, entry] unless rank.nil?
+      end.group_by(&:first).sort_by(&:first)
+      return [] if groups.length < 2
+
+      rank_groups = groups.map do |_rank, ranked_issues|
+        ids = ranked_issues.map { |_rank_value, entry| rank_node_id(entry) }
+        "{ rank=same; #{ids.join('; ')}; };"
+      end
+      # Invisible constrained edges order semantic rows without adding visible dependencies.
+      invisible_edges = groups.each_cons(2).map do |(_upper_rank, upper_issues), (_lower_rank, lower_issues)|
+        from = rank_node_id(upper_issues.first.last)
+        to = rank_node_id(lower_issues.first.last)
+        "#{from} -> #{to} [style=invis, arrowhead=none];"
+      end
+
+      rank_groups + invisible_edges
+    end
+
+    # A child that is itself a cluster has no visible Graphviz node to rank with
+    # its siblings. Give ranked clusters an invisible anchor inside the cluster,
+    # and keep that anchor above the cluster's own first ranked row.
+    def hierarchy_rank_anchor_constraints(issue, children)
+      return [] if children.empty? || issue.cosmosys_diagram_sibling_rank('hierarchy').nil?
+
+      anchor = rank_anchor_id(issue)
+      ranked_children = children.filter_map do |entry|
+        child_issue = entry.fetch(:issue)
+        rank = child_issue.cosmosys_diagram_sibling_rank('hierarchy')
+        [rank, entry] unless rank.nil?
+      end.group_by(&:first).sort_by(&:first)
+      return [%(#{anchor} [label="", shape=point, width=0.01, height=0.01, style=invis];)] if ranked_children.empty?
+
+      first_row = ranked_children.first.last.map { |_rank, entry| rank_node_id(entry) }
+      [%(#{anchor} [label="", shape=point, width=0.01, height=0.01, style=invis];),
+       %(#{anchor} -> #{first_row.first} [style=invis, arrowhead=none];)]
+    end
+
+    def rank_node_id(entry)
+      issue = entry.fetch(:issue)
+      Array(entry[:children]).empty? ? node_id_for(issue) : rank_anchor_id(issue)
+    end
+
+    def rank_anchor_id(issue)
+      "hierarchy_rank_anchor_issue_#{issue.id}"
     end
 
     def issue_url(issue)

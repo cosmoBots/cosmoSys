@@ -89,6 +89,7 @@ module Cosmosys
         attrs[:color],
         attrs[:fontcolor],
         attrs[:fontname],
+        attrs[:margin],
         attrs[:penwidth]
       ].join(':')
     end
@@ -162,7 +163,7 @@ module Cosmosys
         target: '_top',
         tooltip: graphviz_tooltip(issue.description),
         fontsize: 10,
-        margin: '0.03,0.03',
+        margin: issue.cosmosys_diagram_node_margin('dependency'),
         width: 0,
         height: 0,
         penwidth: issue.cosmosys_diagram_penwidth('dependency')
