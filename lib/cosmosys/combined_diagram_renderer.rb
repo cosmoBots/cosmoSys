@@ -257,7 +257,9 @@ module Cosmosys
         color: issue.cosmosys_hierarchy_cluster_color,
         pencolor: issue.cosmosys_hierarchy_cluster_color,
         penwidth: issue.cosmosys_hierarchy_cluster_penwidth,
-        margin: '2',
+        # Container issues are rendered as title nodes inside their clusters.
+        # Extra cluster padding keeps child folder tabs off the top border.
+        margin: show_container_node ? '8' : '2',
         style: issue.cosmosys_hierarchy_cluster_fill_color.present? ? 'filled' : 'solid',
         fillcolor: issue.cosmosys_hierarchy_cluster_fill_color,
         URL: issue_url(issue),
