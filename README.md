@@ -171,6 +171,14 @@ docker compose -f compose.yml -f compose.requirements.yml build
 docker compose -f compose.yml -f compose.requirements.yml up -d
 ```
 
+### Project-profile trackers
+
+Every cosmoSys project profile inherits the base trackers `csInfo`, `csRefDoc`,
+`csData`, `csDatum` and `csNegative`. Domain plugins add only their own trackers;
+for example, the Architecture PBS profile adds `archNode` without enabling
+requirement trackers. `csNegative` is cosmoSys' report placeholder for listing
+unsuccessfully closed items and is available in specialized profiles as well.
+
 ## Repository
 
 The canonical repository for this project is

@@ -133,13 +133,21 @@ module Cosmosys
 
     def project_rendered_visual_dependencies
       project_rendered_issues.map do |issue|
+        boundary = issue.project_id != @project.id
+        rendered_children = project_visible_children(issue).any?
+        render_signature = if rendered_children
+                             renderer.cluster_signature(issue, boundary: boundary)
+                           else
+                             renderer.node_signature(issue, boundary: boundary)
+                           end
         [
           'item',
           issue.id,
           issue.project_id,
           issue.parent_id || 0,
           issue.csposition || 0,
-          issue.updated_on&.utc&.to_i || 0
+          issue.updated_on&.utc&.to_i || 0,
+          render_signature
         ].join(':')
       end
     end

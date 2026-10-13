@@ -53,7 +53,14 @@
           <td><code><%= fill_color %></code></td>
           <td><code><%= profile.diagram_border_color.presence || l(:text_cosmosys_item_profile_color_dynamic) %></code></td>
           <td><code><%= [profile.diagram_font_name, profile.diagram_font_color].compact.presence&.join(' / ') || l(:text_cosmosys_item_profile_font_default) %></code></td>
-          <td><%= l(profile.reference_mode == 'chapter' ? :text_cosmosys_item_profile_reference_chapter : :text_cosmosys_item_profile_reference_csid) %></td>
+          <% reference_mode_key = if profile.reference_mode.respond_to?(:call)
+                                    :text_cosmosys_item_profile_reference_contextual
+                                  elsif profile.reference_mode == 'chapter'
+                                    :text_cosmosys_item_profile_reference_chapter
+                                  else
+                                    :text_cosmosys_item_profile_reference_csid
+                                  end %>
+          <td><%= l(reference_mode_key) %></td>
           <td><%= l(direction == 'TB' ? :text_cosmosys_item_profile_direction_tb : :text_cosmosys_item_profile_direction_lr) %> (<code><%= direction %></code>)</td>
           <td><%= l(profile.diagram_visible == false ? :general_text_No : :general_text_Yes) %></td>
           <td><%= l(profile.report_diagrams == false ? :general_text_No : :general_text_Yes) %></td>

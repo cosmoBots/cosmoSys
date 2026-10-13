@@ -463,6 +463,7 @@ en:
   text_cosmosys_item_profile_scope_report_metadata: "Controls whether reports render the ordinary item metadata table for items using this profile."
   text_cosmosys_item_profile_reference_csid: "Persistent CSID"
   text_cosmosys_item_profile_reference_chapter: "Ephemeral chapter"
+  text_cosmosys_item_profile_reference_contextual: "Context-dependent"
   text_cosmosys_item_profile_scope_dependency: "Selects the top-to-bottom or left-to-right orientation used when generating a dependency diagram."
   label_cosmosys_item_profile_report_placeholders: "Report placeholders"
   text_cosmosys_item_profile_scope_report_placeholders: "Enables the special report contents that items using this profile may insert at their position in the report."

@@ -23,7 +23,9 @@ module Cosmosys
       @relation_types = Array(relation_types).map(&:to_s) & SUPPORTED_RELATION_TYPES
       @render_variant = Cosmosys::CombinedDiagramRenderer.valid_render_variant?(render_variant) ? render_variant.to_s : @issue.project.cosmosys_combined_diagram_render_variant
       @layout_mode = Cosmosys::CombinedDiagramRenderer.valid_layout_mode?(layout_mode) ? layout_mode.to_s : @issue.project.cosmosys_combined_diagram_layout_mode
-      @profile_rankdir = @issue.project.cosmosys_project_profile_definition.combined_diagram_rankdir
+      profile = @issue.project.cosmosys_project_profile_definition
+      @profile_rankdir = profile.combined_diagram_rankdir
+      @container_node_policy = profile.combined_diagram_container_node_policy
     end
 
     def fetch
@@ -113,9 +115,11 @@ module Cosmosys
     end
 
     def cluster_title_issue_ids
-      # All container issues (those with children in hierarchy) should be treated as cluster titles
-      # regardless of whether they have internal dependency relations.
-      @cluster_title_issue_ids ||= container_issue_ids.dup
+      @cluster_title_issue_ids ||= if @container_node_policy == 'related_only'
+                                     container_issue_ids & dependency_issue_ids
+                                   else
+                                     container_issue_ids.dup
+                                   end
     end
 
     def cluster_anchor_issue_ids

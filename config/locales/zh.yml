@@ -464,6 +464,7 @@ zh:
   text_cosmosys_item_profile_scope_report_metadata: "控制报告是否为使用此配置文件的条目显示常规元数据表。"
   text_cosmosys_item_profile_reference_csid: "持久 CSID"
   text_cosmosys_item_profile_reference_chapter: "临时章节"
+  text_cosmosys_item_profile_reference_contextual: "取决于上下文"
   text_cosmosys_item_profile_scope_dependency: "选择依赖关系图的排列方向：从上到下或从左到右。"
   label_cosmosys_item_profile_report_placeholders: "报告占位符"
   text_cosmosys_item_profile_scope_report_placeholders: "允许使用此配置文件的条目在报告中的对应位置插入特殊内容。"
