@@ -87,6 +87,7 @@ module Cosmosys
       trackers = data.fetch('items').map { |row| row['tracker'] }.reject(&:blank?).uniq
       (trackers - Tracker.where(name: trackers).pluck(:name)).each { |name| error!('unknown_tracker', "Unknown tracker #{name}") }
       send(:validate_duplicate_rows!, data)
+      data.fetch('items').each { |row| send(:parse_precedent_references, row['precedent_items']) }
       item_keys = data.fetch('items').map { |row| row['csid'] }.to_set
       document_keys = data.fetch('documents').flat_map { |row| [row['source_id'], row['redmine_id']] }.reject(&:blank?).to_set
       data.fetch('items').each do |row|
@@ -138,8 +139,11 @@ module Cosmosys
         parent = items[row['parent']]
         issue.update!(parent_issue_id: parent.id) if parent
         {'blocking_items' => 'blocks', 'precedent_items' => 'precedes', 'related_items' => 'relates'}.each do |field, type|
-          row[field].to_s.split(',').map(&:strip).filter_map { |key| items[key] }.uniq.each do |from|
-            IssueRelation.create!(issue_from: from, issue_to: issue, relation_type: type)
+          references = type == 'precedes' ? send(:parse_precedent_references, row[field]) : row[field].to_s.split(',').map { |key| [key.strip, 0] }
+          references.filter_map { |key, delay| [items[key], delay] if items[key] }
+            .uniq { |from, _delay| from.id }.each do |from, delay|
+            IssueRelation.create!(issue_from: from, issue_to: issue, relation_type: type,
+                                  delay: type == 'precedes' ? delay : 0)
           end
         end
       end

@@ -455,11 +455,37 @@ module Cosmosys
     def reconcile_relations!(issue, row, resolved)
       { 'blocking_items' => 'blocks', 'precedent_items' => 'precedes', 'related_items' => 'relates' }.each do |field, type|
         next unless row.key?(field)
-        desired = split_references(row[field]).filter_map { |key| resolved[key] || resolve_item_by_key(key) }.map(&:id).uniq
+        references = type == 'precedes' ? parse_precedent_references(row[field]) : split_references(row[field]).map { |key| [key, 0] }
+        desired_sources = references.filter_map do |key, delay|
+          source = resolved[key] || resolve_item_by_key(key)
+          [key, source, delay] if source
+        end.uniq { |_key, source, _delay| source.id }
+        desired = desired_sources.map { |_key, source, _delay| source.id }
         existing = issue.relations_to.select { |relation| relation.relation_type == type }
         existing.each { |relation| relation.destroy! unless desired.include?(relation.issue_from_id) }
-        existing_ids = existing.map(&:issue_from_id)
-        (desired - existing_ids).each { |from_id| IssueRelation.create!(issue_from_id: from_id, issue_to: issue, relation_type: type) }
+        existing_by_source_id = existing.index_by(&:issue_from_id)
+        desired_sources.each do |_source_key, source, delay|
+          relation = existing_by_source_id[source.id]
+          if relation
+            relation.update!(delay: delay) if type == 'precedes' && relation.delay.to_i != delay
+          else
+            IssueRelation.create!(issue_from: source, issue_to: issue, relation_type: type,
+                                  delay: type == 'precedes' ? delay : 0)
+          end
+        end
+      end
+    end
+
+    def parse_precedent_references(value)
+      split_references(value).map do |entry|
+        match = entry.match(/\A(.+?)\s+\((-?\d+)\)\z/)
+        unless match
+          raise ImportError, "Invalid precedent reference #{entry.inspect}" if entry.include?('(') || entry.end_with?(')')
+
+          next [entry, 0]
+        end
+
+        [match[1], Integer(match[2])]
       end
     end
 
@@ -653,7 +679,19 @@ module Cosmosys
     end
 
     def relation_csids(issue, type)
-      issue.relations_to.select { |relation| relation.relation_type == type }.filter_map { |relation| relation.issue_from&.csid }.sort.join(',')
+      relations = issue.relations_to.select { |relation| relation.relation_type == type }
+      return relations.filter_map { |relation| relation.issue_from&.csid }.sort.join(',') unless type == 'precedes'
+
+      issue.relations_to.select { |relation| relation.relation_type == 'precedes' }
+        .filter_map do |relation|
+          source = relation.issue_from
+          next unless source
+
+          delay = relation.delay.to_i
+          delay.zero? ? source.csid : "#{source.csid} (#{delay})"
+        end
+        .sort_by { |entry| entry.sub(/\s+\(-?\d+\)\z/, '') }
+        .join(',')
     end
 
     def split_references(value)

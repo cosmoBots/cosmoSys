@@ -402,7 +402,14 @@ module Cosmosys
     end
 
     def incoming_relation_csids(issue, relation_type)
-      @incoming_relation_csids.dig(issue.id, relation_type).to_a.join(',')
+      csids = @incoming_relation_csids.dig(issue.id, relation_type).to_a
+      return csids.join(',') unless relation_type == 'precedes'
+
+      priorities = @incoming_relation_priorities[issue.id]
+      csids.sort.map do |csid|
+        delay = priorities[csid].to_i
+        delay.zero? ? csid : "#{csid} (#{delay})"
+      end.join(',')
     end
 
     def prepare_issue_export_data(issues, include_last_notes:)
@@ -412,11 +419,15 @@ module Cosmosys
       ).call
       ids = issues.map(&:id)
       @incoming_relation_csids = Hash.new { |hash, issue_id| hash[issue_id] = {} }
+      @incoming_relation_priorities = Hash.new { |hash, issue_id| hash[issue_id] = {} }
       IssueRelation.where(issue_to_id: ids, relation_type: %w[blocks precedes relates]).includes(issue_from: :project).find_each do |relation|
         source = relation.issue_from
         next unless source&.visible?(user)
 
         (@incoming_relation_csids[relation.issue_to_id][relation.relation_type] ||= []) << source.csid
+        if relation.relation_type == 'precedes'
+          @incoming_relation_priorities[relation.issue_to_id][source.csid] = relation.delay.to_i
+        end
       end
       @last_notes_by_issue = if include_last_notes
                                Journal.where(journalized_type: 'Issue', journalized_id: ids)
