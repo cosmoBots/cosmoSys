@@ -388,6 +388,14 @@ module Cosmosys
       end
     end
 
+    def cosmosys_dependency_relation_arrowhead(_relation_type)
+      'normal'
+    end
+
+    def cosmosys_dependency_relation_edge_style(_relation_type)
+      nil
+    end
+
     def cosmosys_dependency_container_label(boundary: false)
       cosmosys_container_diagram_label('dependency', boundary: boundary)
     end

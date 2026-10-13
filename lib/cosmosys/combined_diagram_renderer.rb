@@ -130,7 +130,9 @@ module Cosmosys
         attrs.fetch(:from).id,
         attrs.fetch(:to).id,
         attrs[:color],
-        attrs[:dir]
+        attrs[:dir],
+        attrs[:arrowhead],
+        attrs[:style]
       ].join(':')
     end
 
@@ -334,10 +336,13 @@ module Cosmosys
         color: color,
         penwidth: 0.8,
         arrowsize: 0.55,
+        arrowhead: relation.issue_from.cosmosys_dependency_relation_arrowhead(relation_type),
         tooltip: relation_type,
         fontname: 'times',
         fontsize: 9
       }
+      edge_style = relation.issue_from.cosmosys_dependency_relation_edge_style(relation_type)
+      base[:style] = edge_style if edge_style.present?
       if relation_type == 'precedes' && relation.delay.to_i != 0
         base[:label] = relation.delay.to_i.to_s
         base[:fontsize] = 7
