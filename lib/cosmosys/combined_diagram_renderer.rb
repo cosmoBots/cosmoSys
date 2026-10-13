@@ -338,6 +338,10 @@ module Cosmosys
         fontname: 'times',
         fontsize: 9
       }
+      if relation_type == 'precedes' && relation.delay.to_i != 0
+        base[:label] = relation.delay.to_i.to_s
+        base[:fontsize] = 7
+      end
 
       case relation_type
       when 'relates'
