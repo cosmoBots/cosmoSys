@@ -24,6 +24,7 @@ module Cosmosys
       ActiveRecord::Base.transaction do
         content = source.manifest.fetch('content')
         entries = content.fetch('projects')
+        create_custom_fields!(@plan.custom_field_creations)
         projects = create_projects!(entries)
         yield projects if block_given?
         materialize_contents!(
@@ -202,8 +203,10 @@ module Cosmosys
       end
     end
 
+    # A blank status means the tracker's default. An unknown name still falls
+    # back to the first status; the preflight lists those items beforehand.
     def item_status(tracker, row)
-      return tracker.default_status unless faithful?
+      return tracker.default_status unless faithful? && row['status'].present?
 
       IssueStatus.find_by(name: row['status']) || IssueStatus.sorted.first
     end
@@ -287,6 +290,30 @@ module Cosmosys
         [field.id.to_s, entry['value']]
       end
       issue.custom_field_values = values
+    end
+
+    # Creates the item custom fields the package defines and the destination
+    # lacks, enabled for the trackers they had in the source.
+    def create_custom_fields!(definitions)
+      Array(definitions).each do |definition|
+        next if IssueCustomField.where(name: definition.fetch('name'), field_format: definition.fetch('format')).exists?
+
+        field = IssueCustomField.new(
+          name: definition.fetch('name'), field_format: definition.fetch('format'),
+          multiple: definition['multiple'] == true, possible_values: definition['possible_values'],
+          default_value: definition['default_value'], description: definition['description'].to_s,
+          regexp: definition['regexp'], min_length: definition['min_length'], max_length: definition['max_length'],
+          is_filter: definition['is_filter'] == true, searchable: definition['searchable'] == true,
+          visible: definition['visible'] != false, editable: definition['editable'] != false,
+          is_for_all: definition['is_for_all'] == true, is_required: false
+        )
+        definition.fetch('format_store', {}).each do |key, value|
+          field.public_send("#{key}=", value) if field.respond_to?("#{key}=")
+        end
+        keys = definition.fetch('trackers', []).map { |entry| entry['key'] }
+        field.trackers = Tracker.where(csys_key: keys).or(Tracker.where(name: keys)).to_a
+        field.save!
+      end
     end
 
     def restore_relations!(items, rows)

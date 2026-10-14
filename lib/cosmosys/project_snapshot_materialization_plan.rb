@@ -6,8 +6,8 @@ module Cosmosys
     VERIFIER_SALT = :cosmosys_project_snapshot_materialization_plan
 
     attr_reader :source, :attributes, :identity_collisions, :missing_trackers,
-                :missing_custom_fields, :missing_assets, :plugin_compatibility,
-                :project_data_reconciliation, :external_relation_reconciliation
+                :missing_custom_fields, :custom_field_creations, :missing_assets, :plugin_compatibility,
+                :project_data_reconciliation, :external_relation_reconciliation, :fallback_warnings
 
     def initialize(source:, attributes:, user: User.current)
       @source = source
@@ -20,8 +20,10 @@ module Cosmosys
         rows: items, root: parent&.root, policy: attributes['project_data_conflict_policy']
       )
       @missing_trackers = find_missing_trackers
+      @custom_field_creations = find_custom_field_creations
       @missing_custom_fields = find_missing_custom_fields
       @missing_assets = find_missing_assets
+      @fallback_warnings = find_fallback_warnings
       @plugin_compatibility = compare_plugins
       @external_relation_reconciliation = inspect_external_relations
     end
@@ -221,12 +223,65 @@ module Cosmosys
       keys - available
     end
 
+    # Custom fields the destination lacks and the package cannot define:
+    # their values have nowhere to go, so they block the import.
     def find_missing_custom_fields
-      definitions = items.flat_map { |row| row.fetch('custom_fields', []) }
-                           .map { |entry| [entry.fetch('name'), entry.fetch('format')] }.uniq
-      definitions.reject do |name, format|
-        IssueCustomField.where(name: name, field_format: format).exists?
+      creatable = custom_field_creations.map { |entry| [entry.fetch('name'), entry.fetch('format')] }
+      captured_custom_fields.reject do |name, format|
+        creatable.include?([name, format]) || IssueCustomField.where(name: name, field_format: format).exists?
       end.map(&:first)
+    end
+
+    # Custom fields the destination lacks but the package defines; the
+    # materializer creates them.
+    def find_custom_field_creations
+      definitions = content.fetch('custom_field_definitions', []).index_by { |entry| [entry['name'], entry['format']] }
+      captured_custom_fields.filter_map do |name, format|
+        next if IssueCustomField.where(name: name, field_format: format).exists?
+
+        definitions[[name, format]]
+      end
+    end
+
+    def captured_custom_fields
+      @captured_custom_fields ||= items.flat_map { |row| row.fetch('custom_fields', []) }
+                                       .map { |entry| [entry.fetch('name'), entry.fetch('format')] }.uniq
+    end
+
+    # What the materializer replaces with a default instead of the captured
+    # value. Each entry counts the items affected; none of them blocks.
+    def find_fallback_warnings
+      warnings = []
+      count = lambda do |kind, value|
+        entry = warnings.find { |candidate| candidate[:kind] == kind && candidate[:value] == value }
+        entry ? entry[:items] += 1 : warnings << { kind: kind, value: value, items: 1 }
+      end
+      faithful = attributes['copy_mode'].to_s != 'clean'
+      statuses = IssueStatus.pluck(:name).to_set
+      priorities = IssuePriority.pluck(:name).to_set
+      logins = User.where(login: items.map { |row| row['author'] }.compact.uniq).pluck(:login).to_set
+      principals = items.map { |row| row['assigned_to'] }.compact.uniq
+      known_principals = (User.where(login: principals).pluck(:login) + Group.where(lastname: principals).pluck(:lastname)).to_set
+      items.each do |row|
+        next if data_profile?(row) && project_data_reconciliation.entries.any? { |entry| entry[:key].to_s.casecmp?(row['csid'].to_s) }
+
+        status = row['status'].to_s
+        count.call('status', status) if faithful && status.present? && !statuses.include?(status)
+        priority = row['priority'].to_s
+        count.call('priority', priority) if priority.present? && !priorities.include?(priority)
+        author = row['author'].to_s
+        count.call('author', author.presence || '-') unless author.present? && logins.include?(author)
+        assignee = row['assigned_to'].to_s
+        count.call('assigned_to', assignee) if assignee.present? && !known_principals.include?(assignee)
+        tracker = row.dig('tracker', 'key')
+        row.fetch('custom_fields', []).each do |entry|
+          field = IssueCustomField.find_by(name: entry.fetch('name'), field_format: entry.fetch('format'))
+          next unless field && !field.trackers.where(csys_key: tracker).or(field.trackers.where(name: tracker)).exists?
+
+          count.call('custom_field_tracker', "#{entry.fetch('name')} / #{tracker}")
+        end
+      end
+      warnings.sort_by { |entry| [entry[:kind], entry[:value]] }
     end
 
     def find_missing_assets
@@ -320,6 +375,8 @@ module Cosmosys
         project_data_reconciliation: project_data_reconciliation.entries,
         missing_trackers: missing_trackers.sort,
         missing_custom_fields: missing_custom_fields.sort,
+        custom_field_creations: custom_field_creations.map { |entry| entry.slice('name', 'format') },
+        fallback_warnings: fallback_warnings,
         missing_assets: missing_assets.sort,
         external_relation_reconciliation: external_relation_reconciliation,
         plugin_compatibility: plugin_compatibility
