@@ -237,9 +237,18 @@ module Cosmosys
         dependency_component[:issues].each { |issue| selected[issue.id] = issue }
 
         selected.values.each do |issue|
+          if @mode != :full && issue.id != @issue.id && issue.project_id != @issue.project_id
+            add_boundary_ancestor_context(issue, selected) unless primary_hierarchy_issue_ids.include?(issue.id)
+            next
+          end
+
+          # A dependency may expose the first node in another project, but it
+          # must not pull that project's own hierarchy into this diagram.
           issue.ancestors.visible(User.current).includes(:project, :tracker).each do |ancestor|
             next unless ancestor.cosmosys_diagram_visible?
-            next unless primary_hierarchy_issue_ids.include?(ancestor.id) || ancestor.project_id == issue.project_id
+            next unless primary_hierarchy_issue_ids.include?(ancestor.id) ||
+                        ancestor.project_id == issue.project_id ||
+                        (@mode != :full && ancestor.id == focal_external_parent_id)
 
             selected[ancestor.id] = ancestor
           end
@@ -260,6 +269,19 @@ module Cosmosys
 
     def primary_hierarchy_issue_ids
       @primary_hierarchy_issue_ids ||= primary_hierarchy_issues.map(&:id).to_set
+    end
+
+    def focal_context_issue_ids
+      @focal_context_issue_ids ||= begin
+        ids = primary_hierarchy_issue_ids.dup
+        @issue.ancestors.visible(User.current).includes(:project, :tracker).each do |ancestor|
+          next unless ancestor.cosmosys_diagram_visible?
+          next unless ancestor.project_id == @issue.project_id || ancestor.id == focal_external_parent_id
+
+          ids << ancestor.id
+        end
+        ids
+      end
     end
 
     def selected_root_entries(included_ids)
@@ -320,9 +342,17 @@ module Cosmosys
         dependency_component[:issues].each { |issue| selected[issue.id] = issue }
 
         selected.values.each do |issue|
+          if @mode != :full && issue.id != @issue.id && issue.project_id != @issue.project_id
+            add_boundary_ancestor_context(issue, selected) unless primary_hierarchy_issue_ids.include?(issue.id)
+            next
+          end
+
+          # Keep a foreign dependency endpoint as a boundary leaf. Only the
+          # explicit full-traversal mode may expand its project ancestry.
           issue.ancestors.visible(User.current).includes(:project, :tracker).each do |ancestor|
             next unless ancestor.cosmosys_diagram_visible?
-            next unless ancestor.project_id == issue.project_id || issue.id == @issue.id
+            next unless ancestor.project_id == issue.project_id ||
+                        (@mode != :full && ancestor.id == focal_external_parent_id)
 
             selected[ancestor.id] = ancestor
           end
@@ -335,6 +365,33 @@ module Cosmosys
       issues = []
       collect_scoped_base_issues(@issue, issues)
       issues
+    end
+
+    def focal_external_parent_id
+      @focal_external_parent_id ||= begin
+        current = @issue
+        current = current.parent while current.parent.present? && current.parent.project_id == @issue.project_id
+        parent = current.parent
+        parent.id if parent.present? && parent.project_id != @issue.project_id
+      end
+    end
+
+    def add_boundary_ancestor_context(issue, selected)
+      ancestors = issue.ancestors.visible(User.current).includes(:project, :tracker).to_a
+      ancestors_by_id = ancestors.index_by(&:id)
+      boundary_ancestor = ancestors.reverse.find { |ancestor| focal_context_issue_ids.include?(ancestor.id) }
+      return unless boundary_ancestor
+
+      current = issue.parent
+      while current.present?
+        current = ancestors_by_id[current.id]
+        break unless current&.cosmosys_diagram_visible?
+
+        selected[current.id] = current
+        break if current.id == boundary_ancestor.id
+
+        current = current.parent
+      end
     end
 
     def collect_scoped_base_issues(issue, issues)

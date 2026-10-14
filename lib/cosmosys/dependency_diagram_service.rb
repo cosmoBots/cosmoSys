@@ -74,7 +74,7 @@ module Cosmosys
           internal[:issues].each do |issue|
             cluster_lines.concat(renderer.build_node(
               issue,
-              boundary: false,
+              boundary: internal[:boundary_issue_ids].include?(issue.id),
               dependency_container: internal_container_ids.include?(issue.id),
               namespace: 'subtree'
             ))
@@ -140,7 +140,7 @@ module Cosmosys
         {
           issues: subtree_component[:issues].select { |issue| issue_ids.include?(issue.id) },
           relations: relations,
-          boundary_issue_ids: Set.new
+          boundary_issue_ids: subtree_component[:boundary_issue_ids] & issue_ids
         }
       end
     end
@@ -150,28 +150,49 @@ module Cosmosys
       {
         issues: (own_component[:issues] + internal[:issues]).uniq(&:id).sort_by(&:id),
         relations: (own_component[:relations] + internal[:relations]).uniq(&:id).sort_by(&:id),
-        boundary_issue_ids: own_component[:boundary_issue_ids]
+        boundary_issue_ids: own_component[:boundary_issue_ids] | internal[:boundary_issue_ids]
       }
     end
 
     def build_subtree_internal_component
-      subtree_issues = @issue.self_and_descendants
-                              .visible(User.current)
-                              .includes(:project, :tracker)
-                              .to_a
-                              .select(&:cosmosys_diagram_visible?)
-      subtree_by_id = subtree_issues.index_by(&:id)
-      subtree_ids = subtree_by_id.keys
-      relations = IssueRelation.includes(:issue_from, :issue_to)
-                               .where(issue_from_id: subtree_ids, issue_to_id: subtree_ids)
-                               .order(:id)
-                               .select { |relation| supported_relation?(relation) }
+      visible_subtree_issues = @issue.self_and_descendants
+                                     .visible(User.current)
+                                     .includes(:project, :tracker)
+                                     .to_a
+                                     .select(&:cosmosys_diagram_visible?)
+      subtree_by_id = visible_subtree_issues.index_by(&:id)
+      local_subtree_ids = visible_subtree_issues.select { |issue| issue.project_id == @issue.project_id }.map(&:id).to_set
+      relation_scope = if @mode == :full
+                         IssueRelation.where(issue_from_id: subtree_by_id.keys, issue_to_id: subtree_by_id.keys)
+                       else
+                         IssueRelation.where(issue_from_id: local_subtree_ids.to_a)
+                                      .or(IssueRelation.where(issue_to_id: local_subtree_ids.to_a))
+                       end
+      relations = relation_scope.includes(:issue_from, :issue_to).order(:id).select do |relation|
+        next false unless supported_relation?(relation)
+        next false unless relation.issue_from&.visible?(User.current) && relation.issue_to&.visible?(User.current)
+        next false unless relation.issue_from.cosmosys_diagram_visible? && relation.issue_to.cosmosys_diagram_visible?
+
+        # In bounded mode, include only relations involving the local
+        # hierarchy. A foreign endpoint is shown because the edge needs it,
+        # but foreign-only relations do not expand that project's graph.
+        next true if @mode == :full
+
+        from_local = local_subtree_ids.include?(relation.issue_from_id)
+        to_local = local_subtree_ids.include?(relation.issue_to_id)
+        next false unless from_local || to_local
+        next false if relation.issue_from.project_id == @issue.project_id && !from_local
+        next false if relation.issue_to.project_id == @issue.project_id && !to_local
+
+        true
+      end
       involved_ids = relations.flat_map { |relation| [relation.issue_from_id, relation.issue_to_id] }.to_set
+      involved_issues = Issue.visible(User.current).where(id: involved_ids).includes(:project, :tracker).to_a
 
       {
-        issues: involved_ids.filter_map { |id| subtree_by_id[id] }.sort_by(&:id),
+        issues: involved_issues.sort_by(&:id),
         relations: relations,
-        boundary_issue_ids: Set.new
+        boundary_issue_ids: involved_issues.select { |issue| issue.project_id != @issue.project_id }.map(&:id).to_set
       }
     end
 

@@ -89,7 +89,7 @@ module Cosmosys
 
     def build_project_subtree_entry(issue, context_issue_ids: Set.new)
       children = project_visible_children(issue, context_issue_ids: context_issue_ids).map do |child|
-        if @mode == :full || child.project_id == @project.id || context_issue_ids.include?(child.id)
+        if child.project_id == @project.id
           build_project_subtree_entry(child, context_issue_ids: context_issue_ids)
         else
           { issue: child, boundary: true, children: [] }
@@ -104,9 +104,7 @@ module Cosmosys
       issue.children.visible(User.current).includes(:project, :tracker).reorder(:csposition, :lft, :id).to_a.select do |child|
         next false unless child.cosmosys_diagram_visible?
 
-        if @mode == :full
-          true
-        elsif issue.project_id == @project.id
+        if issue.project_id == @project.id
           true
         else
           child.project_id == @project.id || context_issue_ids.include?(child.id)
@@ -148,25 +146,17 @@ module Cosmosys
     end
 
     def build_dependency_component
-      if @mode == :full
-        components = primary_tree_issues.map do |issue|
-          Cosmosys::DependencyDiagramService.component_for(
-            issue, mode: :full, scope: :self, relation_types: @relation_types
-          )
-        end
-        return {
-          relations: components.flat_map { |component| component[:relations] }.uniq(&:id).sort_by(&:id),
-          boundary_issues: components.flat_map { |component| component[:issues] }.reject { |issue| primary_tree_issue_ids.include?(issue.id) }.uniq(&:id).sort_by(&:id)
-        }
-      end
-
       relation_ids = Set.new
       relations = []
       boundary_issues = []
 
-      primary_tree_issues.each do |issue|
+      # Project-level combined diagrams show relations originating in this
+      # project's model. A foreign project node is a boundary, not a new root
+      # from which to expand that project's own dependency graph.
+      primary_tree_issues.select { |issue| issue.project_id == @project.id }.each do |issue|
         visible_relations_for(issue).each do |relation, neighbor|
           next unless relation.issue_from && relation.issue_to
+          next if beyond_project_boundary?(neighbor.id)
           next unless primary_tree_issue_ids.include?(relation.issue_from_id) || primary_tree_issue_ids.include?(relation.issue_to_id)
 
           unless relation_ids.include?(relation.id)
@@ -185,6 +175,29 @@ module Cosmosys
         relations: relations.uniq(&:id).sort_by(&:id),
         boundary_issues: boundary_issues.uniq(&:id).sort_by(&:id)
       }
+    end
+
+    def beyond_project_boundary?(issue_id)
+      boundary_descendant_issue_ids.include?(issue_id)
+    end
+
+    def boundary_descendant_issue_ids
+      @boundary_descendant_issue_ids ||= begin
+        tree_by_id = primary_tree_issues.index_by(&:id)
+        boundary_ids = primary_tree_issues.filter_map do |issue|
+          next if issue.project_id == @project.id
+
+          parent = tree_by_id[issue.parent_id]
+          issue.id if parent&.project_id == @project.id
+        end
+
+        boundary_ids.each_with_object(Set.new) do |boundary_id, descendant_ids|
+          boundary = Issue.find_by(id: boundary_id)
+          next unless boundary
+
+          descendant_ids.merge(boundary.self_and_descendants.where.not(id: boundary.id).pluck(:id))
+        end
+      end
     end
 
     def visible_relations
@@ -362,19 +375,7 @@ module Cosmosys
     end
 
     def dependency_context_issues
-      @dependency_context_issues ||= begin
-        selected = dependency_boundary_issues.index_by(&:id)
-        dependency_boundary_issues.each do |issue|
-          issue.ancestors.visible(User.current).includes(:project, :tracker).each do |ancestor|
-            next unless ancestor.cosmosys_diagram_visible?
-            next unless ancestor.project_id == issue.project_id
-            next if primary_tree_issue_ids.include?(ancestor.id)
-
-            selected[ancestor.id] = ancestor
-          end
-        end
-        selected.values
-      end
+      @dependency_context_issues ||= dependency_boundary_issues
     end
 
     def dependency_context_issue_ids
