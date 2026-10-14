@@ -279,7 +279,11 @@ module Cosmosys
           raise ProjectSnapshotPackageError,
                 I18n.t(:error_cosmosys_snapshot_custom_field_missing, field: entry.fetch('name'))
         end
-        project.issue_custom_fields << field unless project.all_issue_custom_fields.include?(field)
+        # all_issue_custom_fields is memoized: ask the association, or the
+        # second item carrying the same field enables it twice.
+        project.issue_custom_fields << field unless field.is_for_all? || project.issue_custom_fields.exists?(field.id)
+        # Redmine drops values of fields that are not enabled for the tracker.
+        field.trackers << issue.tracker unless field.tracker_ids.include?(issue.tracker_id)
         [field.id.to_s, entry['value']]
       end
       issue.custom_field_values = values
