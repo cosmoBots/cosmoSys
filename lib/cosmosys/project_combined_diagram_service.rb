@@ -87,10 +87,10 @@ module Cosmosys
       end.uniq(&:id)
     end
 
-    def build_project_subtree_entry(issue)
-      children = project_visible_children(issue).map do |child|
-        if @mode == :full || child.project_id == @project.id
-          build_project_subtree_entry(child)
+    def build_project_subtree_entry(issue, context_issue_ids: Set.new)
+      children = project_visible_children(issue, context_issue_ids: context_issue_ids).map do |child|
+        if @mode == :full || child.project_id == @project.id || context_issue_ids.include?(child.id)
+          build_project_subtree_entry(child, context_issue_ids: context_issue_ids)
         else
           { issue: child, boundary: true, children: [] }
         end
@@ -100,7 +100,7 @@ module Cosmosys
       { issue: issue, boundary: issue.project_id != @project.id, children: children }
     end
 
-    def project_visible_children(issue)
+    def project_visible_children(issue, context_issue_ids: Set.new)
       issue.children.visible(User.current).includes(:project, :tracker).reorder(:csposition, :lft, :id).to_a.select do |child|
         next false unless child.cosmosys_diagram_visible?
 
@@ -109,7 +109,7 @@ module Cosmosys
         elsif issue.project_id == @project.id
           true
         else
-          child.project_id == @project.id
+          child.project_id == @project.id || context_issue_ids.include?(child.id)
         end
       end
     end
@@ -336,7 +336,12 @@ module Cosmosys
     end
 
     def project_entry_roots
-      @project_entry_roots ||= project_roots.map { |issue| build_project_subtree_entry(issue) }
+      @project_entry_roots ||= begin
+        context_issue_ids = dependency_context_issue_ids
+        project_roots.map do |issue|
+          build_project_subtree_entry(issue, context_issue_ids: context_issue_ids)
+        end
+      end
     end
 
     def all_entry_roots
@@ -345,6 +350,19 @@ module Cosmosys
 
     def dependency_context_entry_roots
       @dependency_context_entry_roots ||= begin
+        selected = dependency_context_issues.reject do |issue|
+          issue.ancestors.any? { |ancestor| primary_tree_issue_ids.include?(ancestor.id) }
+        end.index_by(&:id)
+        included_by_id = selected.values.index_by(&:id)
+        selected.values
+          .sort_by { |issue| [issue.csposition || 0, issue.lft || 0, issue.id] }
+          .select { |issue| !included_by_id.key?(issue.parent_issue_id) }
+          .map { |issue| build_context_subtree_entry(issue, included_by_id) }
+      end
+    end
+
+    def dependency_context_issues
+      @dependency_context_issues ||= begin
         selected = dependency_boundary_issues.index_by(&:id)
         dependency_boundary_issues.each do |issue|
           issue.ancestors.visible(User.current).includes(:project, :tracker).each do |ancestor|
@@ -355,12 +373,12 @@ module Cosmosys
             selected[ancestor.id] = ancestor
           end
         end
-        included_by_id = selected.values.index_by(&:id)
         selected.values
-          .sort_by { |issue| [issue.csposition || 0, issue.lft || 0, issue.id] }
-          .select { |issue| !included_by_id.key?(issue.parent_issue_id) }
-          .map { |issue| build_context_subtree_entry(issue, included_by_id) }
       end
+    end
+
+    def dependency_context_issue_ids
+      @dependency_context_issue_ids ||= dependency_context_issues.map(&:id).to_set
     end
 
     def build_context_subtree_entry(issue, included_by_id)
