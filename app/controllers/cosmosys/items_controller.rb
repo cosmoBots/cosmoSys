@@ -7,9 +7,9 @@ module Cosmosys
     helper :queries
 
     before_action :find_project_by_project_id
-    before_action :authenticate_api_user!, only: [:diagram_export, :resolve]
+    before_action :authenticate_api_user!, only: [:diagram_export, :resolve, :resolve_by_id, :update_by_id]
     before_action :find_export_issue, only: [:diagram_export, :diagram_panel]
-    before_action :authorize_project_read, only: [:index, :overview, :report, :report_diagram, :report_export, :ods_export, :tree, :data, :dsm, :details, :resolve]
+    before_action :authorize_project_read, only: [:index, :overview, :report, :report_diagram, :report_export, :ods_export, :tree, :data, :dsm, :details, :resolve, :resolve_by_id, :update_by_id]
     before_action :find_report_diagram_issue, only: :report_diagram
     before_action :authorize_diagram_read, only: [:diagram_export, :diagram_panel]
     before_action :authorize_diagram_layout_change, only: :diagram_panel
@@ -20,7 +20,7 @@ module Cosmosys
     before_action :find_detail_issue, only: :details
     around_action :use_project_language, only: :report_diagram
 
-    accept_api_auth :resolve
+    accept_api_auth :resolve, :resolve_by_id, :update_by_id
 
     def index
       redirect_to action: :tree, project_id: @project
@@ -185,22 +185,37 @@ module Cosmosys
 
       respond_to do |format|
         format.html { redirect_to issue_path(issue) }
-        format.json do
-          render json: {
-            item: {
-              id: issue.id,
-              csid: issue.csid,
-              csidnum: issue.csidnum,
-              subject: issue.subject,
-              description: issue.description,
-              project: { id: issue.project_id, identifier: issue.project.identifier, cscode: issue.project.cscode },
-              tracker: { id: issue.tracker_id, name: issue.tracker.name },
-              item_kind: issue.cosmosys_item_kind_key,
-              status: { id: issue.status_id, name: issue.status.name },
-              url: issue_url(issue)
-            }
-          }
-        end
+        format.json { render json: { item: item_api_payload(issue) } }
+      end
+    end
+
+    def resolve_by_id
+      issue = visible_tree_issues.find_by(id: params[:issue_id])
+      return render_404 unless issue
+
+      respond_to do |format|
+        format.html { redirect_to issue_path(issue) }
+        format.json { render json: { item: item_api_payload(issue) } }
+      end
+    end
+
+    def update_by_id
+      issue = visible_tree_issues.find_by(id: params[:issue_id])
+      return render_404 unless issue&.cosmosys_item_kind_key.to_s.start_with?('poris_')
+      return render_403 unless issue.editable?(User.current)
+
+      attributes = params.require(:item).permit(
+        :parent_issue_id, :pr_src_label, :pr_value_kind, :pr_min, :pr_default, :pr_max, :pr_default_text
+      )
+      if attributes[:parent_issue_id].present? && !visible_tree_issues.exists?(id: attributes[:parent_issue_id])
+        return render json: { errors: { parent_issue_id: ['must refer to an item in this project tree'] } }, status: :unprocessable_entity
+      end
+
+      issue.assign_attributes(attributes)
+      if issue.save
+        render json: { item: item_api_payload(issue) }
+      else
+        render json: { errors: issue.errors.to_hash }, status: :unprocessable_entity
       end
     end
 
@@ -283,6 +298,34 @@ module Cosmosys
     end
 
     private
+
+    def item_api_payload(issue)
+      {
+        id: issue.id,
+        csid: issue.csid,
+        csidnum: issue.csidnum,
+        subject: issue.subject,
+        description: issue.description,
+        parent_issue_id: issue.parent_issue_id,
+        parent_csid: issue.parent&.csid,
+        poris: if issue.respond_to?(:pr_value_kind)
+                 {
+                   source_label: issue.pr_src_label,
+                   value_kind: issue.pr_value_kind,
+                   min: issue.pr_min,
+                   default: issue.pr_default,
+                   max: issue.pr_max,
+                   default_text: issue.pr_default_text
+                 }
+               end,
+        project: { id: issue.project_id, identifier: issue.project.identifier, cscode: issue.project.cscode },
+        tracker: { id: issue.tracker_id, name: issue.tracker.name },
+        item_kind: issue.cosmosys_item_kind_key,
+        status: { id: issue.status_id, name: issue.status.name },
+        url: issue_url(issue)
+      }
+    end
+    private :item_api_payload
 
     def resolve_report_diagrams
       @report.toc_entries.each_with_object({}) do |section, diagrams|
