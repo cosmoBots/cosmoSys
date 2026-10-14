@@ -687,6 +687,9 @@ zh:
   label_cosmosys_external_metadata: "外部元数据"
   field_cosmosys_ext_code: "csExtCode"
   field_cosmosys_wload: "csWLoad"
+  # Redmine labels journal details of item columns as field_<column>.
+  field_cs_ext_code: "csExtCode"
+  field_cs_wload: "csWLoad"
   label_cosmosys_branding: "品牌设置"
   label_cosmosys_branding_logo: "页眉徽标"
   label_cosmosys_branding_diffuse_effect: "漫射效果"
