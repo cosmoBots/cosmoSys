@@ -61,6 +61,10 @@ module Cosmosys
       )
     end
 
+    def self.project_boundary_issue_ids(issues, focus_project_id:)
+      Array(issues).select { |issue| issue.project_id != focus_project_id }.map(&:id).to_set
+    end
+
     def initialize(model, focus_project_id:, user:)
       @model = model
       @focus_project_id = focus_project_id
@@ -101,10 +105,11 @@ module Cosmosys
       @audience_issue_ids = model.audience_items.filter_map do |item|
         @issues_by_model_id[item.id]&.id
       end.to_set
-      @boundary_issue_ids = model.relation_context_items.filter_map do |item|
-        @issues_by_model_id[item.id]&.id
-      end.to_set
-      @boundary_issue_ids.merge(@issues.select { |issue| issue.project_id != @focus_project_id }.map(&:id))
+      # Relation context is not synonymous with a project boundary: a selector
+      # may add same-project predecessors/successors as context. The painter's
+      # `+` marker means only that this item belongs to a different project
+      # than the focus item/project.
+      @boundary_issue_ids = self.class.project_boundary_issue_ids(@issues, focus_project_id: @focus_project_id)
     end
 
     def hydrate_relations
