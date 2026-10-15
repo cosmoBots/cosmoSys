@@ -93,8 +93,35 @@ module Cosmosys
         },
         'projects' => @project_entries,
         'relations' => relation_payloads(issue_ids),
-        'external_relations' => external_relation_payloads(issue_ids)
+        'external_relations' => external_relation_payloads(issue_ids),
+        'custom_field_definitions' => custom_field_definition_payloads
       }
+    end
+
+    # Definitions of the item custom fields the snapshot carries values for, so
+    # a destination without them can create them instead of refusing the
+    # import. Readers that predate this key ignore it.
+    def custom_field_definition_payloads
+      Array(@captured_custom_fields).uniq(&:id).sort_by { |field| [field.name, field.id] }.map do |field|
+        {
+          'name' => field.name,
+          'format' => field.field_format,
+          'multiple' => field.multiple?,
+          'possible_values' => field.possible_values.presence,
+          'default_value' => field.default_value,
+          'description' => field.description.to_s,
+          'regexp' => field.regexp.presence,
+          'min_length' => field.min_length,
+          'max_length' => field.max_length,
+          'is_filter' => field.is_filter?,
+          'searchable' => field.searchable?,
+          'visible' => field.visible?,
+          'editable' => field.editable?,
+          'is_for_all' => field.is_for_all?,
+          'format_store' => field.format_store.to_h.transform_keys(&:to_s).sort.to_h,
+          'trackers' => field.trackers.map { |tracker| tracker_identity(tracker) }.sort_by { |entry| entry['key'].to_s }
+        }
+      end
     end
 
     def plugin_payload(plugin)
@@ -285,6 +312,7 @@ module Cosmosys
 
     def custom_value_payload(value)
       field = value.custom_field
+      (@captured_custom_fields ||= []) << field
       { 'id' => field.id, 'name' => field.name, 'format' => field.field_format, 'value' => value.value }
     end
 

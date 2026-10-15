@@ -64,6 +64,15 @@ en:
   error_cosmosys_snapshot_custom_field_missing: "Required item custom field is unavailable: %{field}."
   error_cosmosys_snapshot_trackers_missing: "Required trackers are unavailable: %{trackers}."
   error_cosmosys_snapshot_custom_fields_missing: "Required item custom fields are unavailable: %{fields}."
+  label_cosmosys_snapshot_adjustments: "Import adjustments"
+  text_cosmosys_snapshot_adjustments: "None of these blocks the import, but the destination will not hold exactly what the package captured. Review them before confirming."
+  label_cosmosys_snapshot_adjustment: "Adjustment"
+  label_cosmosys_snapshot_custom_field_creation: "Item custom field to create from the package definition"
+  label_cosmosys_snapshot_fallback_status: "Unknown status, replaced by the first status"
+  label_cosmosys_snapshot_fallback_priority: "Unknown priority, replaced by the default priority"
+  label_cosmosys_snapshot_fallback_author: "Unknown author, replaced by the importing administrator"
+  label_cosmosys_snapshot_fallback_assigned_to: "Unknown assignee, left unassigned"
+  label_cosmosys_snapshot_fallback_custom_field_tracker: "Custom field to enable for the item tracker (field / tracker)"
   error_cosmosys_snapshot_assets_missing: "%{count} required snapshot assets are unavailable."
   label_cosmosys_snapshot_materialization_preflight: Review snapshot materialization
   label_cosmosys_snapshot_destination_projects: Destination projects
