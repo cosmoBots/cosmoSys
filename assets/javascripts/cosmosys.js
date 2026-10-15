@@ -66,12 +66,13 @@
   function initIssuePanelTabs() {
     document.querySelectorAll('[data-cosmosys-issue-panels]').forEach(function(wrapper) {
       var tabs = Array.from(wrapper.querySelectorAll('[data-cosmosys-issue-panel-tab]'));
-      function activate(tab, focus) {
+      function activate(tab, focus, event) {
+        if (event) event.preventDefault();
         tabs.forEach(function(candidate) {
           var active = candidate === tab;
           candidate.setAttribute('aria-selected', active ? 'true' : 'false');
           candidate.tabIndex = active ? 0 : -1;
-          candidate.classList.toggle('is-active', active);
+          candidate.classList.toggle('selected', active);
           var content = wrapper.querySelector('[data-cosmosys-issue-panel-content="' + candidate.dataset.cosmosysIssuePanelTab + '"]');
           if (content) content.hidden = !active;
         });
@@ -79,7 +80,7 @@
         loadIssuePanel(wrapper, tab.dataset.cosmosysIssuePanelTab);
       }
       tabs.forEach(function(tab, index) {
-        tab.addEventListener('click', function() { activate(tab, false); });
+        tab.addEventListener('click', function(event) { activate(tab, false, event); });
         tab.addEventListener('keydown', function(event) {
           if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
           event.preventDefault();
