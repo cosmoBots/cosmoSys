@@ -34,6 +34,7 @@ module Cosmosys
       :relations,
       :boundary_relations,
       :relation_context_items,
+      :diagram_model,
       keyword_init: true
     ) do
       def audience_item_ids
@@ -82,18 +83,27 @@ module Cosmosys
       projects = Project.where(id: items.map(&:project_id).uniq).order(:lft, :id).to_a if @category == :item
       audience_ids = items.map(&:id).to_set
       relations, boundary_relations, relation_context = select_relations(audience_ids)
+      relation_context_ids = relation_context.map(&:id).to_set
+      structural_ids = structural_ancestors(audience_ids).map(&:id).to_set
+      structural_ids.merge(structural_ancestors(
+        relation_context_ids, stop_ids: audience_ids,
+        exclude_ids: audience_ids | relation_context_ids
+      ).map(&:id))
+      structural_context = visible_items(structural_ids.to_a).sort_by(&:id)
 
-      Selection.new(
+      selection = Selection.new(
         focus: @focus,
         category: @category,
         scope: @scope,
         projects: projects,
         audience_items: items,
-        structural_context_items: structural_ancestors(audience_ids),
+        structural_context_items: structural_context,
         relations: relations,
         boundary_relations: boundary_relations,
         relation_context_items: relation_context
       )
+      selection.diagram_model = ViewAudienceModel.from_selection(selection)
+      selection
     end
 
     private
@@ -199,17 +209,23 @@ module Cosmosys
       Issue.visible(@user).where(id: ids.to_a).includes(:project, :parent).order(:id).to_a
     end
 
-    def structural_ancestors(audience_ids)
+    def structural_ancestors(seed_ids, stop_ids: seed_ids, exclude_ids: stop_ids)
+      return [] if seed_ids.empty?
+
       found = {}
-      parent_ids = visible_items(audience_ids.to_a).filter_map(&:parent_id).uniq
+      visited = Set.new
+      parent_ids = visible_items(seed_ids.to_a).filter_map(&:parent_id).uniq
 
       until parent_ids.empty?
-        ancestors = visible_items(parent_ids).reject { |issue| audience_ids.include?(issue.id) }
-        fresh = ancestors.reject { |issue| found.key?(issue.id) }
+        ancestors = visible_items(parent_ids)
+        fresh = ancestors.reject { |issue| visited.include?(issue.id) }
         break if fresh.empty?
 
-        fresh.each { |issue| found[issue.id] = issue }
-        parent_ids = fresh.filter_map(&:parent_id).uniq
+        fresh.each do |issue|
+          visited << issue.id
+          found[issue.id] = issue unless exclude_ids.include?(issue.id)
+        end
+        parent_ids = fresh.reject { |issue| stop_ids.include?(issue.id) }.filter_map(&:parent_id).uniq
       end
 
       found.values.sort_by(&:id)
