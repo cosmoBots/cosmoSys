@@ -168,14 +168,41 @@ module Cosmosys
                                raise ArgumentError, "unsupported project scope: #{scope.inspect}"
                              end
 
+      # Ancestor projects are not wholesale audience seeds. Seed only the
+      # focal project's branch; ancestor items enter through directional
+      # relation paths, so discovering a predecessor cannot fan out through
+      # its successors into sibling project branches.
+      relation_seed_project_ids = if scope.to_sym == :project_ancestors_and_descendants
+                                    projects.each_with_object(Set.new) do |project, selected|
+                                      selected << project.identifier if project.identifier == identifier ||
+                                        self.class.send(:descendant_project?, project, identifier, project_by_identifier)
+                                    end
+                                  else
+                                    selected_project_ids
+                                  end
+
       selected_project_records = projects.select { |project| selected_project_ids.include?(project.identifier) }
-      audience = all_items.select { |item| selected_project_ids.include?(item.project_identifier) }
+      audience = all_items.select { |item| relation_seed_project_ids.include?(item.project_identifier) }
       audience_ids = audience.map(&:id).to_set
       by_id = all_items.to_h { |item| [item.id, item] }
       structural = self.class.send(:structural_ancestor_ids, audience_ids, items_by_id: by_id, stop_ids: audience_ids)
       allowed_types = Array(relation_types).map(&:to_s).to_set
-      matching_edges = relations.select { |edge| allowed_types.include?(edge.relation_type) &&
-        (audience_ids.include?(edge.from_item_id) || audience_ids.include?(edge.to_item_id)) }
+      matching_edges = if scope.to_sym == :project_ancestors_and_descendants
+                         path_edges = self.class.send(
+                           :directional_relation_closure,
+                           audience_ids,
+                           relations.select { |edge| allowed_types.include?(edge.relation_type) },
+                           directions: %i[upstream downstream]
+                         )
+                         undirected_edges = relations.select do |edge|
+                           allowed_types.include?(edge.relation_type) && edge.relation_type == 'relates' &&
+                             (audience_ids.include?(edge.from_item_id) || audience_ids.include?(edge.to_item_id))
+                         end
+                         (path_edges + undirected_edges).uniq(&:id)
+                       else
+                         relations.select { |edge| allowed_types.include?(edge.relation_type) &&
+                           (audience_ids.include?(edge.from_item_id) || audience_ids.include?(edge.to_item_id)) }
+                       end
       internal_edges = matching_edges.select do |edge|
         audience_ids.include?(edge.from_item_id) && audience_ids.include?(edge.to_item_id)
       end
@@ -221,14 +248,18 @@ module Cosmosys
       raise ArgumentError, "unknown item #{identifier.inspect}" unless focus
 
       scope = scope.to_sym
+      container_focus = all_items.any? { |item| item.parent_id == identifier }
       audience_ids = case scope
                      when :node
                        Set[identifier]
                      when :node_and_descendants
-                       self.class.send(:item_descendants, identifier, item_by_id, cross_projects: false)
+                       self.class.send(:item_descendants, identifier, item_by_id, cross_projects: container_focus)
                      when :project
                        all_items.select { |item| item.project_identifier == focus.project_identifier }.map(&:id).to_set
                      when :node_and_descendants_across_projects
+                       self.class.send(:item_descendants, identifier, item_by_id, cross_projects: true)
+                     when :node_and_descendants_with_successors,
+                          :node_and_descendants_with_predecessors
                        self.class.send(:item_descendants, identifier, item_by_id, cross_projects: true)
                      when :node_ancestors_and_descendants
                        self.class.send(:item_ancestors, identifier, item_by_id) |
@@ -239,10 +270,29 @@ module Cosmosys
 
       audience = all_items.select { |item| audience_ids.include?(item.id) }
       allowed_relation_types = Array(relation_types).map(&:to_s).to_set
-      matching_edges = relations.select do |edge|
-        allowed_relation_types.include?(edge.relation_type) &&
-          (audience_ids.include?(edge.from_item_id) || audience_ids.include?(edge.to_item_id))
-      end
+      eligible_relations = relations.select { |edge| allowed_relation_types.include?(edge.relation_type) }
+      matching_edges = case scope
+                       when :node_and_descendants_with_successors
+                         self.class.send(:directional_relation_closure, audience_ids, eligible_relations, directions: [:downstream])
+                       when :node_and_descendants_with_predecessors
+                         self.class.send(:directional_relation_closure, audience_ids, eligible_relations, directions: [:upstream])
+                       when :node_and_descendants_across_projects
+                         if container_focus
+                           self.class.send(:container_relation_closure, identifier, audience_ids, eligible_relations)
+                         else
+                           self.class.send(:directional_relation_closure, audience_ids, eligible_relations, directions: [:downstream])
+                         end
+                       when :node_and_descendants
+                         if container_focus
+                           self.class.send(:container_relation_closure, identifier, audience_ids, eligible_relations)
+                         else
+                           self.class.send(:local_item_relation_closure, identifier, audience_ids, eligible_relations, item_by_id)
+                         end
+                       else
+                         eligible_relations.select do |edge|
+                           audience_ids.include?(edge.from_item_id) || audience_ids.include?(edge.to_item_id)
+                         end
+                       end
       internal_edges = matching_edges.select do |edge|
         audience_ids.include?(edge.from_item_id) && audience_ids.include?(edge.to_item_id)
       end
@@ -384,6 +434,102 @@ module Cosmosys
           current = items_by_id[current.parent_id]
         end
         ancestors
+      end
+
+      # Follow causal paths from every item in the structural audience. Each
+      # path keeps its initial direction: an outgoing path never turns around
+      # to follow predecessors, and vice versa. This captures impact/precursor
+      # context without letting discovered context nodes fan out into unrelated
+      # branches.
+      def directional_relation_closure(seed_ids, relations, directions: %i[upstream downstream])
+        outgoing = relations.group_by(&:from_item_id)
+        incoming = relations.group_by(&:to_item_id)
+        selected = {}
+        queue = seed_ids.flat_map { |item_id| directions.map { |direction| [item_id, direction] } }
+        visited = queue.to_set
+
+        until queue.empty?
+          item_id, direction = queue.shift
+          edges = direction == :upstream ? incoming[item_id] : outgoing[item_id]
+          Array(edges).each do |edge|
+            next unless %w[blocks precedes].include?(edge.relation_type)
+
+            selected[edge.id] = edge
+            neighbor_id = direction == :upstream ? edge.from_item_id : edge.to_item_id
+            state = [neighbor_id, direction]
+            next unless visited.add?(state)
+
+            queue << state
+          end
+        end
+
+        selected.values.sort_by(&:id)
+      end
+
+      # A container is a boundary for hierarchy scope, not a reason to pull
+      # in its own parent's sibling branches. Its contents are always included
+      # across project interfaces. Relations on the container may lead either
+      # way; relations emitted by its contents continue downstream only.
+      def container_relation_closure(container_id, audience_ids, relations)
+        internal_edges = relations.select do |edge|
+          audience_ids.include?(edge.from_item_id) && audience_ids.include?(edge.to_item_id)
+        end
+        descendant_ids = audience_ids - Set[container_id]
+        focus_edges = directional_relation_closure(Set[container_id], relations, directions: %i[upstream downstream])
+        descendant_edges = directional_relation_closure(descendant_ids, relations, directions: [:downstream])
+        relates_edges = relations.select do |edge|
+          edge.relation_type == 'relates' &&
+            (audience_ids.include?(edge.from_item_id) || audience_ids.include?(edge.to_item_id))
+        end
+        (internal_edges + focus_edges + descendant_edges + relates_edges).uniq(&:id).sort_by(&:id)
+      end
+
+      # For a leaf-like focus, follow incoming and outgoing dependency paths
+      # independently. Continue within the focus project, include the first
+      # item reached across a project boundary, and stop that path there. The
+      # caller adds only the hierarchy needed to place those boundary items.
+      def local_item_relation_closure(focus_id, audience_ids, relations, items_by_id)
+        focus_project = items_by_id[focus_id]&.project_identifier
+        path_edges = directional_relation_closure_to_project_boundary(
+          audience_ids, relations, items_by_id: items_by_id,
+          focus_project: focus_project, directions: %i[upstream downstream]
+        )
+        relates_edges = relations.select do |edge|
+          edge.relation_type == 'relates' &&
+            (audience_ids.include?(edge.from_item_id) || audience_ids.include?(edge.to_item_id))
+        end
+        (path_edges + relates_edges).uniq(&:id).sort_by(&:id)
+      end
+
+      # Like directional_relation_closure, each path keeps the direction in
+      # which it left its seed. A cross-project edge is visible, but its far
+      # endpoint is terminal here; otherwise a local view could fan out into
+      # sibling projects from a boundary item.
+      def directional_relation_closure_to_project_boundary(seed_ids, relations, items_by_id:, focus_project:, directions:)
+        outgoing = relations.group_by(&:from_item_id)
+        incoming = relations.group_by(&:to_item_id)
+        selected = {}
+        queue = seed_ids.flat_map { |item_id| directions.map { |direction| [item_id, direction] } }
+        visited = queue.to_set
+
+        until queue.empty?
+          item_id, direction = queue.shift
+          edges = direction == :upstream ? incoming[item_id] : outgoing[item_id]
+          Array(edges).each do |edge|
+            next unless %w[blocks precedes].include?(edge.relation_type)
+
+            selected[edge.id] = edge
+            neighbor_id = direction == :upstream ? edge.from_item_id : edge.to_item_id
+            next unless items_by_id[neighbor_id]&.project_identifier == focus_project
+
+            state = [neighbor_id, direction]
+            next unless visited.add?(state)
+
+            queue << state
+          end
+        end
+
+        selected.values.sort_by(&:id)
       end
 
       def descendant_project?(project, ancestor_identifier, project_by_identifier)
