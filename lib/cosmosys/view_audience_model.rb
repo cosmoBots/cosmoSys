@@ -211,6 +211,73 @@ module Cosmosys
       )
     end
 
+    # Applies item-centered scopes to the portable graph. This deliberately
+    # mirrors the ActiveRecord selector so the diagram lab can exercise the
+    # same audience rules without booting Redmine.
+    def for_item(identifier, scope: :node, relation_types: %w[blocks precedes relates])
+      identifier = identifier.to_s
+      item_by_id = all_items.to_h { |item| [item.id, item] }
+      focus = item_by_id[identifier]
+      raise ArgumentError, "unknown item #{identifier.inspect}" unless focus
+
+      scope = scope.to_sym
+      audience_ids = case scope
+                     when :node
+                       Set[identifier]
+                     when :node_and_descendants
+                       self.class.send(:item_descendants, identifier, item_by_id, cross_projects: false)
+                     when :project
+                       all_items.select { |item| item.project_identifier == focus.project_identifier }.map(&:id).to_set
+                     when :node_and_descendants_across_projects
+                       self.class.send(:item_descendants, identifier, item_by_id, cross_projects: true)
+                     when :node_ancestors_and_descendants
+                       self.class.send(:item_ancestors, identifier, item_by_id) |
+                         self.class.send(:item_descendants, identifier, item_by_id, cross_projects: true)
+                     else
+                       raise ArgumentError, "unsupported item scope: #{scope.inspect}"
+                     end
+
+      audience = all_items.select { |item| audience_ids.include?(item.id) }
+      allowed_relation_types = Array(relation_types).map(&:to_s).to_set
+      matching_edges = relations.select do |edge|
+        allowed_relation_types.include?(edge.relation_type) &&
+          (audience_ids.include?(edge.from_item_id) || audience_ids.include?(edge.to_item_id))
+      end
+      internal_edges = matching_edges.select do |edge|
+        audience_ids.include?(edge.from_item_id) && audience_ids.include?(edge.to_item_id)
+      end
+      boundary_edges = matching_edges.reject { |edge| internal_edges.include?(edge) }.map do |edge|
+        edge.dup.tap { |copy| copy.boundary = true }
+      end
+      boundary_ids = boundary_edges.flat_map do |edge|
+        [edge.from_item_id, edge.to_item_id].reject { |item_id| audience_ids.include?(item_id) }
+      end.to_set
+
+      structural_ids = self.class.send(
+        :structural_ancestor_ids, audience_ids, items_by_id: item_by_id, stop_ids: audience_ids
+      )
+      structural_ids.merge(self.class.send(
+        :structural_ancestor_ids, boundary_ids, items_by_id: item_by_id,
+        stop_ids: audience_ids, exclude_ids: audience_ids | boundary_ids
+      ))
+      structural_items = all_items.select { |item| structural_ids.include?(item.id) }
+      relation_context = all_items.select { |item| boundary_ids.include?(item.id) }
+      visible_project_ids = (audience + structural_items + relation_context).map(&:project_identifier).to_set
+      visible_projects = projects.select { |project| visible_project_ids.include?(project.identifier) }
+
+      self.class.new(
+        focus_id: identifier,
+        category: :item,
+        scope: scope,
+        projects: visible_projects,
+        audience_items: audience,
+        structural_context_items: structural_items,
+        relation_context_items: relation_context,
+        relations: internal_edges,
+        boundary_relations: boundary_edges
+      )
+    end
+
     def initialize(focus_id: nil, category:, scope:, projects:, audience_items:, structural_context_items: [], relation_context_items: [], relations: [], boundary_relations: [])
       @focus_id = focus_id&.to_s
       @category = category.to_sym
@@ -287,6 +354,36 @@ module Cosmosys
         end
 
         found
+      end
+
+      def item_descendants(identifier, items_by_id, cross_projects:)
+        focus = items_by_id.fetch(identifier)
+        children_by_parent = items_by_id.values.group_by(&:parent_id)
+        selected = Set.new
+        pending = [identifier]
+
+        until pending.empty?
+          current_id = pending.shift
+          current = items_by_id[current_id]
+          next unless current && selected.add?(current_id)
+
+          Array(children_by_parent[current_id]).each do |child|
+            next if !cross_projects && child.project_identifier != focus.project_identifier
+
+            pending << child.id
+          end
+        end
+
+        selected
+      end
+
+      def item_ancestors(identifier, items_by_id)
+        ancestors = Set.new
+        current = items_by_id[identifier]
+        while current&.parent_id && ancestors.add?(current.parent_id)
+          current = items_by_id[current.parent_id]
+        end
+        ancestors
       end
 
       def descendant_project?(project, ancestor_identifier, project_by_identifier)
