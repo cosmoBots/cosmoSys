@@ -188,5 +188,5 @@ maintained by cosmoBots.eu and may diverge from this source.
 
 ## Contact and licence
 
-- Contact: txinto@elporis.com
+- Contact: cosmosys@elporis.com
 - Licence: GNU General Public License version 3; see [`LICENSE`](LICENSE).
