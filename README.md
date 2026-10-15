@@ -98,7 +98,8 @@ Redmine plugin. You do not need Docker or the deployment repository for this.
    0.1.6. Migration `009` adds the snapshot wiki-page count only if the column
    is absent, so it also repairs databases where an earlier 0.1.5 build already
    added it. An upgrade from an earlier release migrates through the latest
-   available migration.
+   available migration. Release 0.1.9 seals migration `010`, which enables
+   missing required profile trackers on existing projects.
 
 5. **Normalise item query names (recommended).** cosmoSys sets the visible
    domain vocabulary to `item`/`items` (and `ítem`/`ítems` in Spanish) and
