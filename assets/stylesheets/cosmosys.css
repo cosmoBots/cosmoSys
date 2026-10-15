@@ -855,11 +855,13 @@
   border: 1px solid #d7dce1;
   border-radius: 4px;
   box-sizing: border-box;
-  max-height: 28rem;
+  height: min(28rem, 60vh);
+  max-height: 80vh;
   max-width: 100%;
   min-width: 0;
   overflow: auto;
   padding: 0.5rem;
+  resize: vertical;
   width: 100%;
 }
 
