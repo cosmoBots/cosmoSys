@@ -1,6 +1,7 @@
 require 'digest'
 require 'set'
 require_relative 'document_reference_diagram_support'
+require_relative 'view_audience_diagram_data'
 
 module Cosmosys
   class DependencyDiagramService
@@ -112,25 +113,42 @@ module Cosmosys
     end
 
     def dependency_component
-      @dependency_component ||= if @issue.cosmosys_diagram_visible?
-                                  if @scope == :subtree
-                                    build_subtree_internal_component
-                                  elsif @scope == :composite
-                                    composite_component
-                                  else
-                                    @mode == :full ? build_full_component : build_project_boundary_component
-                                  end
-                                else
-                                  { issues: [], relations: [], boundary_issue_ids: Set.new }
-                                end
+      @dependency_component ||= begin
+        scope = if @scope == :self
+                  :node
+                elsif @mode == :full
+                  :node_and_descendants_across_projects
+                else
+                  :node_and_descendants
+                end
+        diagram_data_for(scope).component
+      end
     end
 
     def own_component
-      @own_component ||= @mode == :full ? build_full_component : build_project_boundary_component
+      @own_component ||= diagram_data_for(:node).component
     end
 
     def subtree_component
-      @subtree_component ||= build_subtree_internal_component
+      scope = @mode == :full ? :node_and_descendants_across_projects : :node_and_descendants
+      @subtree_component ||= diagram_data_for(scope).component
+    end
+
+    def diagram_data_for(scope)
+      @diagram_data_by_scope ||= {}
+      @diagram_data_by_scope[scope] ||= ViewAudienceDiagramData.for_item(
+        @issue,
+        scope: scope,
+        user: User.current,
+        relation_types: @relation_types,
+        source_model: diagram_source_model
+      )
+    end
+
+    def diagram_source_model
+      @diagram_source_model ||= ViewAudienceDiagramData.source_model(
+        @issue.project, user: User.current, relation_types: @relation_types
+      )
     end
 
     def remaining_subtree_component

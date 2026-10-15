@@ -84,6 +84,72 @@ module Cosmosys
       )
     end
 
+    # Projects live ActiveRecord rows into the same immutable graph contract
+    # used by the selector laboratory. Diagram selection can then run against
+    # an in-memory snapshot without retaining ActiveRecord objects.
+    def self.from_records(projects:, issues:, relations:, focus_id: nil, category: :source, scope: :all)
+      project_records = Array(projects).map do |project|
+        Project.new(
+          id: project.id,
+          identifier: project.identifier.to_s,
+          name: project.name.to_s,
+          cscode: project.cscode.to_s,
+          parent_identifier: project.parent&.identifier&.to_s
+        )
+      end
+      project_by_id = project_records.index_by(&:id)
+      issue_by_id = Array(issues).index_by(&:id)
+      item_records = Array(issues).map do |issue|
+        Item.new(
+          id: issue.csid.presence || "item:#{issue.id}",
+          source_id: issue.id,
+          csid: issue.csid&.to_s,
+          csidnum: issue.csidnum,
+          subject: issue.subject.to_s,
+          description: issue.description.to_s,
+          tracker: issue.tracker&.name.to_s,
+          project_id: issue.project_id,
+          project_identifier: project_by_id[issue.project_id]&.identifier.to_s,
+          parent_id: issue_by_id[issue.parent_id]&.then { |parent| parent.csid.presence || "item:#{parent.id}" }&.to_s,
+          position: issue.csposition,
+          tree_left: issue.lft,
+          status: issue.status&.name.to_s,
+          priority: issue.priority&.name.to_s,
+          due_date: issue.due_date&.iso8601,
+          done_ratio: issue.done_ratio.to_i,
+          profile: issue.cosmosys_item_kind_key.to_s,
+          url: Rails.application.routes.url_helpers.issue_path(issue),
+          presentation: issue_presentation(issue)
+        )
+      end
+      item_id_by_source_id = item_records.to_h { |item| [item.source_id, item.id] }
+      relation_records = Array(relations).filter_map do |relation|
+        from_id = item_id_by_source_id[relation.issue_from_id]
+        to_id = item_id_by_source_id[relation.issue_to_id]
+        next unless from_id && to_id
+
+        Relation.new(
+          id: "relation:#{relation.id}",
+          source_id: relation.id,
+          from_item_id: from_id,
+          to_item_id: to_id,
+          relation_type: relation.relation_type.to_s,
+          delay: relation.delay.to_i,
+          restricted: relation.respond_to?(:csys_restricted) && relation.csys_restricted == true,
+          boundary: false
+        )
+      end
+
+      new(
+        focus_id: focus_id,
+        category: category,
+        scope: scope,
+        projects: project_records,
+        audience_items: item_records,
+        relations: relation_records
+      )
+    end
+
     # Rehydrates a canonical node/adjacency selection captured from a diagram
     # into the same paint-model objects produced for live selector results.
     def self.from_feature_selection(snapshot:, selection:, focus_id:, category:, scope:)
