@@ -344,13 +344,27 @@ module Cosmosys
                          self.class.send(:directional_relation_closure, audience_ids, eligible_relations, directions: [:upstream])
                        when :node_and_descendants_across_projects
                          if container_focus
-                           self.class.send(:container_relation_closure, identifier, audience_ids, eligible_relations)
+                           self.class.send(
+                             :container_relation_closure, identifier, audience_ids, eligible_relations,
+                             items_by_id: item_by_id, stop_at_project_boundary: false
+                           )
                          else
-                           self.class.send(:directional_relation_closure, audience_ids, eligible_relations, directions: [:downstream])
+                           causal_edges = self.class.send(
+                             :directional_relation_closure, audience_ids, eligible_relations,
+                             directions: %i[upstream downstream]
+                           )
+                           related_edges = eligible_relations.select do |edge|
+                             edge.relation_type == 'relates' &&
+                               (audience_ids.include?(edge.from_item_id) || audience_ids.include?(edge.to_item_id))
+                           end
+                           (causal_edges + related_edges).uniq(&:id).sort_by(&:id)
                          end
                        when :node_and_descendants
                          if container_focus
-                           self.class.send(:container_relation_closure, identifier, audience_ids, eligible_relations)
+                           self.class.send(
+                             :container_relation_closure, identifier, audience_ids, eligible_relations,
+                             items_by_id: item_by_id, stop_at_project_boundary: true
+                           )
                          else
                            self.class.send(:local_item_relation_closure, identifier, audience_ids, eligible_relations, item_by_id)
                          end
@@ -536,7 +550,30 @@ module Cosmosys
       # in its own parent's sibling branches. Its contents are always included
       # across project interfaces. Relations on the container may lead either
       # way; relations emitted by its contents continue downstream only.
-      def container_relation_closure(container_id, audience_ids, relations)
+      def container_relation_closure(container_id, audience_ids, relations, items_by_id:, stop_at_project_boundary:)
+        if stop_at_project_boundary
+          focus_project = items_by_id[container_id]&.project_identifier
+          local_audience_ids = audience_ids.select do |item_id|
+            items_by_id[item_id]&.project_identifier == focus_project
+          end.to_set
+          internal_edges = relations.select do |edge|
+            local_audience_ids.include?(edge.from_item_id) && local_audience_ids.include?(edge.to_item_id)
+          end
+          focus_edges = directional_relation_closure_to_project_boundary(
+            Set[container_id], relations, items_by_id: items_by_id,
+            focus_project: focus_project, directions: %i[upstream downstream]
+          )
+          descendant_edges = directional_relation_closure_to_project_boundary(
+            local_audience_ids - Set[container_id], relations, items_by_id: items_by_id,
+            focus_project: focus_project, directions: [:downstream]
+          )
+          relates_edges = relations.select do |edge|
+            edge.relation_type == 'relates' &&
+              (local_audience_ids.include?(edge.from_item_id) || local_audience_ids.include?(edge.to_item_id))
+          end
+          return (internal_edges + focus_edges + descendant_edges + relates_edges).uniq(&:id).sort_by(&:id)
+        end
+
         internal_edges = relations.select do |edge|
           audience_ids.include?(edge.from_item_id) && audience_ids.include?(edge.to_item_id)
         end

@@ -40,27 +40,62 @@ module Cosmosys
       new(model, focus_project_id: issue.project_id, user: user)
     end
 
-    def self.source_model(project, user:, relation_types:)
+    def self.source_model(project, user:, relation_types:, expand_relation_graph: false)
       tree_projects = project.root.self_and_descendants.to_a.select { |candidate| candidate.visible?(user) }
       tree_project_ids = tree_projects.map(&:id)
       tree_issues = Issue.visible(user).where(project_id: tree_project_ids)
                          .includes(:project, :parent, :tracker, :status, :priority).to_a
                          .select(&:cosmosys_diagram_visible?)
       tree_issue_ids = tree_issues.map(&:id)
-      relations = IssueRelation.where(relation_type: Array(relation_types).map(&:to_s))
-                               .where('issue_from_id IN (:ids) OR issue_to_id IN (:ids)', ids: tree_issue_ids)
-                               .includes(issue_from: [:project, :tracker, :status, :priority], issue_to: [:project, :tracker, :status, :priority])
-                               .order(:id).to_a.select do |relation|
-        from = relation.issue_from
-        to = relation.issue_to
-        from&.visible?(user) && to&.visible?(user) &&
-          from.cosmosys_diagram_visible? && to.cosmosys_diagram_visible? &&
-          from.cosmosys_dependency_relation_visible?(relation.relation_type)
+      issues_by_id = tree_issues.index_by(&:id)
+      relations_by_id = {}
+      frontier_ids = tree_issue_ids.dup
+      visited_issue_ids = tree_issue_ids.to_set
+      while frontier_ids.any?
+        batch = IssueRelation.where(relation_type: Array(relation_types).map(&:to_s))
+                             .where('issue_from_id IN (:ids) OR issue_to_id IN (:ids)', ids: frontier_ids)
+                             .includes(issue_from: [:project, :tracker, :status, :priority], issue_to: [:project, :tracker, :status, :priority])
+                             .order(:id).to_a.select do |relation|
+          from = relation.issue_from
+          to = relation.issue_to
+          from&.visible?(user) && to&.visible?(user) &&
+            from.cosmosys_diagram_visible? && to.cosmosys_diagram_visible? &&
+            from.cosmosys_dependency_relation_visible?(relation.relation_type)
+        end
+        batch.each { |relation| relations_by_id[relation.id] = relation }
+        break unless expand_relation_graph
+
+        fresh_ids = batch.flat_map { |relation| [relation.issue_from_id, relation.issue_to_id] }
+                         .uniq.reject { |issue_id| visited_issue_ids.include?(issue_id) }
+        break if fresh_ids.empty?
+
+        fresh_issues = Issue.visible(user).where(id: fresh_ids)
+                            .includes(:project, :parent, :tracker, :status, :priority).to_a
+                            .select(&:cosmosys_diagram_visible?)
+        issues_by_id.merge!(fresh_issues.index_by(&:id))
+        visited_issue_ids.merge(fresh_issues.map(&:id))
+        frontier_ids = fresh_issues.map(&:id)
       end
-      endpoint_ids = relations.flat_map { |relation| [relation.issue_from_id, relation.issue_to_id] }.to_set
-      issues_by_id = (tree_issues + Issue.visible(user).where(id: endpoint_ids.to_a)
-                      .includes(:project, :parent, :tracker, :status, :priority).to_a)
-                     .uniq(&:id).index_by(&:id)
+      # Keep structural context for foreign relation endpoints (for example,
+      # the project-owned container above the first boundary node). Do not add
+      # these parents to the relation frontier: hierarchy context must not
+      # cause the dependency walk to fan out into their siblings.
+      parent_frontier_ids = issues_by_id.values.filter_map(&:parent_id).uniq
+      visited_parent_ids = issues_by_id.keys.to_set
+      while parent_frontier_ids.any?
+        fresh_parent_ids = parent_frontier_ids.reject { |issue_id| visited_parent_ids.include?(issue_id) }
+        break if fresh_parent_ids.empty?
+
+        parents = Issue.visible(user).where(id: fresh_parent_ids)
+                       .includes(:project, :parent, :tracker, :status, :priority).to_a
+                       .select(&:cosmosys_diagram_visible?)
+        break if parents.empty?
+
+        issues_by_id.merge!(parents.index_by(&:id))
+        visited_parent_ids.merge(parents.map(&:id))
+        parent_frontier_ids = parents.filter_map(&:parent_id).uniq
+      end
+      relations = relations_by_id.values.sort_by(&:id)
       projects = (tree_projects + issues_by_id.values.map(&:project)).compact.uniq(&:id)
       ViewAudienceModel.from_records(
         projects: projects,
