@@ -1,4 +1,9 @@
 es:
+  label_cosmosys_issue_tree_fragment: Fragmento del árbol
+  label_cosmosys_issue_content: Vistas del ítem
+  label_cosmosys_issue_sidebar: Herramientas del ítem
+  text_cosmosys_issue_panel_loading: Cargando panel…
+  text_cosmosys_issue_panel_error: No se pudo cargar este panel. Selecciona la pestaña para reintentarlo.
   activerecord:
     errors:
       messages:
@@ -695,6 +700,9 @@ es:
   label_cosmosys_external_metadata: "Metadatos externos"
   field_cosmosys_ext_code: "csExtCode"
   field_cosmosys_wload: "csWLoad"
+  # Redmine labels journal details of item columns as field_<column>.
+  field_cs_ext_code: "csExtCode"
+  field_cs_wload: "csWLoad"
   label_cosmosys_branding: "Identidad visual"
   label_cosmosys_branding_logo: "Logo de cabecera"
   label_cosmosys_branding_diffuse_effect: "Efecto difuso"

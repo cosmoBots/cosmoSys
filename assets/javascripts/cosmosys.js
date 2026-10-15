@@ -14,6 +14,85 @@
     });
   }
 
+  function loadIssuePanel(wrapper, key) {
+    var content = wrapper.querySelector('[data-cosmosys-issue-panel-content="' + key + '"]');
+    var tab = wrapper.querySelector('[data-cosmosys-issue-panel-tab="' + key + '"]');
+    if (!content || !tab || content.dataset.loaded === '1' || content.dataset.loading === '1') return;
+    content.dataset.loading = '1';
+    var loading = document.createElement('div');
+    loading.className = 'cosmosys-issue-panel-loading';
+    loading.setAttribute('role', 'status');
+    loading.setAttribute('aria-live', 'polite');
+    var spinner = document.createElement('span');
+    spinner.className = 'cosmosys-spinner';
+    spinner.setAttribute('aria-hidden', 'true');
+    var loadingText = document.createElement('span');
+    loadingText.textContent = content.dataset.loadingText || 'Loading…';
+    loading.appendChild(spinner);
+    loading.appendChild(loadingText);
+    content.replaceChildren(loading);
+    fetch(tab.dataset.panelUrl, {
+      credentials: 'same-origin',
+      headers: { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(function(response) {
+      if (response.redirected) throw new Error('Authentication required');
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.text();
+    }).then(function(html) {
+      content.innerHTML = html;
+      content.dataset.loaded = '1';
+      delete content.dataset.loading;
+      document.dispatchEvent(new CustomEvent('cosmosys:issue-panel-loaded', { detail: { key: key, location: wrapper.dataset.location, content: content } }));
+      if (content.querySelector('.cosmosys-tree-view')) {
+        try {
+          restoreCollapsedState();
+          initTreeToggles();
+          initTreeToolbar();
+          initDragAndDrop();
+          initTreeSidebar();
+        } catch (error) {
+          console.error('Could not initialize the deferred tree panel.', error);
+        }
+      }
+    }).catch(function(error) {
+      delete content.dataset.loading;
+      content.dataset.loaded = '0';
+      content.textContent = content.dataset.errorText || 'Could not load this panel.';
+      content.dataset.failed = '1';
+      console.error('Could not load deferred issue panel.', key, error);
+    });
+  }
+
+  function initIssuePanelTabs() {
+    document.querySelectorAll('[data-cosmosys-issue-panels]').forEach(function(wrapper) {
+      var tabs = Array.from(wrapper.querySelectorAll('[data-cosmosys-issue-panel-tab]'));
+      function activate(tab, focus, event) {
+        if (event) event.preventDefault();
+        tabs.forEach(function(candidate) {
+          var active = candidate === tab;
+          candidate.setAttribute('aria-selected', active ? 'true' : 'false');
+          candidate.tabIndex = active ? 0 : -1;
+          candidate.classList.toggle('selected', active);
+          var content = wrapper.querySelector('[data-cosmosys-issue-panel-content="' + candidate.dataset.cosmosysIssuePanelTab + '"]');
+          if (content) content.hidden = !active;
+        });
+        if (focus) tab.focus();
+        loadIssuePanel(wrapper, tab.dataset.cosmosysIssuePanelTab);
+      }
+      tabs.forEach(function(tab, index) {
+        tab.addEventListener('click', function(event) { activate(tab, false, event); });
+        tab.addEventListener('keydown', function(event) {
+          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+          event.preventDefault();
+          var next = tabs[(index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+          activate(next, true);
+        });
+      });
+      var initial = tabs.find(function(tab) { return tab.getAttribute('aria-selected') === 'true'; });
+      if (initial) loadIssuePanel(wrapper, initial.dataset.cosmosysIssuePanelTab);
+    });
+  }
+
   function collapseStorageKey() {
     var treeView = document.querySelector('.cosmosys-tree-view[data-cosmosys-tree]');
     if (!treeView) return null;
@@ -26,9 +105,26 @@
     if (!key) return new Set();
 
     try {
-      return new Set(JSON.parse(localStorage.getItem(key) || '[]'));
+      var storedState = localStorage.getItem(key);
+      if (storedState !== null) return new Set(JSON.parse(storedState));
+
+      var treeView = document.querySelector('.cosmosys-tree-view[data-cosmosys-tree]');
+      if (!treeView || treeView.dataset.defaultCollapsed !== 'true') return new Set();
+      return new Set(Array.from(treeView.querySelectorAll('li[data-issue-id]')).filter(function(item) {
+        return item.querySelector(':scope > ul.cosmosys-tree-children');
+      }).map(function(item) { return item.dataset.issueId; }));
     } catch (_error) {
       return new Set();
+    }
+  }
+
+  function hasStoredCollapsedState() {
+    var key = collapseStorageKey();
+    if (!key) return false;
+    try {
+      return localStorage.getItem(key) !== null;
+    } catch (_error) {
+      return false;
     }
   }
 
@@ -66,10 +162,13 @@
   }
 
   function restoreCollapsedState() {
-    var collapsedIds = readCollapsedState();
-    if (collapsedIds.size === 0) return;
+    var treeView = document.querySelector('.cosmosys-tree-view[data-cosmosys-tree]');
+    if (!treeView) return;
+    if (!hasStoredCollapsedState() && treeView.dataset.defaultCollapsed !== 'true') return;
 
-    document.querySelectorAll('.cosmosys-tree-view li[data-issue-id]').forEach(function(item) {
+    var collapsedIds = readCollapsedState();
+
+    treeView.querySelectorAll('li[data-issue-id]').forEach(function(item) {
       if (!item.querySelector(':scope > ul.cosmosys-tree-children')) return;
       setCollapsed(item, collapsedIds.has(item.dataset.issueId));
     });
@@ -1145,6 +1244,7 @@
   window.addEventListener('pagehide', abortDeferredDiagramRequests);
 
   document.addEventListener('DOMContentLoaded', function() {
+    initIssuePanelTabs();
     initDocumentReferenceSearch();
     relocateProjectDiagrams();
     restoreCollapsedState();

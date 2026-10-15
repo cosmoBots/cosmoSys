@@ -2,6 +2,7 @@ require 'digest'
 require 'set'
 require_relative 'document_reference_diagram_support'
 require_relative 'dependency_diagram_service'
+require_relative 'view_audience_diagram_data'
 
 module Cosmosys
   class CombinedDiagramService
@@ -136,19 +137,7 @@ module Cosmosys
     end
 
     def dependency_component
-      @dependency_component ||= begin
-        own = Cosmosys::DependencyDiagramService.component_for(@issue, mode: @mode, scope: :self, relation_types: @relation_types)
-        if @issue.children.visible(User.current).exists?
-          internal = Cosmosys::DependencyDiagramService.component_for(@issue, mode: @mode, scope: :subtree, relation_types: @relation_types)
-          {
-            issues: (own[:issues] + internal[:issues]).uniq(&:id).sort_by(&:id),
-            relations: (own[:relations] + internal[:relations]).uniq(&:id).sort_by(&:id),
-            boundary_issue_ids: own[:boundary_issue_ids] | internal[:boundary_issue_ids]
-          }
-        else
-          own
-        end
-      end
+      @dependency_component ||= diagram_data.component
     end
 
     def visible_relations
@@ -228,7 +217,16 @@ module Cosmosys
     end
 
     def root_entries
-      @root_entries ||= selected_root_entries(contextualized_issue_ids)
+      @root_entries ||= diagram_data.root_entries
+    end
+
+    def diagram_data
+      @diagram_data ||= ViewAudienceDiagramData.for_item(
+        @issue,
+        scope: @mode == :full ? :node_and_descendants_across_projects : :node_and_descendants,
+        user: User.current,
+        relation_types: @relation_types
+      )
     end
 
     def contextualized_issue_ids

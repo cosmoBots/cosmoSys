@@ -2,6 +2,7 @@ require 'digest'
 require 'set'
 require_relative 'document_reference_diagram_support'
 require_relative 'dependency_diagram_service'
+require_relative 'view_audience_diagram_data'
 
 module Cosmosys
   class ProjectCombinedDiagramService
@@ -142,7 +143,13 @@ module Cosmosys
     end
 
     def dependency_component
-      @dependency_component ||= build_dependency_component
+      @dependency_component ||= begin
+        data = diagram_data
+        {
+          relations: data.relations,
+          boundary_issues: data.issues.select { |issue| data.boundary_issue_ids.include?(issue.id) }
+        }
+      end
     end
 
     def build_dependency_component
@@ -358,7 +365,16 @@ module Cosmosys
     end
 
     def all_entry_roots
-      @all_entry_roots ||= project_entry_roots + dependency_context_entry_roots
+      @all_entry_roots ||= diagram_data.root_entries
+    end
+
+    def diagram_data
+      @diagram_data ||= ViewAudienceDiagramData.for_project(
+        @project,
+        scope: @mode == :full ? :project_and_descendants : :project,
+        user: User.current,
+        relation_types: @relation_types
+      )
     end
 
     def dependency_context_entry_roots

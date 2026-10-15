@@ -2,6 +2,7 @@ require 'digest'
 require 'set'
 require_relative 'document_reference_diagram_support'
 require_relative 'dependency_diagram_service'
+require_relative 'view_audience_diagram_data'
 
 module Cosmosys
   class ProjectDependencyDiagramService
@@ -90,7 +91,12 @@ module Cosmosys
     end
 
     def component
-      @component ||= (@mode == :full ? build_full_component : build_project_boundary_component)
+      @component ||= ViewAudienceDiagramData.for_project(
+        @project,
+        scope: @mode == :full ? :project_and_descendants : :project,
+        user: User.current,
+        relation_types: @relation_types
+      ).component
     end
 
     def build_full_component

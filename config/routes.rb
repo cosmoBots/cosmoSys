@@ -64,6 +64,7 @@ RedmineApp::Application.routes.draw do
     get 'cosmosys/diagram_panel/:kind', to: 'cosmosys/items#diagram_panel', as: :cosmosys_diagram_panel
     get 'cosmosys/diagrams/:kind/:diagram_format', to: 'cosmosys/items#diagram_export', as: :cosmosys_diagram_export
     get 'cosmosys/tree/details/:issue_id', to: 'cosmosys/items#details', as: :cosmosys_tree_details
+    get 'cosmosys/tree/fragment/:issue_id', to: 'cosmosys/items#tree_fragment', as: :cosmosys_tree_fragment
     get 'cosmosys/items/id/:issue_id', to: 'cosmosys/items#resolve_by_id', as: :cosmosys_item_by_id, constraints: { issue_id: /[0-9]+/ }
     patch 'cosmosys/items/id/:issue_id', to: 'cosmosys/items#update_by_id', as: :update_cosmosys_item_by_id, constraints: { issue_id: /[0-9]+/ }
     get 'cosmosys/items/:csid', to: 'cosmosys/items#resolve', as: :cosmosys_item_by_csid, constraints: { csid: /[A-Za-z0-9]+-[0-9]+/ }

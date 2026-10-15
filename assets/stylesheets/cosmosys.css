@@ -781,6 +781,77 @@
   width: 100%;
 }
 
+.cosmosys-issue-panel-tabs {
+  margin-bottom: 0.75em;
+}
+
+#sidebar .cosmosys-issue-panels-sidebar .tabs {
+  block-size: 2.6em;
+  margin-block-end: 1.2em;
+  overflow: hidden;
+  position: relative;
+}
+
+#sidebar .cosmosys-issue-panels-sidebar .tabs ul {
+  border-block-end: 1px solid var(--oc-gray-4);
+  inline-size: max-content;
+  inset-block-end: 0;
+  margin: 0;
+  min-inline-size: 100%;
+  padding-inline-start: 0.5em;
+  position: absolute;
+}
+
+#sidebar .cosmosys-issue-panels-sidebar .tabs ul li {
+  float: inline-start;
+  list-style-type: none;
+  margin-block-end: -1px;
+  margin-inline-end: 4px;
+  position: relative;
+  white-space: nowrap;
+}
+
+#sidebar .cosmosys-issue-panels-sidebar .tabs ul li a {
+  border: 1px solid var(--oc-gray-4);
+  border-block-end: 1px solid var(--oc-gray-4);
+  border-start-end-radius: 3px;
+  border-start-start-radius: 3px;
+  color: var(--oc-gray-6);
+  display: block;
+  font-size: 0.9em;
+  font-weight: bold;
+  line-height: 1.3em;
+  padding-block: 4px;
+  padding-inline: 6px;
+  text-decoration: none;
+}
+
+#sidebar .cosmosys-issue-panels-sidebar .tabs ul li a:hover {
+  color: var(--oc-gray-6);
+  text-decoration: none;
+}
+
+#sidebar .cosmosys-issue-panels-sidebar .tabs ul li a.selected {
+  background-color: var(--oc-white);
+  border: 1px solid var(--oc-gray-4);
+  border-block-end: 1px solid var(--oc-white);
+  box-shadow: 0 1px 2px rgba(var(--oc-black-rgb), 0.1);
+  color: var(--oc-gray-8);
+}
+
+#sidebar .cosmosys-issue-panels-sidebar .tabs ul li a.selected:hover {
+  background-color: var(--oc-white);
+}
+
+.cosmosys-issue-panel-loading {
+  color: #777;
+  padding: 0.6rem 0;
+}
+
+.cosmosys-issue-panels [role="tabpanel"][hidden] {
+  display: none;
+}
+
 .cosmosys-project-overview {
   box-sizing: border-box;
   max-width: 100%;
@@ -835,11 +906,13 @@
   border: 1px solid #d7dce1;
   border-radius: 4px;
   box-sizing: border-box;
-  max-height: 28rem;
+  height: min(28rem, 60vh);
+  max-height: 80vh;
   max-width: 100%;
   min-width: 0;
   overflow: auto;
   padding: 0.5rem;
+  resize: vertical;
   width: 100%;
 }
 

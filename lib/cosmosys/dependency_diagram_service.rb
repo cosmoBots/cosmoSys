@@ -1,6 +1,7 @@
 require 'digest'
 require 'set'
 require_relative 'document_reference_diagram_support'
+require_relative 'view_audience_diagram_data'
 
 module Cosmosys
   class DependencyDiagramService
@@ -54,11 +55,23 @@ module Cosmosys
     end
 
     def append_composite_graph(lines)
+      unless focus_is_container?
+        component = dependency_component
+        append_component_graph(
+          lines,
+          component,
+          namespace: 'context',
+          document_namespace_issue_ids: component[:issues].map(&:id).to_set
+        )
+        return
+      end
+
       own = own_component
       internal = remaining_subtree_component
-      own_container_ids = own[:issues].filter_map(&:parent_id).to_set
+      own_issues = (own[:issues] + [@issue]).uniq(&:id)
+      own_container_ids = own_issues.filter_map(&:parent_id).to_set
 
-      own[:issues].each do |issue|
+      own_issues.each do |issue|
         lines.concat(renderer.build_node(
           issue,
           boundary: own[:boundary_issue_ids].include?(issue.id),
@@ -87,17 +100,18 @@ module Cosmosys
       append_document_references(lines, own_issue_ids: own[:issues].map(&:id).to_set)
     end
 
-    def append_component_graph(lines, component)
+    def append_component_graph(lines, component, namespace: nil, document_namespace_issue_ids: nil)
       component_container_ids = component[:issues].filter_map(&:parent_id).to_set
       component[:issues].each do |issue|
         lines.concat(renderer.build_node(
           issue,
           boundary: component[:boundary_issue_ids].include?(issue.id),
-          dependency_container: component_container_ids.include?(issue.id)
+          dependency_container: component_container_ids.include?(issue.id),
+          namespace: namespace
         ))
       end
-      component[:relations].each { |relation| lines.concat(renderer.build_edge(relation)) }
-      append_document_references(lines) if @include_document_references
+      component[:relations].each { |relation| lines.concat(renderer.build_edge(relation, namespace: namespace)) }
+      append_document_references(lines, own_issue_ids: document_namespace_issue_ids) if @include_document_references
     end
 
     def append_document_references(lines, own_issue_ids: nil)
@@ -112,29 +126,63 @@ module Cosmosys
     end
 
     def dependency_component
-      @dependency_component ||= if @issue.cosmosys_diagram_visible?
-                                  if @scope == :subtree
-                                    build_subtree_internal_component
-                                  elsif @scope == :composite
-                                    composite_component
-                                  else
-                                    @mode == :full ? build_full_component : build_project_boundary_component
-                                  end
-                                else
-                                  { issues: [], relations: [], boundary_issue_ids: Set.new }
-                                end
+      @dependency_component ||= begin
+        return own_component if @scope == :self
+        if @scope == :composite && !focus_is_container?
+          scope = @mode == :full ? :node_and_descendants_across_projects : :node_and_descendants
+          return diagram_data_for(scope).component
+        end
+        return empty_component if @scope == :subtree && !focus_is_container?
+        return subtree_component if @scope == :subtree
+        return composite_component if @scope == :composite
+
+        scope = @mode == :full ? :node_and_descendants_across_projects : :node_and_descendants
+        diagram_data_for(scope).component
+      end
     end
 
     def own_component
-      @own_component ||= @mode == :full ? build_full_component : build_project_boundary_component
+      @own_component ||= diagram_data_for(:node).component
     end
 
     def subtree_component
-      @subtree_component ||= build_subtree_internal_component
+      scope = @mode == :full ? :node_and_descendants_across_projects : :node_and_descendants
+      @subtree_component ||= diagram_data_for(scope).component
+    end
+
+    def diagram_data_for(scope)
+      @diagram_data_by_scope ||= {}
+      @diagram_data_by_scope[scope] ||= ViewAudienceDiagramData.for_item(
+        @issue,
+        scope: scope,
+        user: User.current,
+        relation_types: @relation_types,
+        source_model: diagram_source_model
+      )
+    end
+
+    def diagram_source_model
+      @diagram_source_model ||= ViewAudienceDiagramData.source_model(
+        @issue.project,
+        user: User.current,
+        relation_types: @relation_types,
+        expand_relation_graph: @mode == :full
+      )
+    end
+
+    def focus_is_container?
+      @focus_is_container ||= begin
+        focus_item_id = @issue.csid.presence || "item:#{@issue.id}"
+        diagram_source_model.all_items.any? { |item| item.parent_id == focus_item_id }
+      end
+    end
+
+    def empty_component
+      { issues: [], relations: [], boundary_issue_ids: Set.new }
     end
 
     def remaining_subtree_component
-      @remaining_subtree_component ||= begin
+      @remaining_subtree_component ||= if focus_is_container?
         relations = subtree_component[:relations].reject { |relation| own_component[:relations].any? { |own_relation| own_relation.id == relation.id } }
         issue_ids = relations.flat_map { |relation| [relation.issue_from_id, relation.issue_to_id] }.to_set
         {
@@ -142,6 +190,8 @@ module Cosmosys
           relations: relations,
           boundary_issue_ids: subtree_component[:boundary_issue_ids] & issue_ids
         }
+      else
+        empty_component
       end
     end
 
@@ -196,100 +246,6 @@ module Cosmosys
       }
     end
 
-    def build_full_component
-      build_causal_component(project_boundary: false)
-    end
-
-    def build_project_boundary_component
-      build_causal_component(project_boundary: true)
-    end
-
-    def build_causal_component(project_boundary:)
-      project_id = @issue.project_id
-      visited_states = Set.new([[@issue.id, :seed]])
-      boundary_ids = Set.new
-      relation_ids = Set.new
-      queue = [[@issue, :seed]]
-      issues = []
-      relations = []
-
-      while queue.any?
-        current, direction = queue.shift
-        issues << current
-
-        causal_relations_for(current, direction).each do |relation, neighbor, next_direction|
-          next unless relation.issue_from && relation.issue_to
-
-          unless relation_ids.include?(relation.id)
-            relation_ids << relation.id
-            relations << relation
-          end
-
-          if project_boundary && neighbor.project_id != project_id
-            boundary_ids << neighbor.id
-            issues << neighbor
-            next
-          end
-
-          state = [neighbor.id, next_direction]
-          next if visited_states.include?(state)
-
-          visited_states << state
-          queue << [neighbor, next_direction]
-        end
-      end
-
-      {
-        issues: issues.uniq(&:id).sort_by(&:id),
-        relations: relations.uniq(&:id).sort_by(&:id),
-        boundary_issue_ids: project_boundary ? boundary_ids : issues.select { |issue| issue.project_id != project_id }.map(&:id).to_set
-      }
-    end
-
-    def causal_relations_for(issue, direction)
-      visible_relations_for(issue).filter_map do |relation, neighbor|
-        relation_type = relation.relation_type.to_s
-        if relation_type == 'relates'
-          # `relates` provides local context, not a transitive graph. Include
-          # only neighbors of the focal item; expanding through a related
-          # neighbor quickly pulls unrelated chains into the diagram.
-          next unless direction == :seed
-
-          [relation, neighbor, :related]
-        elsif relation.issue_from_id == issue.id
-          next unless direction == :seed || direction == :downstream
-
-          [relation, neighbor, :downstream]
-        elsif relation.issue_to_id == issue.id
-          next unless direction == :seed || direction == :upstream
-
-          [relation, neighbor, :upstream]
-        end
-      end
-    end
-
-    def visible_relations_for(issue)
-      pairs = []
-
-      issue.relations_from.includes(:issue_to, :issue_from).each do |relation|
-        next unless supported_relation?(relation)
-        next unless relation.issue_to&.visible?(User.current)
-        next unless relation.issue_to.cosmosys_diagram_visible?
-
-        pairs << [relation, relation.issue_to]
-      end
-
-      issue.relations_to.includes(:issue_to, :issue_from).each do |relation|
-        next unless supported_relation?(relation)
-        next unless relation.issue_from&.visible?(User.current)
-        next unless relation.issue_from.cosmosys_diagram_visible?
-
-        pairs << [relation, relation.issue_from]
-      end
-
-      pairs
-    end
-
     def connected_issues
       dependency_component[:issues]
     end
@@ -323,7 +279,7 @@ module Cosmosys
       payload << "rankdir:#{@issue.cosmosys_dependency_rankdir}"
       payload << "scope:#{@scope}"
       if @scope == :composite
-        payload << 'composition:v2'
+        payload << 'composition:v5-view-audience-causal-paths'
         payload << "locale:#{I18n.locale}"
         payload << "context_issues:#{own_component[:issues].map(&:id).sort.join(',')}"
         payload << "context_relations:#{own_component[:relations].map(&:id).sort.join(',')}"

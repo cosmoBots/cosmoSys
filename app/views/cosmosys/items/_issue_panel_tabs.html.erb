@@ -1,0 +1,31 @@
+<% issue = local_assigns.fetch(:issue) %>
+<% location = local_assigns.fetch(:location) %>
+<% panels = local_assigns.fetch(:panels) %>
+<% selected_key = local_assigns[:selected_key] %>
+<% wrapper_id = "cosmosys-issue-panels-#{location}-#{issue.id}" %>
+<% if panels.any? %>
+  <section id="<%= wrapper_id %>" class="cosmosys-issue-panels cosmosys-issue-panels-<%= location %>" data-cosmosys-issue-panels data-location="<%= location %>">
+    <nav class="tabs cosmosys-issue-panel-tabs" role="tablist" aria-label="<%= l(location == 'content' ? :label_cosmosys_issue_content : :label_cosmosys_issue_sidebar) %>">
+      <ul>
+        <% panels.each do |panel| %>
+          <% selected = panel.key == selected_key %>
+          <% tab_id = "#{wrapper_id}-tab-#{panel.key}" %>
+          <% content_id = "#{wrapper_id}-content-#{panel.key}" %>
+          <li>
+            <%= link_to l(panel.title), "##{content_id}",
+                        id: tab_id,
+                        role: 'tab',
+                        aria: { controls: content_id, selected: selected },
+                        tabindex: (selected ? 0 : -1),
+                        class: "cosmosys-issue-panel-tab#{' selected' if selected}",
+                        data: { cosmosys_issue_panel_tab: panel.key, panel_url: panel.url, default: panel.default } %>
+          </li>
+        <% end %>
+      </ul>
+    </nav>
+    <% panels.each do |panel| %>
+      <% selected = panel.key == selected_key %>
+      <div role="tabpanel" id="<%= wrapper_id %>-content-<%= panel.key %>" aria-labelledby="<%= "#{wrapper_id}-tab-#{panel.key}" %>" data-cosmosys-issue-panel-content="<%= panel.key %>" <%= 'hidden' unless selected %> data-loading-text="<%= l(:text_cosmosys_issue_panel_loading) %>" data-error-text="<%= l(:text_cosmosys_issue_panel_error) %>"></div>
+    <% end %>
+  </section>
+<% end %>

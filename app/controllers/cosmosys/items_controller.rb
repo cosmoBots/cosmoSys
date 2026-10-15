@@ -9,12 +9,13 @@ module Cosmosys
     before_action :find_project_by_project_id
     before_action :authenticate_api_user!, only: [:diagram_export, :resolve, :resolve_by_id, :update_by_id]
     before_action :find_export_issue, only: [:diagram_export, :diagram_panel]
-    before_action :authorize_project_read, only: [:index, :overview, :report, :report_diagram, :report_export, :ods_export, :tree, :data, :dsm, :details, :resolve, :resolve_by_id, :update_by_id]
+    before_action :authorize_project_read, only: [:index, :overview, :report, :report_diagram, :report_export, :ods_export, :tree, :tree_fragment, :data, :dsm, :details, :resolve, :resolve_by_id, :update_by_id]
     before_action :find_report_diagram_issue, only: :report_diagram
     before_action :authorize_diagram_read, only: [:diagram_export, :diagram_panel]
     before_action :authorize_diagram_layout_change, only: :diagram_panel
     before_action :find_tree_issue, only: :move
     before_action :authorize_tree_reorder, only: :move
+    before_action :authorize_tree_fragment_move, only: :move
     before_action :find_rebuild_issue, only: :rebuild_tree
     before_action :authorize_tree_repair, only: :rebuild_tree
     before_action :find_detail_issue, only: :details
@@ -247,7 +248,7 @@ module Cosmosys
       case params[:kind].to_s
       when 'hierarchy'
         relation_options = resolve_diagram_relation_options(kind: 'hierarchy', persist: true)
-        hierarchy_diagram = @export_issue ? Cosmosys::HierarchyDiagramService.fetch(@export_issue, mode: relation_options.mode) : Cosmosys::ProjectHierarchyDiagramService.fetch(@project, mode: relation_options.mode)
+        hierarchy_diagram = fetch_hierarchy_diagram(relation_options)
         render partial: 'cosmosys/items/hierarchy_diagram_panel', locals: {
           project: @project, issue: @export_issue, hierarchy_diagram: hierarchy_diagram,
           relation_options: relation_options, can_edit_layout: diagram_layout_editable?
@@ -273,6 +274,16 @@ module Cosmosys
       end
     end
 
+    def tree_fragment
+      issue = visible_tree_issues.find(params[:issue_id])
+      raise ActiveRecord::RecordNotFound unless issue.visible?(User.current)
+
+      tree_fragment = Cosmosys::IssueTreeFragment.new(issue, user: User.current)
+      raise ActiveRecord::RecordNotFound if tree_fragment.entries.empty?
+
+      render partial: 'hooks/cosmosys/issue_sidebar_tree_fragment', locals: { issue: issue, tree_fragment: tree_fragment }
+    end
+
     def move
       saved = false
       Issue.transaction do
@@ -287,7 +298,11 @@ module Cosmosys
         flash[:error] = @issue.errors.full_messages.to_sentence
       end
 
-      redirect_to action: move_redirect_action, project_id: @project
+      if @tree_fragment_scope_issue
+        redirect_to issue_path(@tree_fragment_scope_issue)
+      else
+        redirect_to action: move_redirect_action, project_id: @project
+      end
     end
 
     def rebuild_tree
@@ -443,6 +458,24 @@ module Cosmosys
       deny_access unless User.current.allowed_to?(:edit_issues, @issue.project)
     end
 
+    def authorize_tree_fragment_move
+      return unless params[:scope_issue_id].present?
+
+      @tree_fragment_scope_issue = visible_tree_issues.find(params[:scope_issue_id])
+      descendant_ids = Cosmosys::IssueTreeFragment.new(@tree_fragment_scope_issue, user: User.current).issues.map(&:id)
+      deny_access unless descendant_ids.include?(@issue.id)
+      deny_access if move_mode_param == 'root'
+
+      parent_id = parent_issue_id_param
+      allowed_parent = parent_id == @tree_fragment_scope_issue.id || descendant_ids.include?(parent_id)
+      deny_access unless allowed_parent
+
+      if %w[before after].include?(move_mode_param)
+        target = target_issue_param
+        deny_access unless descendant_ids.include?(target.id)
+      end
+    end
+
     def parent_issue_id_param
       raw = params[:parent_issue_id].to_s.strip
       return nil if raw.blank?
@@ -513,7 +546,7 @@ module Cosmosys
       case params[:kind].to_s
       when 'hierarchy'
         traversal = resolve_diagram_relation_options(kind: 'hierarchy')
-        @export_issue ? Cosmosys::HierarchyDiagramService.fetch(@export_issue, mode: traversal.mode) : Cosmosys::ProjectHierarchyDiagramService.fetch(@project, mode: traversal.mode)
+        fetch_hierarchy_diagram(traversal)
       when 'dependency'
         fetch_dependency_diagram(resolve_diagram_relation_options(kind: 'dependency'))
       when 'combined'
@@ -562,6 +595,17 @@ module Cosmosys
         include_document_references: options.include_document_references?
       }
       @export_issue ? Cosmosys::DependencyDiagramService.fetch(@export_issue, **arguments) : Cosmosys::ProjectDependencyDiagramService.fetch(@project, **arguments)
+    end
+
+    def fetch_hierarchy_diagram(relation_options)
+      combined_options = resolve_combined_diagram_options
+      arguments = {
+        mode: relation_options.mode,
+        relation_types: relation_options.relation_types,
+        render_variant: combined_options.render_variant,
+        layout_mode: combined_options.layout_mode
+      }
+      @export_issue ? Cosmosys::HierarchyDiagramService.fetch(@export_issue, **arguments) : Cosmosys::ProjectHierarchyDiagramService.fetch(@project, **arguments)
     end
 
     def fetch_combined_diagram(options, relation_options)

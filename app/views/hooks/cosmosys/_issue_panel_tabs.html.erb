@@ -1,0 +1,7 @@
+<% issue = local_assigns[:issue] || @issue %>
+<% if issue&.visible?(User.current) %>
+  <% panels = Cosmosys::IssuePanelRegistry.for_issue(location: :content, issue: issue, user: User.current, view: self) %>
+  <% preferred_key = "diagram_#{issue.cosmosys_preferred_report_diagram}" %>
+  <% selected_key = panels.any? { |panel| panel.key == preferred_key } ? preferred_key : (panels.find { |panel| panel.key == 'diagram_combined' }&.key || panels.first&.key) %>
+  <%= render partial: 'cosmosys/items/issue_panel_tabs', locals: { issue: issue, location: 'content', panels: panels, selected_key: selected_key } %>
+<% end %>
