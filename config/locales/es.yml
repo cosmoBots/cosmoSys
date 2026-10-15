@@ -1,4 +1,5 @@
 es:
+  label_cosmosys_issue_tree_fragment: Fragmento del árbol
   activerecord:
     errors:
       messages:

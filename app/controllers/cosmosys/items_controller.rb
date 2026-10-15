@@ -15,6 +15,7 @@ module Cosmosys
     before_action :authorize_diagram_layout_change, only: :diagram_panel
     before_action :find_tree_issue, only: :move
     before_action :authorize_tree_reorder, only: :move
+    before_action :authorize_tree_fragment_move, only: :move
     before_action :find_rebuild_issue, only: :rebuild_tree
     before_action :authorize_tree_repair, only: :rebuild_tree
     before_action :find_detail_issue, only: :details
@@ -287,7 +288,11 @@ module Cosmosys
         flash[:error] = @issue.errors.full_messages.to_sentence
       end
 
-      redirect_to action: move_redirect_action, project_id: @project
+      if @tree_fragment_scope_issue
+        redirect_to issue_path(@tree_fragment_scope_issue)
+      else
+        redirect_to action: move_redirect_action, project_id: @project
+      end
     end
 
     def rebuild_tree
@@ -441,6 +446,24 @@ module Cosmosys
 
     def authorize_tree_reorder
       deny_access unless User.current.allowed_to?(:edit_issues, @issue.project)
+    end
+
+    def authorize_tree_fragment_move
+      return unless params[:scope_issue_id].present?
+
+      @tree_fragment_scope_issue = visible_tree_issues.find(params[:scope_issue_id])
+      descendant_ids = Cosmosys::IssueTreeFragment.new(@tree_fragment_scope_issue, user: User.current).issues.map(&:id)
+      deny_access unless descendant_ids.include?(@issue.id)
+      deny_access if move_mode_param == 'root'
+
+      parent_id = parent_issue_id_param
+      allowed_parent = parent_id == @tree_fragment_scope_issue.id || descendant_ids.include?(parent_id)
+      deny_access unless allowed_parent
+
+      if %w[before after].include?(move_mode_param)
+        target = target_issue_param
+        deny_access unless descendant_ids.include?(target.id)
+      end
     end
 
     def parent_issue_id_param

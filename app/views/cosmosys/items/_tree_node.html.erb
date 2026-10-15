@@ -46,7 +46,7 @@
   <% if children.any? %>
     <ul class="cosmosys-tree-children">
       <% children.each_with_index do |child_entry, index| %>
-        <%= render partial: 'tree_node', locals: { entry: child_entry, chapter_map: chapter_map, project: project, project_ancestor_map: project_ancestor_map, reorderable_issue_ids: reorderable_issue_ids, sibling_last: index == children.length - 1, depth: local_assigns.fetch(:depth, 0).to_i + 1 } %>
+        <%= render partial: 'cosmosys/items/tree_node', locals: { entry: child_entry, chapter_map: chapter_map, project: project, project_ancestor_map: project_ancestor_map, reorderable_issue_ids: reorderable_issue_ids, sibling_last: index == children.length - 1, depth: local_assigns.fetch(:depth, 0).to_i + 1 } %>
       <% end %>
     </ul>
   <% end %>

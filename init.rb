@@ -108,6 +108,7 @@ require_dependency File.expand_path('lib/cosmosys/issue_relations_controller_pat
 require_dependency File.expand_path('lib/cosmosys/chapter_map', __dir__)
 require_dependency File.expand_path('lib/cosmosys/chapter_sort', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_tree_scope', __dir__)
+require_dependency File.expand_path('lib/cosmosys/issue_tree_fragment', __dir__)
 require_dependency File.expand_path('lib/cosmosys/view_audience_model', __dir__)
 require_dependency File.expand_path('lib/cosmosys/view_audience_selector', __dir__)
 require_dependency File.expand_path('lib/cosmosys/sibling_order', __dir__)

@@ -13,6 +13,8 @@ module Cosmosys
       { partial: 'hooks/cosmosys/catalog_refs' },
       { partial: 'hooks/cosmosys/approved_presentation_baseline' },
       { partial: 'hooks/cosmosys/used_project_data' }
+    render_on :view_issues_sidebar_queries_bottom,
+      { partial: 'hooks/cosmosys/issue_sidebar_tree_fragment' }
     render_on :view_issues_form_details_bottom,
       { partial: 'hooks/cosmosys/report_placeholder_field' },
       { partial: 'hooks/cosmosys/negative_status_field' },
