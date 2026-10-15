@@ -35,7 +35,7 @@ module Cosmosys
     def build
       visible_items = Issue.visible(@user).
         where(project_id: project.self_and_descendants.select(:id)).
-        includes(:project, :parent, :tracker).
+        includes(:project, :parent, :tracker, :status).
         order(:csposition, :lft, :id).
         to_a.
         select { |issue| issue.cosmosys_tree_visible? && issue.cosmosys_positive? }

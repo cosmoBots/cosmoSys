@@ -1,5 +1,9 @@
 es:
   label_cosmosys_issue_tree_fragment: Fragmento del árbol
+  label_cosmosys_issue_content: Vistas del ítem
+  label_cosmosys_issue_sidebar: Herramientas del ítem
+  text_cosmosys_issue_panel_loading: Cargando panel…
+  text_cosmosys_issue_panel_error: No se pudo cargar este panel. Selecciona la pestaña para reintentarlo.
   activerecord:
     errors:
       messages:

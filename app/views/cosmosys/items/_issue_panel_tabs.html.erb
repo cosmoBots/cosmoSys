@@ -1,0 +1,21 @@
+<% issue = local_assigns.fetch(:issue) %>
+<% location = local_assigns.fetch(:location) %>
+<% panels = local_assigns.fetch(:panels) %>
+<% selected_key = local_assigns[:selected_key] %>
+<% wrapper_id = "cosmosys-issue-panels-#{location}-#{issue.id}" %>
+<% if panels.any? %>
+  <section id="<%= wrapper_id %>" class="cosmosys-issue-panels cosmosys-issue-panels-<%= location %>" data-cosmosys-issue-panels data-location="<%= location %>">
+    <div class="cosmosys-issue-panel-tabs" role="tablist" aria-label="<%= l(location == 'content' ? :label_cosmosys_issue_content : :label_cosmosys_issue_sidebar) %>">
+      <% panels.each_with_index do |panel, index| %>
+        <% selected = panel.key == selected_key %>
+        <% tab_id = "#{wrapper_id}-tab-#{panel.key}" %>
+        <% content_id = "#{wrapper_id}-content-#{panel.key}" %>
+        <button type="button" role="tab" id="<%= tab_id %>" aria-controls="<%= content_id %>" aria-selected="<%= selected %>" tabindex="<%= selected ? 0 : -1 %>" class="cosmosys-issue-panel-tab <%= 'is-active' if selected %>" data-cosmosys-issue-panel-tab="<%= panel.key %>" data-panel-url="<%= panel.url %>" data-default="<%= panel.default %>"><%= l(panel.title) %></button>
+      <% end %>
+    </div>
+    <% panels.each do |panel| %>
+      <% selected = panel.key == selected_key %>
+      <div role="tabpanel" id="<%= wrapper_id %>-content-<%= panel.key %>" aria-labelledby="<%= "#{wrapper_id}-tab-#{panel.key}" %>" data-cosmosys-issue-panel-content="<%= panel.key %>" <%= 'hidden' unless selected %> data-loading-text="<%= l(:text_cosmosys_issue_panel_loading) %>" data-error-text="<%= l(:text_cosmosys_issue_panel_error) %>"></div>
+    <% end %>
+  </section>
+<% end %>

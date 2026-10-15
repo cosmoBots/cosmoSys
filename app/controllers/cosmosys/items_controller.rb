@@ -9,7 +9,7 @@ module Cosmosys
     before_action :find_project_by_project_id
     before_action :authenticate_api_user!, only: [:diagram_export, :resolve, :resolve_by_id, :update_by_id]
     before_action :find_export_issue, only: [:diagram_export, :diagram_panel]
-    before_action :authorize_project_read, only: [:index, :overview, :report, :report_diagram, :report_export, :ods_export, :tree, :data, :dsm, :details, :resolve, :resolve_by_id, :update_by_id]
+    before_action :authorize_project_read, only: [:index, :overview, :report, :report_diagram, :report_export, :ods_export, :tree, :tree_fragment, :data, :dsm, :details, :resolve, :resolve_by_id, :update_by_id]
     before_action :find_report_diagram_issue, only: :report_diagram
     before_action :authorize_diagram_read, only: [:diagram_export, :diagram_panel]
     before_action :authorize_diagram_layout_change, only: :diagram_panel
@@ -272,6 +272,16 @@ module Cosmosys
       else
         render_404
       end
+    end
+
+    def tree_fragment
+      issue = visible_tree_issues.find(params[:issue_id])
+      raise ActiveRecord::RecordNotFound unless issue.visible?(User.current)
+
+      tree_fragment = Cosmosys::IssueTreeFragment.new(issue, user: User.current)
+      raise ActiveRecord::RecordNotFound if tree_fragment.entries.empty?
+
+      render partial: 'hooks/cosmosys/issue_sidebar_tree_fragment', locals: { issue: issue, tree_fragment: tree_fragment }
     end
 
     def move

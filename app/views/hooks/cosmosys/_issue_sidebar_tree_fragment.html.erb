@@ -1,5 +1,6 @@
-<% if @issue.present? %>
-  <% tree_fragment = Cosmosys::IssueTreeFragment.new(@issue, user: User.current) %>
+<% issue = local_assigns[:issue] || @issue %>
+<% if issue.present? %>
+  <% tree_fragment = local_assigns[:tree_fragment] || Cosmosys::IssueTreeFragment.new(issue, user: User.current) %>
   <% if tree_fragment.entries.any? %>
     <section class="cosmosys-issue-tree-fragment">
       <h3><%= l(:label_cosmosys_issue_tree_fragment) %></h3>
@@ -7,17 +8,17 @@
         <%= render partial: 'cosmosys/items/tree_expand_collapse_controls' %>
       </div>
       <div class="cosmosys-tree-scrollbox">
-        <div class="box cosmosys-tree-view cosmosys-tree-reorder-view" data-cosmosys-tree="issue-fragment">
+        <div class="box cosmosys-tree-view cosmosys-tree-reorder-view" data-cosmosys-tree="issue-fragment" data-default-collapsed="true">
           <div class="cosmosys-tree-item cosmosys-tree-item-branch">
             <div class="cosmosys-tree-node cosmosys-dnd-node cosmosys-dnd-dropzone cosmosys-tree-depth-0"
                  data-move-mode="child"
-                 data-drop-parent-id="<%= @issue.id %>"
-                 data-drop-parent-project-id="<%= @issue.project_id %>"
-                 data-drop-parent-profile="<%= @issue.cosmosys_item_kind_key %>"
+                 data-drop-parent-id="<%= issue.id %>"
+                 data-drop-parent-project-id="<%= issue.project_id %>"
+                 data-drop-parent-profile="<%= issue.cosmosys_item_kind_key %>"
                  data-drop-parent-can-have-children="true">
               <span class="cosmosys-tree-toggle-placeholder"></span>
               <span class="cosmosys-tree-drag-handle"></span>
-              <%= link_to @issue.subject, issue_path(@issue), class: 'issue' %>
+              <%= link_to issue.subject, issue_path(issue), class: 'issue' %>
             </div>
           </div>
           <ul class="cosmosys-tree-root">
@@ -41,7 +42,7 @@
         <%= hidden_field_tag :parent_issue_id, '', id: 'cosmosys-tree-parent-id' %>
         <%= hidden_field_tag :target_issue_id, '', id: 'cosmosys-tree-target-id' %>
         <%= hidden_field_tag :move_mode, 'child', id: 'cosmosys-tree-move-mode' %>
-        <%= hidden_field_tag :scope_issue_id, @issue.id %>
+        <%= hidden_field_tag :scope_issue_id, issue.id %>
       <% end %>
     </section>
   <% end %>

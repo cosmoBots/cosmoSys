@@ -1,5 +1,9 @@
 en:
   label_cosmosys_issue_tree_fragment: Tree fragment
+  label_cosmosys_issue_content: Item views
+  label_cosmosys_issue_sidebar: Item tools
+  text_cosmosys_issue_panel_loading: Loading panel…
+  text_cosmosys_issue_panel_error: Could not load this panel. Select the tab to try again.
   activerecord:
     errors:
       messages:

@@ -781,6 +781,26 @@
   width: 100%;
 }
 
+.cosmosys-issue-panel-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.5rem 0;
+}
+
+.cosmosys-issue-panel-tab.is-active {
+  font-weight: bold;
+}
+
+.cosmosys-issue-panel-loading {
+  color: #777;
+  padding: 0.6rem 0;
+}
+
+.cosmosys-issue-panels [role="tabpanel"][hidden] {
+  display: none;
+}
+
 .cosmosys-project-overview {
   box-sizing: border-box;
   max-width: 100%;

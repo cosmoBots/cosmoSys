@@ -1,0 +1,5 @@
+<% issue = local_assigns[:issue] || @issue %>
+<% if issue&.visible?(User.current) %>
+  <% panels = Cosmosys::IssuePanelRegistry.for_issue(location: :sidebar, issue: issue, user: User.current, view: self) %>
+  <%= render partial: 'cosmosys/items/issue_panel_tabs', locals: { issue: issue, location: 'sidebar', panels: panels, selected_key: nil } %>
+<% end %>
