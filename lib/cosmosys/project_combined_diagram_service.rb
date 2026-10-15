@@ -92,7 +92,7 @@ module Cosmosys
         if child.project_id == @project.id
           build_project_subtree_entry(child, context_issue_ids: context_issue_ids)
         else
-          { issue: child, boundary: true, children: [] }
+          build_project_subtree_entry(child, context_issue_ids: context_issue_ids)
         end
       end
       children = reorder_entries_for_variant(children)
@@ -151,12 +151,13 @@ module Cosmosys
       boundary_issues = []
 
       # Project-level combined diagrams show relations originating in this
-      # project's model. A foreign project node is a boundary, not a new root
-      # from which to expand that project's own dependency graph.
+      # project's model. Directly related foreign items are interface context,
+      # even when they are below the first item of another project's subtree.
+      # Since only local-project items are visited here, this does not expand
+      # the foreign project's own dependency graph.
       primary_tree_issues.select { |issue| issue.project_id == @project.id }.each do |issue|
         visible_relations_for(issue).each do |relation, neighbor|
           next unless relation.issue_from && relation.issue_to
-          next if beyond_project_boundary?(neighbor.id)
           next unless primary_tree_issue_ids.include?(relation.issue_from_id) || primary_tree_issue_ids.include?(relation.issue_to_id)
 
           unless relation_ids.include?(relation.id)
@@ -175,29 +176,6 @@ module Cosmosys
         relations: relations.uniq(&:id).sort_by(&:id),
         boundary_issues: boundary_issues.uniq(&:id).sort_by(&:id)
       }
-    end
-
-    def beyond_project_boundary?(issue_id)
-      boundary_descendant_issue_ids.include?(issue_id)
-    end
-
-    def boundary_descendant_issue_ids
-      @boundary_descendant_issue_ids ||= begin
-        tree_by_id = primary_tree_issues.index_by(&:id)
-        boundary_ids = primary_tree_issues.filter_map do |issue|
-          next if issue.project_id == @project.id
-
-          parent = tree_by_id[issue.parent_id]
-          issue.id if parent&.project_id == @project.id
-        end
-
-        boundary_ids.each_with_object(Set.new) do |boundary_id, descendant_ids|
-          boundary = Issue.find_by(id: boundary_id)
-          next unless boundary
-
-          descendant_ids.merge(boundary.self_and_descendants.where.not(id: boundary.id).pluck(:id))
-        end
-      end
     end
 
     def visible_relations
