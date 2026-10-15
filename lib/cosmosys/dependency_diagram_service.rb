@@ -114,13 +114,11 @@ module Cosmosys
 
     def dependency_component
       @dependency_component ||= begin
-        scope = if @scope == :self
-                  :node
-                elsif @mode == :full
-                  :node_and_descendants_across_projects
-                else
-                  :node_and_descendants
-                end
+        return own_component if @scope == :self
+        return own_component if @scope == :composite && !focus_is_container?
+        return empty_component if @scope == :subtree && !focus_is_container?
+
+        scope = @mode == :full ? :node_and_descendants_across_projects : :node_and_descendants
         diagram_data_for(scope).component
       end
     end
@@ -151,8 +149,19 @@ module Cosmosys
       )
     end
 
+    def focus_is_container?
+      @focus_is_container ||= begin
+        focus_item_id = @issue.csid.presence || "item:#{@issue.id}"
+        diagram_source_model.all_items.any? { |item| item.parent_id == focus_item_id }
+      end
+    end
+
+    def empty_component
+      { issues: [], relations: [], boundary_issue_ids: Set.new }
+    end
+
     def remaining_subtree_component
-      @remaining_subtree_component ||= begin
+      @remaining_subtree_component ||= if focus_is_container?
         relations = subtree_component[:relations].reject { |relation| own_component[:relations].any? { |own_relation| own_relation.id == relation.id } }
         issue_ids = relations.flat_map { |relation| [relation.issue_from_id, relation.issue_to_id] }.to_set
         {
@@ -160,6 +169,8 @@ module Cosmosys
           relations: relations,
           boundary_issue_ids: subtree_component[:boundary_issue_ids] & issue_ids
         }
+      else
+        empty_component
       end
     end
 
@@ -341,7 +352,7 @@ module Cosmosys
       payload << "rankdir:#{@issue.cosmosys_dependency_rankdir}"
       payload << "scope:#{@scope}"
       if @scope == :composite
-        payload << 'composition:v2'
+        payload << 'composition:v3'
         payload << "locale:#{I18n.locale}"
         payload << "context_issues:#{own_component[:issues].map(&:id).sort.join(',')}"
         payload << "context_relations:#{own_component[:relations].map(&:id).sort.join(',')}"
