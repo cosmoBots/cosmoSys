@@ -1,0 +1,23 @@
+<% if plan.custom_field_creations.any? || plan.fallback_warnings.any? %>
+  <h4><%= l(:label_cosmosys_snapshot_adjustments) %></h4>
+  <p class="warning"><%= l(:text_cosmosys_snapshot_adjustments) %></p>
+  <table class="list">
+    <thead><tr><th><%= l(:label_cosmosys_snapshot_adjustment) %></th><th><%= l(:field_value) %></th><th><%= l(:label_cosmosys_snapshot_count_items) %></th></tr></thead>
+    <tbody>
+      <% plan.custom_field_creations.each do |definition| %>
+        <tr class="warning">
+          <td><%= l(:label_cosmosys_snapshot_custom_field_creation) %></td>
+          <td><%= definition['name'] %> (<code><%= definition['format'] %></code>)</td>
+          <td>—</td>
+        </tr>
+      <% end %>
+      <% plan.fallback_warnings.each do |warning| %>
+        <tr class="warning">
+          <td><%= l("label_cosmosys_snapshot_fallback_#{warning[:kind]}") %></td>
+          <td><%= warning[:value] %></td>
+          <td><%= warning[:items] %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>

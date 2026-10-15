@@ -64,6 +64,15 @@ es:
   error_cosmosys_snapshot_custom_field_missing: "No está disponible el campo personalizado de item requerido: %{field}."
   error_cosmosys_snapshot_trackers_missing: "No están disponibles los trackers requeridos: %{trackers}."
   error_cosmosys_snapshot_custom_fields_missing: "No están disponibles los campos personalizados de item requeridos: %{fields}."
+  label_cosmosys_snapshot_adjustments: "Ajustes de la importación"
+  text_cosmosys_snapshot_adjustments: "Ninguno bloquea la importación, pero el destino no tendrá exactamente lo que capturó el paquete. Revíselos antes de confirmar."
+  label_cosmosys_snapshot_adjustment: "Ajuste"
+  label_cosmosys_snapshot_custom_field_creation: "Campo personalizado de item que se creará con la definición del paquete"
+  label_cosmosys_snapshot_fallback_status: "Estado desconocido, se usará el primer estado"
+  label_cosmosys_snapshot_fallback_priority: "Prioridad desconocida, se usará la prioridad por defecto"
+  label_cosmosys_snapshot_fallback_author: "Autor desconocido, se usará el administrador que importa"
+  label_cosmosys_snapshot_fallback_assigned_to: "Asignado desconocido, quedará sin asignar"
+  label_cosmosys_snapshot_fallback_custom_field_tracker: "Campo personalizado que se habilitará para el tracker del item (campo / tracker)"
   error_cosmosys_snapshot_assets_missing: "No están disponibles %{count} assets requeridos por el snapshot."
   label_cosmosys_snapshot_materialization_preflight: Revisar la materialización del snapshot
   label_cosmosys_snapshot_destination_projects: Proyectos de destino
