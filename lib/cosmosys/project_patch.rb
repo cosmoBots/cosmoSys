@@ -37,7 +37,6 @@ module Cosmosys
       validate :cosmosys_validate_project_identity_uniqueness
       validate :cosmosys_validate_root_stability
       validate :cosmosys_validate_project_identity_immutable, on: :update
-      validate :cosmosys_validate_required_trackers
       validate :cosmosys_validate_report_template_selection
       after_create :cosmosys_apply_initial_profile_contract!
       after_commit :cosmosys_invalidate_language_dependent_diagrams, on: :update, if: :saved_change_to_csys_language?
@@ -311,13 +310,6 @@ module Cosmosys
     end
 
     private
-
-    def cosmosys_validate_required_trackers
-      return if new_record?
-
-      missing = cosmosys_required_trackers.where.not(id: tracker_ids).pluck(:name)
-      errors.add(:tracker_ids, "must include #{missing.join(', ')}") if missing.any?
-    end
 
     def cosmosys_normalize_project_identity
       self.cscode = cosmosys_normalize_code(cscode)

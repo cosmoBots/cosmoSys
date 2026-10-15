@@ -131,6 +131,13 @@ RAILS_ENV=production bundle exec rake redmine:plugins:migrate NAME=cosmosys
 # restart Redmine
 ```
 
+Migration `010` repairs existing projects by enabling the available required
+trackers of their registered profile, including `csNegative`, without removing
+existing assignments. It is idempotent and keeps these assignments on rollback.
+This addresses the 0.1.8 upgrade failure when bootstrap saves legacy help
+projects. Ordinary project saves no longer validate unrelated tracker state;
+the tracker assignment methods continue to reject removal of required trackers.
+
 The migration base is developed fast and the project is still in alpha: the
 schema is not yet backward-compatible by design, so back up the database
 before upgrading.
