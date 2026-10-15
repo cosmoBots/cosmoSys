@@ -1,4 +1,6 @@
 require 'digest'
+require_relative 'combined_diagram_service'
+require_relative 'hierarchy_diagram_view'
 
 module Cosmosys
   class HierarchyDiagramService
@@ -7,8 +9,8 @@ module Cosmosys
     KIND = 'hierarchy'.freeze
     FULL_KIND = 'hierarchy_full'.freeze
 
-    def self.fetch(issue, mode: :project_boundary)
-      new(issue, mode: mode).fetch
+    def self.fetch(issue, mode: :project_boundary, relation_types: CombinedDiagramService::SUPPORTED_RELATION_TYPES, render_variant: nil, layout_mode: nil)
+      new(issue, mode: mode, relation_types: relation_types, render_variant: render_variant, layout_mode: layout_mode).fetch
     end
 
     def self.mark_obsolete(issue_ids)
@@ -18,17 +20,20 @@ module Cosmosys
       Cosmosys::Diagram.where(issue_id: ids, kind: [KIND, FULL_KIND]).update_all(state: 'obsolete', updated_at: Time.current)
     end
 
-    def initialize(issue, mode: :project_boundary)
+    def initialize(issue, mode: :project_boundary, relation_types: CombinedDiagramService::SUPPORTED_RELATION_TYPES, render_variant: nil, layout_mode: nil)
       @issue = issue
       @mode = mode
+      @relation_types = relation_types
+      @render_variant = render_variant
+      @layout_mode = layout_mode
     end
 
     def fetch
       discovery = Cosmosys::PerformanceTrace.measure('diagram.discovery', issue_id: @issue.id, kind: diagram_kind) do
         {
           revision_state: Cosmosys::IssueTreeRevisionService.state_for(@issue),
-          empty: !@issue.cosmosys_diagram_visible?,
-          signature: hierarchy_signature
+          signature: hierarchy_signature,
+          empty: combined_diagram.dot_body.blank?
         }
       end
       fetch_cached_diagram(
@@ -37,7 +42,7 @@ module Cosmosys
         empty: discovery[:empty],
         revision_state: discovery[:revision_state],
         signature: discovery[:signature]
-      ) { build_dot }
+      ) { Cosmosys::HierarchyDiagramView.from_combined(combined_diagram.dot_body) }
     end
 
     private
@@ -46,92 +51,20 @@ module Cosmosys
       @mode == :full ? FULL_KIND : KIND
     end
 
-    def build_dot
-      renderer.build_graph(title: 'cosmosys_hierarchy') do |lines|
-        lines.concat(renderer.build_tree(root_entry))
-      end
-    end
-
     def hierarchy_signature
-      payload = ["mode:#{@mode}"]
-      append_entry_signature(root_entry, payload)
+      payload = ['combined_hierarchy_view:v1', "mode:#{@mode}", combined_diagram.signature]
       Digest::SHA256.hexdigest(payload.join('|'))
     end
 
-    def append_entry_signature(entry, payload)
-      issue = entry.fetch(:issue)
-      children = Array(entry[:children])
-      boundary = entry[:boundary] == true
-      if children.any?
-        payload << renderer.cluster_signature(issue, boundary: boundary)
-      else
-        payload << renderer.node_signature(issue, boundary: boundary)
-      end
-      children.each { |child| append_entry_signature(child, payload) }
-    end
-
-    def root_entry
-      @root_entry ||= @mode == :full ? full_root_entry : scoped_root_entry
-    end
-
-    def full_root_entry
-      chain = @issue.self_and_ancestors.to_a.select(&:cosmosys_diagram_visible?)
-      entry = build_full_subtree_entry(@issue)
-      chain[0..-2].reverse_each do |ancestor|
-        entry = { issue: ancestor, boundary: ancestor.project_id != @issue.project_id, children: [entry] }
-      end
-      entry
-    end
-
-    def build_full_subtree_entry(issue)
-      {
-        issue: issue,
-        boundary: issue.project_id != @issue.project_id,
-        children: full_visible_children(issue).map { |child| build_full_subtree_entry(child) }
-      }
-    end
-
-    def full_visible_children(issue)
-      issue.children.visible(User.current).includes(:project, :tracker).reorder(:csposition, :lft, :id).to_a.select(&:cosmosys_diagram_visible?)
-    end
-
-    def scoped_root_entry
-      current = @issue
-      chain = [current]
-
-      while current.parent.present? && current.parent.project_id == @issue.project_id
-        current = current.parent
-        chain.unshift(current) if current.cosmosys_diagram_visible?
-      end
-
-      if current.parent.present? && current.parent.project_id != @issue.project_id && current.parent.cosmosys_diagram_visible?
-        chain.unshift(current.parent)
-      end
-
-      entry = build_scoped_subtree_entry(@issue)
-      chain[0..-2].reverse_each do |ancestor|
-        entry = {
-          issue: ancestor,
-          boundary: ancestor.project_id != @issue.project_id,
-          children: [entry]
-        }
-      end
-      entry
-    end
-
-    def build_scoped_subtree_entry(issue)
-      children = scoped_visible_children(issue).map do |child|
-        if child.project_id == @issue.project_id
-          build_scoped_subtree_entry(child)
-        else
-          { issue: child, boundary: true, children: [] }
-        end
-      end
-      { issue: issue, boundary: issue.project_id != @issue.project_id, children: children }
-    end
-
-    def scoped_visible_children(issue)
-      issue.children.visible(User.current).includes(:project, :tracker).reorder(:csposition, :lft, :id).to_a.select(&:cosmosys_diagram_visible?)
+    def combined_diagram
+      @combined_diagram ||= Cosmosys::CombinedDiagramService.fetch(
+        @issue,
+        mode: @mode,
+        render_variant: @render_variant,
+        layout_mode: @layout_mode,
+        include_document_references: false,
+        relation_types: @relation_types
+      )
     end
 
     def renderer

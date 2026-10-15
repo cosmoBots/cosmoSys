@@ -247,7 +247,7 @@ module Cosmosys
       case params[:kind].to_s
       when 'hierarchy'
         relation_options = resolve_diagram_relation_options(kind: 'hierarchy', persist: true)
-        hierarchy_diagram = @export_issue ? Cosmosys::HierarchyDiagramService.fetch(@export_issue, mode: relation_options.mode) : Cosmosys::ProjectHierarchyDiagramService.fetch(@project, mode: relation_options.mode)
+        hierarchy_diagram = fetch_hierarchy_diagram(relation_options)
         render partial: 'cosmosys/items/hierarchy_diagram_panel', locals: {
           project: @project, issue: @export_issue, hierarchy_diagram: hierarchy_diagram,
           relation_options: relation_options, can_edit_layout: diagram_layout_editable?
@@ -513,7 +513,7 @@ module Cosmosys
       case params[:kind].to_s
       when 'hierarchy'
         traversal = resolve_diagram_relation_options(kind: 'hierarchy')
-        @export_issue ? Cosmosys::HierarchyDiagramService.fetch(@export_issue, mode: traversal.mode) : Cosmosys::ProjectHierarchyDiagramService.fetch(@project, mode: traversal.mode)
+        fetch_hierarchy_diagram(traversal)
       when 'dependency'
         fetch_dependency_diagram(resolve_diagram_relation_options(kind: 'dependency'))
       when 'combined'
@@ -562,6 +562,17 @@ module Cosmosys
         include_document_references: options.include_document_references?
       }
       @export_issue ? Cosmosys::DependencyDiagramService.fetch(@export_issue, **arguments) : Cosmosys::ProjectDependencyDiagramService.fetch(@project, **arguments)
+    end
+
+    def fetch_hierarchy_diagram(relation_options)
+      combined_options = resolve_combined_diagram_options
+      arguments = {
+        mode: relation_options.mode,
+        relation_types: relation_options.relation_types,
+        render_variant: combined_options.render_variant,
+        layout_mode: combined_options.layout_mode
+      }
+      @export_issue ? Cosmosys::HierarchyDiagramService.fetch(@export_issue, **arguments) : Cosmosys::ProjectHierarchyDiagramService.fetch(@project, **arguments)
     end
 
     def fetch_combined_diagram(options, relation_options)

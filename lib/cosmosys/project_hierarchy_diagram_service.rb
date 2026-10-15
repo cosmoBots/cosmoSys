@@ -1,4 +1,6 @@
 require 'digest'
+require_relative 'project_combined_diagram_service'
+require_relative 'hierarchy_diagram_view'
 
 module Cosmosys
   class ProjectHierarchyDiagramService
@@ -7,25 +9,28 @@ module Cosmosys
     KIND = 'project_hierarchy'.freeze
     FULL_KIND = 'project_hierarchy_full'.freeze
 
-    def self.fetch(project, mode: :project_boundary)
-      new(project, mode: mode).fetch
+    def self.fetch(project, mode: :project_boundary, relation_types: ProjectCombinedDiagramService::SUPPORTED_RELATION_TYPES, render_variant: nil, layout_mode: nil)
+      new(project, mode: mode, relation_types: relation_types, render_variant: render_variant, layout_mode: layout_mode).fetch
     end
 
-    def initialize(project, mode: :project_boundary)
+    def initialize(project, mode: :project_boundary, relation_types: ProjectCombinedDiagramService::SUPPORTED_RELATION_TYPES, render_variant: nil, layout_mode: nil)
       @project = project
       @mode = mode
+      @relation_types = relation_types
+      @render_variant = render_variant
+      @layout_mode = layout_mode
     end
 
     def fetch
       discovery = Cosmosys::PerformanceTrace.measure('diagram.discovery', project_id: @project.id, kind: diagram_kind) do
-        { signature: project_signature, empty: visible_issues.empty? }
+        { signature: project_signature, empty: combined_diagram.dot_body.blank? }
       end
       fetch_cached_diagram(
         scope_attrs: { project_id: @project.id },
         kind: diagram_kind,
         empty: discovery[:empty],
         signature: discovery[:signature]
-      ) { build_dot }
+      ) { Cosmosys::HierarchyDiagramView.from_combined(combined_diagram.dot_body) }
     end
 
     private
@@ -34,122 +39,20 @@ module Cosmosys
       @mode == :full ? FULL_KIND : KIND
     end
 
-    def build_dot
-      renderer.build_graph(title: 'cosmosys_project_hierarchy') do |lines|
-        project_roots.each do |issue|
-          lines.concat(renderer.build_tree(build_project_subtree_entry(issue)))
-        end
-      end
-    end
-
-    def visible_issues
-      @visible_issues ||= Issue.visible(User.current)
-        .where(project_id: @project.id)
-        .includes(:project, :tracker, :parent)
-        .order(:csposition, :lft, :id)
-        .to_a
-        .select(&:cosmosys_diagram_visible?)
-    end
-
-    def visible_issue_ids
-      @visible_issue_ids ||= visible_issues.map(&:id).to_set
-    end
-
-    def project_roots
-      @project_roots ||= visible_issues.filter_map do |issue|
-        if issue.parent_id.blank?
-          issue
-        elsif !visible_issue_ids.include?(issue.parent_id)
-          issue.parent&.cosmosys_diagram_visible? ? issue.parent : issue
-        end
-      end.uniq(&:id)
-    end
-
-    def build_project_subtree_entry(issue)
-      children = project_visible_children(issue).map do |child|
-        if @mode == :full || child.project_id == @project.id
-          build_project_subtree_entry(child)
-        else
-          { issue: child, boundary: true, children: [] }
-        end
-      end
-
-      { issue: issue, boundary: issue.project_id != @project.id, children: children }
-    end
-
-    def project_visible_children(issue)
-      issue.children.visible(User.current).includes(:project, :tracker).reorder(:csposition, :lft, :id).to_a.select do |child|
-        next false unless child.cosmosys_diagram_visible?
-
-        if @mode == :full
-          true
-        elsif issue.project_id == @project.id
-          true
-        else
-          child.project_id == @project.id
-        end
-      end
+    def combined_diagram
+      @combined_diagram ||= Cosmosys::ProjectCombinedDiagramService.fetch(
+        @project,
+        mode: @mode,
+        render_variant: @render_variant,
+        layout_mode: @layout_mode,
+        include_document_references: false,
+        relation_types: @relation_types
+      )
     end
 
     def project_signature
-      payload = ["mode:#{@mode}"]
-      payload.concat(project_root_dependencies)
-      payload.concat(project_rendered_visual_dependencies)
+      payload = ['combined_hierarchy_view:v1', "mode:#{@mode}", combined_diagram.signature]
       Digest::SHA256.hexdigest(payload.join('|'))
-    end
-
-    def project_root_dependencies
-      project_roots.map do |issue|
-        state = Cosmosys::IssueTreeRevisionService.state_for(issue)
-        [
-          'root',
-          issue.id,
-          state[:root_issue].id,
-          state[:root_generation],
-          state[:revision]
-        ].join(':')
-      end
-    end
-
-    def project_rendered_issues
-      @project_rendered_issues ||= begin
-        rendered = []
-        project_roots.each do |issue|
-          collect_rendered_issues(issue, rendered)
-        end
-        rendered.uniq(&:id)
-      end
-    end
-
-    def collect_rendered_issues(issue, rendered)
-      return if rendered.any? { |candidate| candidate.id == issue.id }
-
-      rendered << issue
-      project_visible_children(issue).each do |child|
-        collect_rendered_issues(child, rendered) if @mode == :full || child.project_id == @project.id
-        rendered << child unless rendered.any? { |candidate| candidate.id == child.id }
-      end
-    end
-
-    def project_rendered_visual_dependencies
-      project_rendered_issues.map do |issue|
-        boundary = issue.project_id != @project.id
-        rendered_children = project_visible_children(issue).any?
-        render_signature = if rendered_children
-                             renderer.cluster_signature(issue, boundary: boundary)
-                           else
-                             renderer.node_signature(issue, boundary: boundary)
-                           end
-        [
-          'item',
-          issue.id,
-          issue.project_id,
-          issue.parent_id || 0,
-          issue.csposition || 0,
-          issue.updated_on&.utc&.to_i || 0,
-          render_signature
-        ].join(':')
-      end
     end
 
     def renderer
