@@ -20,13 +20,24 @@ module Cosmosys
     end
 
     def self.for_item(issue, scope:, user:, relation_types: ViewAudienceSelector::DEFAULT_RELATION_TYPES, source_model: nil)
-      source = source_model || self.source_model(issue.project, user: user, relation_types: relation_types)
-      item_id = issue.csid.presence || "item:#{issue.id}"
-      new(
-        source.for_item(item_id, scope: scope, relation_types: relation_types),
-        focus_project_id: issue.project_id,
-        user: user
-      )
+      model = if source_model
+                item_id = issue.csid.presence || "item:#{issue.id}"
+                source_model.for_item(item_id, scope: scope, relation_types: relation_types)
+              elsif scope.to_sym == :node_and_descendants
+                # The ordinary combined view uses the generic boundary-aware
+                # selector: local descendants plus only directly incident
+                # relations. This keeps a foreign endpoint visible as context
+                # without following relations from that endpoint.
+                ViewAudienceSelector.for_item(
+                  issue, scope: scope, user: user, relation_types: relation_types
+                ).diagram_model
+              else
+                source = self.source_model(issue.project, user: user, relation_types: relation_types)
+                item_id = issue.csid.presence || "item:#{issue.id}"
+                source.for_item(item_id, scope: scope, relation_types: relation_types)
+              end
+
+      new(model, focus_project_id: issue.project_id, user: user)
     end
 
     def self.source_model(project, user:, relation_types:)
