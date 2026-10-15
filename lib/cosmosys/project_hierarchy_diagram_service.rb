@@ -51,7 +51,7 @@ module Cosmosys
     end
 
     def project_signature
-      payload = ['combined_hierarchy_view:v1', "mode:#{@mode}", combined_diagram.signature]
+      payload = ['combined_hierarchy_view:v3', "mode:#{@mode}", combined_diagram.signature]
       Digest::SHA256.hexdigest(payload.join('|'))
     end
 
