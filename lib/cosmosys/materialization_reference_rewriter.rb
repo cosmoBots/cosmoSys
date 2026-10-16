@@ -9,7 +9,11 @@ module Cosmosys
       issues.each do |issue|
         description = rewrite_text(issue.description.to_s)
         issue.update_columns(description: description, updated_on: Time.current) if description != issue.description.to_s
-        issue.custom_field_values.each do |value|
+        # `custom_field_values` returns Redmine's presentation wrappers, not
+        # persisted ActiveRecord rows. Rewrite the stored values through the
+        # association so direct column updates are available and callbacks are
+        # not re-run during snapshot materialization.
+        issue.custom_values.each do |value|
           next unless value.custom_field.field_format.in?(%w[string text link])
 
           replaced = rewrite_text(value.value.to_s)
