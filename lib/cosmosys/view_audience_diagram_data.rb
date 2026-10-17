@@ -1,14 +1,12 @@
 require 'set'
-require_relative 'view_audience_model'
 require_relative 'view_audience_selector'
 
 module Cosmosys
-  # Bridges the selector's hydrated ActiveRecord selection to the existing
-  # Graphviz painters. The portable model captures the selected graph for
-  # traversal; selected records are reused for established presentation
-  # methods without reloading items or relations from the database.
+  # Painter-facing view over the selector's hydrated ActiveRecord selection.
+  # It filters diagram-specific visibility and builds hierarchy entries from
+  # those same Issue and IssueRelation objects; it does not project/copy them.
   class ViewAudienceDiagramData
-    attr_reader :model, :issues, :relations, :boundary_issue_ids, :audience_issue_ids
+    attr_reader :selection, :issues, :relations, :boundary_issue_ids, :audience_issue_ids
 
     def self.for_project(project, scope:, user:, relation_types: ViewAudienceSelector::DEFAULT_RELATION_TYPES, selection_only: false)
       selection = PerformanceTrace.measure_with_sql('diagram.selection', category: :project, scope: scope, focus_id: project.id) do
@@ -21,16 +19,8 @@ module Cosmosys
       selection = PerformanceTrace.measure('diagram.selection_filter', category: :project, scope: scope) do
         diagram_selection(selection)
       end
-      model = PerformanceTrace.measure('diagram.model_projection', category: :project, scope: scope) do
-        ViewAudienceModel.from_selection(selection)
-      end
       PerformanceTrace.measure('diagram.data_adapter', category: :project, scope: scope) do
-        new(
-          model,
-          focus_project_id: project.id,
-          selected_issues: selection.all_items,
-          selected_relations: selection.relations + selection.boundary_relations
-        )
+        new(selection, focus_project_id: project.id)
       end
     end
 
@@ -77,16 +67,8 @@ module Cosmosys
       selection = PerformanceTrace.measure('diagram.selection_filter', category: :item, scope: scope) do
         diagram_selection(selection)
       end
-      model = PerformanceTrace.measure('diagram.model_projection', category: :item, scope: scope) do
-        ViewAudienceModel.from_selection(selection)
-      end
       PerformanceTrace.measure('diagram.data_adapter', category: :item, scope: scope) do
-        new(
-          model,
-          focus_project_id: issue.project_id,
-          selected_issues: selection.all_items,
-          selected_relations: selection.relations + selection.boundary_relations
-        )
+        new(selection, focus_project_id: issue.project_id)
       end
     end
 
@@ -94,18 +76,21 @@ module Cosmosys
       Array(issues).select { |issue| issue.project_id != focus_project_id }.map(&:id).to_set
     end
 
-    def initialize(model, focus_project_id:, selected_issues:, selected_relations:)
-      @model = model
+    def initialize(selection, focus_project_id:)
+      @selection = selection
       @focus_project_id = focus_project_id
-      hydrate_selected_items(selected_issues)
-      @relations = Array(selected_relations).sort_by(&:id)
+      @issues = selection.all_items
+      @issue_ids = @issues.map(&:id).to_set
+      @audience_issue_ids = selection.audience_item_ids
+      @relations = (selection.relations + selection.boundary_relations).uniq(&:id).sort_by(&:id)
+      @boundary_issue_ids = self.class.project_boundary_issue_ids(@issues, focus_project_id: focus_project_id)
     end
 
     def root_entries
-      children_by_parent = model_items.group_by(&:parent_id)
-      model_items.reject { |item| model_item_ids.include?(item.parent_id) }
-                 .sort_by { |item| item_order(item) }
-                 .map { |item| build_entry(item, children_by_parent) }
+      children_by_parent = issues.group_by(&:parent_issue_id)
+      issues.reject { |issue| @issue_ids.include?(issue.parent_issue_id) }
+            .sort_by { |issue| item_order(issue) }
+            .map { |issue| build_entry(issue, children_by_parent) }
     end
 
     def component
@@ -119,36 +104,12 @@ module Cosmosys
 
     private
 
-    def hydrate_selected_items(selected_issues)
-      @issues_by_source_id = Array(selected_issues).index_by(&:id)
-      @model_items = model.all_items.select { |item| @issues_by_source_id.key?(item.source_id) }
-      @issues_by_model_id = @model_items.to_h do |item|
-        [item.id, @issues_by_source_id.fetch(item.source_id)]
-      end
-      @issues = @issues_by_model_id.values.uniq(&:id)
-      @model_item_ids = @model_items.map(&:id).to_set
-      @audience_issue_ids = model.audience_items.filter_map do |item|
-        @issues_by_model_id[item.id]&.id
-      end.to_set
-      @boundary_issue_ids = self.class.project_boundary_issue_ids(@issues, focus_project_id: @focus_project_id)
-    end
-
-    def model_items
-      @model_items
-    end
-
-    def model_item_ids
-      @model_item_ids
-    end
-
-    def item_order(item)
-      issue = @issues_by_model_id.fetch(item.id)
+    def item_order(issue)
       [issue.csposition || 0, issue.lft || 0, issue.id]
     end
 
-    def build_entry(item, children_by_parent)
-      issue = @issues_by_model_id.fetch(item.id)
-      children = Array(children_by_parent[item.id]).sort_by { |child| item_order(child) }
+    def build_entry(issue, children_by_parent)
+      children = Array(children_by_parent[issue.id]).sort_by { |child| item_order(child) }
       {
         issue: issue,
         boundary: @boundary_issue_ids.include?(issue.id),

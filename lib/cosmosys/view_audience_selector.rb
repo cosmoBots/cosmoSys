@@ -37,7 +37,6 @@ module Cosmosys
       :relations,
       :boundary_relations,
       :relation_context_items,
-      :diagram_model,
       keyword_init: true
     ) do
       def audience_item_ids
@@ -63,23 +62,20 @@ module Cosmosys
 
     class InvalidScope < ArgumentError; end
 
-    def self.for_project(project, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES, include_diagram_model: false)
-      new(project, category: :project, scope: scope, user: user, relation_types: relation_types,
-          include_diagram_model: include_diagram_model).select
+    def self.for_project(project, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES)
+      new(project, category: :project, scope: scope, user: user, relation_types: relation_types).select
     end
 
-    def self.for_item(issue, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES, include_diagram_model: false)
-      new(issue, category: :item, scope: scope, user: user, relation_types: relation_types,
-          include_diagram_model: include_diagram_model).select
+    def self.for_item(issue, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES)
+      new(issue, category: :item, scope: scope, user: user, relation_types: relation_types).select
     end
 
-    def initialize(focus, category:, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES, include_diagram_model: false)
+    def initialize(focus, category:, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES)
       @focus = focus
       @category = category.to_sym
       @scope = scope.to_sym
       @user = user
       @relation_types = Array(relation_types).map(&:to_s).uniq
-      @include_diagram_model = include_diagram_model
       reset_traversal_metrics
       validate_scope!
     end
@@ -131,11 +127,6 @@ module Cosmosys
         boundary_relations: boundary_relations,
         relation_context_items: relation_context
       )
-      if @include_diagram_model
-        selection.diagram_model = PerformanceTrace.measure('selector.model_projection', category: @category, scope: @scope) do
-          ViewAudienceModel.from_selection(selection)
-        end
-      end
       selection
     end
 

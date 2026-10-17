@@ -1,9 +1,8 @@
 require 'set'
 
 module Cosmosys
-  # Immutable, ActiveRecord-free projection of the content selected for a view.
-  # It can be built from a live selector result or from a portable snapshot
-  # fixture, so diagram code and tests can share one data contract.
+  # Immutable, ActiveRecord-free model for the portable diagram-lab fixture.
+  # Production selectors and painters exchange ActiveRecord records directly.
   class ViewAudienceModel
     Project = Struct.new(:id, :identifier, :name, :cscode, :parent_identifier, keyword_init: true)
     Item = Struct.new(
@@ -20,25 +19,6 @@ module Cosmosys
     attr_reader :focus_id, :category, :scope, :projects, :audience_items,
                 :structural_context_items, :relation_context_items, :relations,
                 :boundary_relations
-
-    def self.from_selection(selection)
-      PerformanceTrace.aggregate(
-        'item.validity',
-        category: selection.category, scope: selection.scope, selected_items: selection.all_items.size
-      ) do
-        new(
-          focus_id: focus_identity(selection.focus),
-          category: selection.category,
-          scope: selection.scope,
-          projects: project_records(selection),
-          audience_items: item_records(selection.audience_items, selection),
-          structural_context_items: item_records(selection.structural_context_items, selection),
-          relation_context_items: item_records(selection.relation_context_items, selection),
-          relations: relation_records(selection.relations, boundary: false),
-          boundary_relations: relation_records(selection.boundary_relations, boundary: true)
-        )
-      end
-    end
 
     # Builds the same value model from the portable, generic Feature projection
     # embedded in the Osiris diagram-selection reference. This path needs no
@@ -89,74 +69,8 @@ module Cosmosys
       )
     end
 
-    # Projects live ActiveRecord rows into the same immutable graph contract
-    # used by the selector laboratory. Diagram selection can then run against
-    # an in-memory snapshot without retaining ActiveRecord objects.
-    def self.from_records(projects:, issues:, relations:, focus_id: nil, category: :source, scope: :all)
-      project_records = Array(projects).map do |project|
-        Project.new(
-          id: project.id,
-          identifier: project.identifier.to_s,
-          name: project.name.to_s,
-          cscode: project.cscode.to_s,
-          parent_identifier: project.parent&.identifier&.to_s
-        )
-      end
-      project_by_id = project_records.index_by(&:id)
-      issue_by_id = Array(issues).index_by(&:id)
-      item_records = Array(issues).map do |issue|
-        Item.new(
-          id: issue.csid.presence || "item:#{issue.id}",
-          source_id: issue.id,
-          csid: issue.csid&.to_s,
-          csidnum: issue.csidnum,
-          subject: issue.subject.to_s,
-          description: issue.description.to_s,
-          tracker: issue.tracker&.name.to_s,
-          project_id: issue.project_id,
-          project_identifier: project_by_id[issue.project_id]&.identifier.to_s,
-          parent_id: issue_by_id[issue.parent_id]&.then { |parent| parent.csid.presence || "item:#{parent.id}" }&.to_s,
-          position: issue.csposition,
-          tree_left: issue.lft,
-          status: issue.status&.name.to_s,
-          priority: issue.priority&.name.to_s,
-          due_date: issue.due_date&.iso8601,
-          done_ratio: issue.done_ratio.to_i,
-          profile: issue.cosmosys_item_kind_key.to_s,
-          url: Rails.application.routes.url_helpers.issue_path(issue),
-          presentation: issue_presentation(issue)
-        )
-      end
-      item_id_by_source_id = item_records.to_h { |item| [item.source_id, item.id] }
-      relation_records = Array(relations).filter_map do |relation|
-        from_id = item_id_by_source_id[relation.issue_from_id]
-        to_id = item_id_by_source_id[relation.issue_to_id]
-        next unless from_id && to_id
-
-        Relation.new(
-          id: "relation:#{relation.id}",
-          source_id: relation.id,
-          from_item_id: from_id,
-          to_item_id: to_id,
-          relation_type: relation.relation_type.to_s,
-          delay: relation.delay.to_i,
-          restricted: relation.respond_to?(:csys_restricted) && relation.csys_restricted == true,
-          boundary: false
-        )
-      end
-
-      new(
-        focus_id: focus_id,
-        category: category,
-        scope: scope,
-        projects: project_records,
-        audience_items: item_records,
-        relations: relation_records
-      )
-    end
-
     # Rehydrates a canonical node/adjacency selection captured from a diagram
-    # into the same paint-model objects produced for live selector results.
+    # into the portable fixture model used by diagram_lab.
     def self.from_feature_selection(snapshot:, selection:, focus_id:, category:, scope:)
       source = from_feature_snapshot(snapshot)
       selected_ids = Array(selection.fetch('nodes')).map(&:to_s).to_set
@@ -657,105 +571,6 @@ module Cosmosys
           parent_identifier = project_by_identifier[parent_identifier]&.parent_identifier
         end
         ancestors
-      end
-
-      def focus_identity(focus)
-        if focus.respond_to?(:csid)
-          focus.csid.presence || "item:#{focus.id}"
-        else
-          focus.identifier.to_s
-        end
-      end
-
-      def project_records(selection)
-        item_projects = (selection.audience_items + selection.structural_context_items + selection.relation_context_items).map(&:project)
-        projects_by_id = (Array(selection.projects) + item_projects).compact.uniq(&:id).to_h { |project| [project.id, project] }
-        projects_by_id.values.map do |project|
-          Project.new(
-            id: project.id,
-            identifier: project.identifier.to_s,
-            name: project.name.to_s,
-            cscode: project.cscode.to_s,
-            parent_identifier: project.parent&.identifier&.to_s
-          )
-        end
-      end
-
-      def item_records(issues, selection)
-        all_issues = selection.audience_items + selection.structural_context_items + selection.relation_context_items
-        included_by_source_id = all_issues.to_h { |issue| [issue.id, issue] }
-        Array(issues).map do |issue|
-          item_id = issue.csid.presence || "item:#{issue.id}"
-          parent = included_by_source_id[issue.parent_id]
-          Item.new(
-            id: item_id.to_s,
-            source_id: issue.id,
-            csid: issue.csid&.to_s,
-            csidnum: issue.csidnum,
-            subject: issue.subject.to_s,
-            description: issue.description.to_s,
-            tracker: issue.tracker&.name.to_s,
-            project_id: issue.project_id,
-            project_identifier: issue.project&.identifier.to_s,
-            parent_id: parent && (parent.csid.presence || "item:#{parent.id}").to_s,
-            position: issue.csposition,
-            tree_left: issue.lft,
-            status: issue.status&.name.to_s,
-            priority: issue.priority&.name.to_s,
-            due_date: issue.due_date&.iso8601,
-            done_ratio: issue.done_ratio.to_i,
-            profile: issue.cosmosys_item_kind_key.to_s,
-            url: Rails.application.routes.url_helpers.issue_path(issue),
-            presentation: issue_presentation(issue)
-          )
-        end
-      end
-
-      def relation_records(relations, boundary:)
-        Array(relations).map do |relation|
-          Relation.new(
-            id: "relation:#{relation.id}",
-            source_id: relation.id,
-            from_item_id: relation.issue_from.csid.presence || "item:#{relation.issue_from_id}",
-            to_item_id: relation.issue_to.csid.presence || "item:#{relation.issue_to_id}",
-            relation_type: relation.relation_type.to_s,
-            delay: relation.delay.to_i,
-            restricted: relation.respond_to?(:csys_restricted) ? relation.csys_restricted == true : false,
-            boundary: boundary
-          )
-        end
-      end
-
-      def issue_presentation(issue)
-        # Validity may recursively inspect blocker relations. It is identical
-        # for every diagram kind and boundary variant, so compute it once while
-        # projecting this selected issue into the immutable paint model.
-        diagram_valid = issue.cosmosys_diagram_valid?
-        %w[hierarchy combined dependency].to_h do |kind|
-          labels = [false, true].to_h do |boundary|
-            [boundary ? 'boundary' : 'normal', {
-              'node_label' => issue.cosmosys_diagram_node_label(kind, boundary: boundary, dependency_container: false),
-              'container_node_label' => issue.cosmosys_diagram_node_label(kind, boundary: boundary, dependency_container: true),
-              'cluster_label' => issue.cosmosys_hierarchy_cluster_label(boundary: boundary),
-              'container_label' => issue.cosmosys_hierarchy_container_label(boundary: boundary),
-              'font_name' => issue.cosmosys_diagram_font_name(kind, boundary: boundary),
-              'container_font_name' => issue.cosmosys_diagram_font_name(kind, boundary: boundary)
-            }]
-          end
-          [kind, {
-            'labels' => labels,
-            'shape' => issue.cosmosys_diagram_shape(kind).to_s,
-            'fill_color' => issue.cosmosys_diagram_fill_color(kind).to_s,
-            'border_color' => issue.cosmosys_diagram_border_color(kind, valid: diagram_valid).to_s,
-            'font_color' => issue.cosmosys_diagram_font_color(kind).to_s,
-            'node_margin' => issue.cosmosys_diagram_node_margin(kind).to_s,
-            'sibling_rank' => issue.cosmosys_diagram_sibling_rank(kind),
-            'penwidth' => issue.cosmosys_diagram_penwidth(kind),
-            'cluster_color' => issue.cosmosys_hierarchy_cluster_color(valid: diagram_valid).to_s,
-            'cluster_fill_color' => issue.cosmosys_hierarchy_cluster_fill_color&.to_s,
-            'cluster_penwidth' => issue.cosmosys_hierarchy_cluster_penwidth
-          }]
-        end
       end
 
       def freeze_records(records)
