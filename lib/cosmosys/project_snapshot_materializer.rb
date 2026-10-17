@@ -157,7 +157,7 @@ module Cosmosys
         csys_wp: source['wp'],
         csys_wp_title: source['wp_title'],
         csys_report_export_format: source['report_export_format'],
-        csys_calculate_requirement_chain_validity: source['calculate_requirement_chain_validity'] == true
+        csys_calculate_requirement_chain_validity: source.fetch('calculate_requirement_chain_validity', true) == true
       )
       tracker_keys = source.fetch('trackers').map { |entry| entry['key'] }
       project.trackers = Tracker.where(csys_key: tracker_keys).or(Tracker.where(name: tracker_keys)).to_a

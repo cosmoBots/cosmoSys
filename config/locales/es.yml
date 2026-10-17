@@ -25,7 +25,7 @@ es:
   label_cosmosys_approved_presentation_changed: "La evidencia consolidada ha cambiado"
   label_cosmosys_requirement_chain_validity: Validez de la cadena de requisitos
   label_cosmosys_calculate_requirement_chain_validity: Calcular la validez a lo largo de la cadena de requisitos
-  text_cosmosys_calculate_requirement_chain_validity_help: "Si se desactiva, el pintado de diagramas omite las comprobaciones de madurez y evidencia consolidada de la cadena de requisitos para evitar recorrer las cadenas bloqueantes. Está desactivado por defecto por rendimiento; puede activarse por proyecto cuando sea necesario."
+  text_cosmosys_calculate_requirement_chain_validity_help: "Si se desactiva, el pintado de diagramas omite las comprobaciones de madurez y evidencia consolidada de la cadena de requisitos para evitar recorrer las cadenas bloqueantes. Está activado por defecto; puede desactivarse por proyecto si el rendimiento lo requiere."
   text_cosmosys_approved_presentation_changed: "El contenido resuelto actual difiere de la evidencia aceptada en la última subida de madurez. Baje y vuelva a subir la madurez del ítem para aceptarlo."
   label_cosmosys_approved_text: "Texto resuelto aprobado"
   label_cosmosys_current_text: "Texto resuelto actual"
