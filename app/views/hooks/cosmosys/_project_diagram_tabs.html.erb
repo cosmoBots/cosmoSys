@@ -1,0 +1,40 @@
+<% diagram_tabs = [
+  ['combined', l(:label_cosmosys_project_combined_diagram)],
+  ['hierarchy', l(:label_cosmosys_project_hierarchy_diagram)],
+  ['dependency', l(:label_cosmosys_project_dependency_diagram)]
+] %>
+<% wrapper_id = "cosmosys-project-diagrams-#{project.id}" %>
+<section class="cosmosys-project-diagram-tabs" data-cosmosys-project-diagram-tabs>
+  <nav class="tabs cosmosys-issue-panel-tabs cosmosys-project-diagram-tab-list" role="tablist" aria-label="<%= l(:label_cosmosys_project) %>">
+    <ul>
+      <% diagram_tabs.each do |key, title| %>
+        <% selected = key == 'combined' %>
+        <% tab_id = "#{wrapper_id}-tab-#{key}" %>
+        <% panel_id = "#{wrapper_id}-panel-#{key}" %>
+        <li>
+          <%= link_to title, "##{panel_id}",
+                      id: tab_id,
+                      role: 'tab',
+                      aria: { controls: panel_id, selected: selected },
+                      tabindex: (selected ? 0 : -1),
+                      class: "cosmosys-project-diagram-tab#{' selected' if selected}",
+                      data: {
+                        cosmosys_project_diagram_tab: key,
+                        panel_url: cosmosys_diagram_panel_path(project_id: project.identifier, kind: key)
+                      } %>
+        </li>
+      <% end %>
+    </ul>
+  </nav>
+
+  <% diagram_tabs.each do |key, _title| %>
+    <% selected = key == 'combined' %>
+    <div id="<%= "#{wrapper_id}-panel-#{key}" %>"
+         role="tabpanel"
+         aria-labelledby="<%= "#{wrapper_id}-tab-#{key}" %>"
+         data-cosmosys-project-diagram-panel="<%= key %>"
+         data-loading-text="<%= l(:text_cosmosys_issue_panel_loading) %>"
+         data-error-text="<%= l(:text_cosmosys_issue_panel_error) %>"
+         <%= 'hidden' unless selected %>></div>
+  <% end %>
+</section>

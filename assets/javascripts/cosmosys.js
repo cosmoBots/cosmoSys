@@ -93,6 +93,80 @@
     });
   }
 
+  function loadProjectDiagramPanel(wrapper, key) {
+    var panel = wrapper.querySelector('[data-cosmosys-project-diagram-panel="' + key + '"]');
+    var tab = wrapper.querySelector('[data-cosmosys-project-diagram-tab="' + key + '"]');
+    if (!panel || !tab || panel.dataset.loaded === '1' || panel.dataset.loading === '1') return;
+
+    panel.dataset.loading = '1';
+    panel.replaceChildren();
+    var loading = document.createElement('p');
+    loading.className = 'cosmosys-issue-panel-loading';
+    loading.setAttribute('role', 'status');
+    loading.setAttribute('aria-live', 'polite');
+    var spinner = document.createElement('span');
+    spinner.className = 'cosmosys-spinner';
+    spinner.setAttribute('aria-hidden', 'true');
+    var text = document.createElement('span');
+    text.textContent = panel.dataset.loadingText || 'Loading panel…';
+    loading.appendChild(spinner);
+    loading.appendChild(text);
+    panel.appendChild(loading);
+
+    fetch(tab.dataset.panelUrl, {
+      credentials: 'same-origin',
+      headers: { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(function(response) {
+      if (response.redirected) throw new Error('Authentication required');
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.text();
+    }).then(function(html) {
+      panel.innerHTML = html;
+      panel.dataset.loaded = '1';
+      delete panel.dataset.loading;
+      document.dispatchEvent(new CustomEvent('cosmosys:project-diagram-panel-loaded', {
+        detail: { key: key, panel: panel }
+      }));
+    }).catch(function(error) {
+      delete panel.dataset.loading;
+      panel.dataset.loaded = '0';
+      panel.textContent = panel.dataset.errorText || 'Could not load this panel. Select the tab to try again.';
+      console.error('Could not load deferred project diagram.', key, error);
+    });
+  }
+
+  function initProjectDiagramTabs() {
+    document.querySelectorAll('[data-cosmosys-project-diagram-tabs]').forEach(function(wrapper) {
+      var tabs = Array.from(wrapper.querySelectorAll('[data-cosmosys-project-diagram-tab]'));
+      function activate(tab, focus, event) {
+        if (event) event.preventDefault();
+        tabs.forEach(function(candidate) {
+          var active = candidate === tab;
+          candidate.setAttribute('aria-selected', active ? 'true' : 'false');
+          candidate.tabIndex = active ? 0 : -1;
+          candidate.classList.toggle('selected', active);
+          var panel = wrapper.querySelector('[data-cosmosys-project-diagram-panel="' + candidate.dataset.cosmosysProjectDiagramTab + '"]');
+          if (panel) panel.hidden = !active;
+        });
+        if (focus) tab.focus();
+        loadProjectDiagramPanel(wrapper, tab.dataset.cosmosysProjectDiagramTab);
+      }
+
+      tabs.forEach(function(tab, index) {
+        tab.addEventListener('click', function(event) { activate(tab, false, event); });
+        tab.addEventListener('keydown', function(event) {
+          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+          event.preventDefault();
+          var offset = event.key === 'ArrowRight' ? 1 : -1;
+          activate(tabs[(index + offset + tabs.length) % tabs.length], true);
+        });
+      });
+
+      var initial = tabs.find(function(tab) { return tab.getAttribute('aria-selected') === 'true'; });
+      if (initial) loadProjectDiagramPanel(wrapper, initial.dataset.cosmosysProjectDiagramTab);
+    });
+  }
+
   function collapseStorageKey() {
     var treeView = document.querySelector('.cosmosys-tree-view[data-cosmosys-tree]');
     if (!treeView) return null;
@@ -1245,6 +1319,7 @@
 
   document.addEventListener('DOMContentLoaded', function() {
     initIssuePanelTabs();
+    initProjectDiagramTabs();
     initDocumentReferenceSearch();
     relocateProjectDiagrams();
     restoreCollapsedState();
