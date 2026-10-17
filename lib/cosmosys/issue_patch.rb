@@ -318,8 +318,9 @@ module Cosmosys
       end
     end
 
-    def cosmosys_diagram_border_color(_kind = 'hierarchy')
-      return 'red' unless cosmosys_diagram_valid?
+    def cosmosys_diagram_border_color(_kind = 'hierarchy', valid: nil)
+      valid = cosmosys_diagram_valid? if valid.nil?
+      return 'red' unless valid
 
       profile_value = cosmosys_item_kind.value(:diagram_border_color, self, kind: _kind)
       return profile_value if profile_value.present?
@@ -351,8 +352,9 @@ module Cosmosys
       cosmosys_hierarchy_container_label(boundary: boundary)
     end
 
-    def cosmosys_hierarchy_cluster_color
-      cosmosys_diagram_valid? ? 'black' : 'red'
+    def cosmosys_hierarchy_cluster_color(valid: nil)
+      valid = cosmosys_diagram_valid? if valid.nil?
+      valid ? 'black' : 'red'
     end
 
     def cosmosys_hierarchy_cluster_fill_color
@@ -480,8 +482,17 @@ module Cosmosys
     public
 
     def cosmosys_diagram_valid?
-      maturity_valid = !cosmosys_item_kind.validate_blocking_maturity || cosmosys_blocking_maturity_consistent?
-      maturity_valid && !cosmosys_approved_presentation_inconsistent?
+      return true unless project&.cosmosys_calculate_requirement_chain_validity?
+
+      PerformanceTrace.measure(
+        'item.validity',
+        item_id: id,
+        item_kind: cosmosys_item_kind_key,
+        project_id: project_id
+      ) do
+        maturity_valid = !cosmosys_item_kind.validate_blocking_maturity || cosmosys_blocking_maturity_consistent?
+        maturity_valid && !cosmosys_approved_presentation_inconsistent?
+      end
     end
 
     def cosmosys_approved_presentation_result(user: User.current)

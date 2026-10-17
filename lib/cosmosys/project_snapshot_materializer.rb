@@ -3,10 +3,11 @@ require 'digest'
 
 module Cosmosys
   class ProjectSnapshotMaterializer
-    def initialize(source, user:, attributes:)
+    def initialize(source, user:, attributes:, purpose: :materialization)
       @source = source
       @user = user
       @attributes = attributes.to_h.stringify_keys
+      @purpose = purpose.to_sym
     end
 
     def call
@@ -62,7 +63,7 @@ module Cosmosys
 
     private
 
-    attr_reader :source, :user, :attributes
+    attr_reader :source, :user, :attributes, :purpose
 
     def plan
       @plan
@@ -131,6 +132,12 @@ module Cosmosys
       restore_wikis!(projects, entries) if restore_wiki
       rewrite_internal_references!(items, entries.flat_map { |entry| entry.fetch('items') }, marker_map) if include_items
       restore_presentation_baselines!(items, entries.flat_map { |entry| entry.fetch('items') }) if include_items && faithful?
+      Cosmosys::ProjectSnapshotMaterializationCallbacks.run(
+        purpose: purpose,
+        projects: projects.values,
+        items: items.values,
+        user: user
+      ) if include_items
       register_copy_maps!(copy_context, items, documents)
       copy_context.summary[:catalog_refs] = marker_map.length if copy_context
     end
@@ -149,7 +156,8 @@ module Cosmosys
         csys_report_code: source['report_code'],
         csys_wp: source['wp'],
         csys_wp_title: source['wp_title'],
-        csys_report_export_format: source['report_export_format']
+        csys_report_export_format: source['report_export_format'],
+        csys_calculate_requirement_chain_validity: source['calculate_requirement_chain_validity'] == true
       )
       tracker_keys = source.fetch('trackers').map { |entry| entry['key'] }
       project.trackers = Tracker.where(csys_key: tracker_keys).or(Tracker.where(name: tracker_keys)).to_a

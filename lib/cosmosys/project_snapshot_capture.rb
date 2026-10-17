@@ -197,6 +197,7 @@ module Cosmosys
         'wp' => selected.csys_wp,
         'wp_title' => selected.csys_wp_title,
         'report_export_format' => selected.cosmosys_effective_report_export_format,
+        'calculate_requirement_chain_validity' => selected.cosmosys_calculate_requirement_chain_validity?,
         'enabled_modules' => selected.enabled_module_names.map(&:to_s).sort,
         'trackers' => selected.trackers.map { |tracker| tracker_identity(tracker) }.sort_by { |entry| entry['key'].to_s }
       }

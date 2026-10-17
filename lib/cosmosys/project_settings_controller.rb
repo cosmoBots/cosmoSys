@@ -92,6 +92,9 @@ module Cosmosys
       @project.cosmosys_ods_template_asset = template_asset_id ? Cosmosys::TemplateAsset.available_ods.find(template_asset_id) : nil
       assign_report_template!
       @project.csys_project_passphrase = params.dig(:cosmosys_setting, :project_passphrase).to_s.presence
+      @project.csys_calculate_requirement_chain_validity = ActiveModel::Type::Boolean.new.cast(
+        params.dig(:cosmosys_setting, :calculate_requirement_chain_validity)
+      )
       @project.cosmosys_enable_required_trackers!
       @project.cosmosys_reconfigure_modules_for_profile! if profile_changed
       @project.save!

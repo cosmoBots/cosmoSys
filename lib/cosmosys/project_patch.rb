@@ -39,7 +39,8 @@ module Cosmosys
       validate :cosmosys_validate_project_identity_immutable, on: :update
       validate :cosmosys_validate_report_template_selection
       after_create :cosmosys_apply_initial_profile_contract!
-      after_commit :cosmosys_invalidate_language_dependent_diagrams, on: :update, if: :saved_change_to_csys_language?
+      after_commit :cosmosys_invalidate_language_dependent_diagrams, on: :update,
+                   if: :cosmosys_diagram_presentation_setting_changed?
 
       attr_readonly :cscode
       attr_accessor :csys_modules_explicit
@@ -47,6 +48,10 @@ module Cosmosys
 
     def project_root
       root
+    end
+
+    def cosmosys_calculate_requirement_chain_validity?
+      csys_calculate_requirement_chain_validity == true
     end
 
     def cosmosys_scope
@@ -197,6 +202,10 @@ module Cosmosys
       issue_ids = issues.select(:id)
       Cosmosys::Diagram.where(project_id: id).or(Cosmosys::Diagram.where(issue_id: issue_ids))
                        .update_all(state: 'obsolete', updated_at: Time.current)
+    end
+
+    def cosmosys_diagram_presentation_setting_changed?
+      saved_change_to_csys_language? || saved_change_to_csys_calculate_requirement_chain_validity?
     end
 
     def tracker_ids=(ids)

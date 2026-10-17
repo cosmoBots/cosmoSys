@@ -154,6 +154,7 @@ require_dependency File.expand_path('lib/cosmosys/project_snapshot_import_stage'
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_package_reader', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_materialization_plan', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_materialization_summary', __dir__)
+require_dependency File.expand_path('lib/cosmosys/project_snapshot_materialization_callbacks', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_materializer', __dir__)
 require_dependency File.expand_path('lib/cosmosys/ods_text_normalizer', __dir__)
 require_dependency File.expand_path('lib/cosmosys/ods_import_service', __dir__)

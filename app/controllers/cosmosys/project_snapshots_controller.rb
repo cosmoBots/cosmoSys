@@ -115,7 +115,8 @@ module Cosmosys
 
       destination = Cosmosys::ProjectSnapshotMaterializer.new(
         @snapshot, user: User.current,
-        attributes: attributes
+        attributes: attributes,
+        purpose: :snapshot
       ).call
       notice = Cosmosys::ProjectSnapshotMaterializationSummary.new(project: destination, plan: plan).message
       redirect_to project_path(destination), notice: notice
@@ -221,7 +222,7 @@ module Cosmosys
 
         begin
           destination = Cosmosys::ProjectSnapshotMaterializer.new(
-            source, user: User.current, attributes: attributes
+            source, user: User.current, attributes: attributes, purpose: :snapshot
           ).call
         ensure
           Cosmosys::ProjectSnapshotImportStage.cleanup(token, user: User.current, project: @project)

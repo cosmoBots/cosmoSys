@@ -125,6 +125,15 @@
       <% source_label = passphrase_source.csys_project_passphrase.present? ? passphrase_source.name : l(:text_cosmosys_project_identifier_default) %>
       <em class="info"><%= l(:text_cosmosys_project_passphrase_help, effective: @project.cosmosys_effective_project_passphrase, source: source_label) %></em>
     </p>
+    <h4><%= l(:label_cosmosys_requirement_chain_validity) %></h4>
+    <p>
+      <%= hidden_field_tag 'cosmosys_setting[calculate_requirement_chain_validity]', '0' %>
+      <label class="block">
+        <%= check_box_tag 'cosmosys_setting[calculate_requirement_chain_validity]', '1', @project.cosmosys_calculate_requirement_chain_validity? %>
+        <%= l(:label_cosmosys_calculate_requirement_chain_validity) %>
+      </label>
+      <em class="info"><%= l(:text_cosmosys_calculate_requirement_chain_validity_help) %></em>
+    </p>
     <p class="info"><%= l(:text_cosmosys_report_settings_help) %></p>
     <h4><%= l(:label_cosmosys_report_landscape_scale_threshold) %></h4>
     <p>

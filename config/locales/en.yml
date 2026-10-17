@@ -23,6 +23,9 @@ en:
   button_add_subtask: "Add subitem"
   text_issues_destroy_descendants_confirmation: "The %{count} descendant subitem(s) will also be deleted."
   label_cosmosys_approved_presentation_changed: "Consolidated evidence has changed"
+  label_cosmosys_requirement_chain_validity: Requirement-chain validity
+  label_cosmosys_calculate_requirement_chain_validity: Calculate validity across the requirement chain
+  text_cosmosys_calculate_requirement_chain_validity_help: "When disabled, diagram rendering skips requirement-chain maturity and approved-presentation checks to avoid traversing blocker chains. It is disabled by default for performance; enable it per project when needed."
   text_cosmosys_approved_presentation_changed: "The current resolved content differs from the evidence accepted at the last maturity increase. Lower and raise the item's maturity again to accept it."
   label_cosmosys_approved_text: "Approved resolved text"
   label_cosmosys_current_text: "Current resolved text"

@@ -36,6 +36,7 @@ module Cosmosys
         csys_wp: source.csys_wp,
         csys_wp_title: source.csys_wp_title,
         csys_report_export_format: source.csys_report_export_format,
+        csys_calculate_requirement_chain_validity: source.csys_calculate_requirement_chain_validity?,
         cslast_id: destination.issues.maximum(:csidnum).to_i
       )
       destination.cosmosys_enable_required_trackers!
