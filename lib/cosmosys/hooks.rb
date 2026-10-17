@@ -5,7 +5,7 @@ module Cosmosys
         key: "diagram_#{kind}", location: :content,
         title: "label_cosmosys_#{kind}_diagram",
         url: ->(view, issue) { view.cosmosys_diagram_panel_path(project_id: issue.project.identifier, kind: kind, issue_id: issue.id) },
-        available: ->(issue, _user) { issue.cosmosys_report_diagrams? },
+        available: ->(issue, _user) { issue.cosmosys_diagram_visible? },
         default: ->(issue, _user) { issue.cosmosys_preferred_report_diagram.to_s == kind }
       )
     end

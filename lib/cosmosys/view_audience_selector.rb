@@ -109,6 +109,10 @@ module Cosmosys
                                                         end
       relation_context_ids = relation_context.map(&:id).to_set
       structural_ids = structural_ancestors(audience_ids, seed_items: items).map(&:id).to_set
+      if (@category == :item && @scope == :node_and_descendants) ||
+         (@category == :project && @scope == :project)
+        structural_ids.merge(project_boundary_children(audience_ids))
+      end
       structural_ids.merge(structural_ancestors(
         relation_context_ids, stop_ids: audience_ids,
         exclude_ids: audience_ids | relation_context_ids,
@@ -128,6 +132,24 @@ module Cosmosys
         relation_context_items: relation_context
       )
       selection
+    end
+
+    # A bounded hierarchy view still displays the first child across a
+    # project boundary. It is context, not audience: do not expand its
+    # descendants unless the caller explicitly selected an across-project
+    # scope.
+    def project_boundary_children(parent_ids)
+      return Set.new if parent_ids.empty?
+
+      focus_project_id = @category == :project ? @focus.id : @focus.project_id
+      children = Issue.visible(@user)
+                      .where(parent_id: parent_ids.to_a)
+                      .where.not(project_id: focus_project_id)
+                      .includes(:tracker, :status, :priority, { project: :parent, parent: [:project, :tracker, :status, :priority] })
+                      .to_a
+      @traversal_metrics[:candidate_item_ids].merge(children.map(&:id))
+      @traversal_metrics[:loaded_item_ids].merge(children.map(&:id))
+      children.map(&:id).to_set
     end
 
     def reset_traversal_metrics
