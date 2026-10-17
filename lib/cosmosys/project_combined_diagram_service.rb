@@ -31,7 +31,15 @@ module Cosmosys
 
     def fetch
       discovery = Cosmosys::PerformanceTrace.measure('diagram.discovery', project_id: @project.id, kind: diagram_kind) do
-        { signature: combined_signature, empty: all_rendered_issues.empty? }
+        signature = Cosmosys::PerformanceTrace.aggregate('item.validity', phase: 'cache_fingerprint', project_id: @project.id, kind: diagram_kind) do
+          Cosmosys::PerformanceTrace.measure('diagram.cache_fingerprint', project_id: @project.id, kind: diagram_kind) do
+            combined_signature
+          end
+        end
+        empty = Cosmosys::PerformanceTrace.measure('diagram.empty_check', project_id: @project.id, kind: diagram_kind) do
+          all_rendered_issues.empty?
+        end
+        { signature: signature, empty: empty }
       end
       fetch_cached_diagram(
         scope_attrs: { project_id: @project.id },

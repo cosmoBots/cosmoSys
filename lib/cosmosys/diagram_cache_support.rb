@@ -12,16 +12,28 @@ module Cosmosys
         render_variant: render_variant.to_s,
         layout_mode: layout_mode.to_s
       )
-      diagram = Cosmosys::Diagram.find_or_initialize_by(lookup)
       trace_attributes = scope_attrs.merge(kind: kind, render_variant: render_variant.to_s, layout_mode: layout_mode.to_s)
-      if diagram_cache_valid?(diagram, empty: empty, signature: signature, revision_state: revision_state)
+      diagram = Cosmosys::PerformanceTrace.measure('diagram.cache_lookup', trace_attributes) do
+        Cosmosys::Diagram.find_or_initialize_by(lookup)
+      end
+      cache_hit = cache_valid_with_trace(
+        diagram, empty: empty, signature: signature, revision_state: revision_state,
+        attributes: trace_attributes, stage: 'initial'
+      )
+      if cache_hit
         Cosmosys::PerformanceTrace.emit('diagram.cache_hit', trace_attributes.merge(cache: 'warm'), Process.clock_gettime(Process::CLOCK_MONOTONIC))
         return diagram
       end
 
-      with_diagram_generation_lock(lookup) do
-        diagram = Cosmosys::Diagram.find_or_initialize_by(lookup)
-        if diagram_cache_valid?(diagram, empty: empty, signature: signature, revision_state: revision_state)
+      with_diagram_generation_lock(lookup, trace_attributes) do
+        diagram = Cosmosys::PerformanceTrace.measure('diagram.cache_lookup', trace_attributes.merge(stage: 'locked_recheck')) do
+          Cosmosys::Diagram.find_or_initialize_by(lookup)
+        end
+        cache_hit = cache_valid_with_trace(
+          diagram, empty: empty, signature: signature, revision_state: revision_state,
+          attributes: trace_attributes, stage: 'locked_recheck'
+        )
+        if cache_hit
           Cosmosys::PerformanceTrace.emit('diagram.cache_hit', trace_attributes.merge(cache: 'waited'), Process.clock_gettime(Process::CLOCK_MONOTONIC))
           next diagram
         end
@@ -37,7 +49,9 @@ module Cosmosys
           layout_mode: layout_mode
         )
 
-        dot_source = empty ? nil : Cosmosys::PerformanceTrace.measure('diagram.gv', trace_attributes.merge(cache: 'cold')) { yield }
+        dot_source = empty ? nil : Cosmosys::PerformanceTrace.measure('diagram.gv', trace_attributes.merge(cache: 'cold', phase: 'paint')) do
+          Cosmosys::PerformanceTrace.aggregate('item.validity', trace_attributes.merge(phase: 'paint')) { yield }
+        end
         dot_body = dot_source.present? ? embed_dot_metadata(dot_source, metadata) : nil
         svg_source = dot_body.present? ? Cosmosys::PerformanceTrace.measure('diagram.svg', trace_attributes.merge(cache: 'cold')) { renderer.render_svg(dot_body) } : nil
         svg_body = svg_source.present? ? embed_svg_metadata(svg_source, metadata) : nil
@@ -57,12 +71,14 @@ module Cosmosys
       end
     end
 
-    def with_diagram_generation_lock(lookup)
+    def with_diagram_generation_lock(lookup, trace_attributes = {})
       lock_root = Rails.root.join('files', 'cosmosys', 'diagram_locks')
       FileUtils.mkdir_p(lock_root)
       lock_key = Digest::SHA256.hexdigest(lookup.sort_by { |key, _value| key.to_s }.flatten.join("\0"))
       File.open(lock_root.join("#{lock_key}.lock"), File::RDWR | File::CREAT, 0o640) do |lock|
+        lock_started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         lock.flock(File::LOCK_EX)
+        Cosmosys::PerformanceTrace.emit('diagram.cache_lock_wait', trace_attributes, lock_started)
         yield
       ensure
         lock.flock(File::LOCK_UN)
@@ -81,6 +97,15 @@ module Cosmosys
         revision_matches && signature_matches
       else
         diagram.signature == signature
+      end
+    end
+
+    def cache_valid_with_trace(diagram, empty:, signature:, revision_state:, attributes:, stage:)
+      trace_attributes = attributes.merge(stage: stage)
+      Cosmosys::PerformanceTrace.measure('diagram.cache_decision', trace_attributes) do
+        trace_attributes[:cache_hit] = diagram_cache_valid?(
+          diagram, empty: empty, signature: signature, revision_state: revision_state
+        )
       end
     end
 

@@ -22,17 +22,22 @@ module Cosmosys
                 :boundary_relations
 
     def self.from_selection(selection)
-      new(
-        focus_id: focus_identity(selection.focus),
-        category: selection.category,
-        scope: selection.scope,
-        projects: project_records(selection),
-        audience_items: item_records(selection.audience_items, selection),
-        structural_context_items: item_records(selection.structural_context_items, selection),
-        relation_context_items: item_records(selection.relation_context_items, selection),
-        relations: relation_records(selection.relations, boundary: false),
-        boundary_relations: relation_records(selection.boundary_relations, boundary: true)
-      )
+      PerformanceTrace.aggregate(
+        'item.validity',
+        category: selection.category, scope: selection.scope, selected_items: selection.all_items.size
+      ) do
+        new(
+          focus_id: focus_identity(selection.focus),
+          category: selection.category,
+          scope: selection.scope,
+          projects: project_records(selection),
+          audience_items: item_records(selection.audience_items, selection),
+          structural_context_items: item_records(selection.structural_context_items, selection),
+          relation_context_items: item_records(selection.relation_context_items, selection),
+          relations: relation_records(selection.relations, boundary: false),
+          boundary_relations: relation_records(selection.boundary_relations, boundary: true)
+        )
+      end
     end
 
     # Builds the same value model from the portable, generic Feature projection
@@ -722,6 +727,10 @@ module Cosmosys
       end
 
       def issue_presentation(issue)
+        # Validity may recursively inspect blocker relations. It is identical
+        # for every diagram kind and boundary variant, so compute it once while
+        # projecting this selected issue into the immutable paint model.
+        diagram_valid = issue.cosmosys_diagram_valid?
         %w[hierarchy combined dependency].to_h do |kind|
           labels = [false, true].to_h do |boundary|
             [boundary ? 'boundary' : 'normal', {
@@ -737,12 +746,12 @@ module Cosmosys
             'labels' => labels,
             'shape' => issue.cosmosys_diagram_shape(kind).to_s,
             'fill_color' => issue.cosmosys_diagram_fill_color(kind).to_s,
-            'border_color' => issue.cosmosys_diagram_border_color(kind).to_s,
+            'border_color' => issue.cosmosys_diagram_border_color(kind, valid: diagram_valid).to_s,
             'font_color' => issue.cosmosys_diagram_font_color(kind).to_s,
             'node_margin' => issue.cosmosys_diagram_node_margin(kind).to_s,
             'sibling_rank' => issue.cosmosys_diagram_sibling_rank(kind),
             'penwidth' => issue.cosmosys_diagram_penwidth(kind),
-            'cluster_color' => issue.cosmosys_hierarchy_cluster_color.to_s,
+            'cluster_color' => issue.cosmosys_hierarchy_cluster_color(valid: diagram_valid).to_s,
             'cluster_fill_color' => issue.cosmosys_hierarchy_cluster_fill_color&.to_s,
             'cluster_penwidth' => issue.cosmosys_hierarchy_cluster_penwidth
           }]

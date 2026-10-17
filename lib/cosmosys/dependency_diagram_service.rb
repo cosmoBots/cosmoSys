@@ -156,24 +156,13 @@ module Cosmosys
         @issue,
         scope: scope,
         user: User.current,
-        relation_types: @relation_types,
-        source_model: diagram_source_model
-      )
-    end
-
-    def diagram_source_model
-      @diagram_source_model ||= ViewAudienceDiagramData.source_model(
-        @issue.project,
-        user: User.current,
-        relation_types: @relation_types,
-        expand_relation_graph: @mode == :full
+        relation_types: @relation_types
       )
     end
 
     def focus_is_container?
       @focus_is_container ||= begin
-        focus_item_id = @issue.csid.presence || "item:#{@issue.id}"
-        diagram_source_model.all_items.any? { |item| item.parent_id == focus_item_id }
+        @issue.children.visible(User.current).includes(:project, :tracker).any?(&:cosmosys_diagram_visible?)
       end
     end
 

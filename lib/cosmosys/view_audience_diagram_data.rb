@@ -3,120 +3,102 @@ require_relative 'view_audience_model'
 require_relative 'view_audience_selector'
 
 module Cosmosys
-  # Bridges the selector's ActiveRecord-free diagram model to the existing
-  # Graphviz painters. The selected model is the source of truth for nodes,
-  # hierarchy and relations; ActiveRecord records are looked up only to reuse
-  # the established presentation methods while painting.
+  # Bridges the selector's hydrated ActiveRecord selection to the existing
+  # Graphviz painters. The portable model captures the selected graph for
+  # traversal; selected records are reused for established presentation
+  # methods without reloading items or relations from the database.
   class ViewAudienceDiagramData
     attr_reader :model, :issues, :relations, :boundary_issue_ids, :audience_issue_ids
 
-    def self.for_project(project, scope:, user:, relation_types: ViewAudienceSelector::DEFAULT_RELATION_TYPES)
-      source = source_model(project, user: user, relation_types: relation_types)
-      new(
-        source.for_project(project.identifier, scope: scope, relation_types: relation_types),
-        focus_project_id: project.id,
-        user: user
+    def self.for_project(project, scope:, user:, relation_types: ViewAudienceSelector::DEFAULT_RELATION_TYPES, selection_only: false)
+      selection = PerformanceTrace.measure_with_sql('diagram.selection', category: :project, scope: scope, focus_id: project.id) do
+        ViewAudienceSelector.for_project(
+          project, scope: scope, user: user, relation_types: relation_types
+        )
+      end
+      return selection if selection_only
+
+      selection = PerformanceTrace.measure('diagram.selection_filter', category: :project, scope: scope) do
+        diagram_selection(selection)
+      end
+      model = PerformanceTrace.measure('diagram.model_projection', category: :project, scope: scope) do
+        ViewAudienceModel.from_selection(selection)
+      end
+      PerformanceTrace.measure('diagram.data_adapter', category: :project, scope: scope) do
+        new(
+          model,
+          focus_project_id: project.id,
+          selected_issues: selection.all_items,
+          selected_relations: selection.relations + selection.boundary_relations
+        )
+      end
+    end
+
+    def self.diagram_selection(selection)
+      audience_items = selection.audience_items.select(&:cosmosys_diagram_visible?)
+      audience_ids = audience_items.map(&:id).to_set
+      visible_items = selection.all_items.select(&:cosmosys_diagram_visible?).index_by(&:id)
+      relations = (selection.relations + selection.boundary_relations).uniq(&:id).select do |relation|
+        from = visible_items[relation.issue_from_id]
+        to = visible_items[relation.issue_to_id]
+        from && to && from.cosmosys_dependency_relation_visible?(relation.relation_type)
+      end
+      internal_relations = relations.select do |relation|
+        audience_ids.include?(relation.issue_from_id) && audience_ids.include?(relation.issue_to_id)
+      end
+      boundary_relations = relations.reject { |relation| internal_relations.include?(relation) }
+      relation_context_ids = boundary_relations.flat_map do |relation|
+        [relation.issue_from_id, relation.issue_to_id].reject { |issue_id| audience_ids.include?(issue_id) }
+      end.to_set
+
+      ViewAudienceSelector::Selection.new(
+        focus: selection.focus,
+        category: selection.category,
+        scope: selection.scope,
+        projects: selection.projects,
+        audience_items: audience_items,
+        structural_context_items: selection.structural_context_items.select do |item|
+          visible_items.key?(item.id) && !audience_ids.include?(item.id) && !relation_context_ids.include?(item.id)
+        end,
+        relations: internal_relations,
+        boundary_relations: boundary_relations,
+        relation_context_items: relation_context_ids.filter_map { |issue_id| visible_items[issue_id] }
       )
     end
 
-    def self.for_item(issue, scope:, user:, relation_types: ViewAudienceSelector::DEFAULT_RELATION_TYPES, source_model: nil)
-      model = if source_model
-                item_id = issue.csid.presence || "item:#{issue.id}"
-                source_model.for_item(item_id, scope: scope, relation_types: relation_types)
-              elsif scope.to_sym == :node_and_descendants
-                # The ordinary combined view uses the generic boundary-aware
-                # selector: local descendants plus only directly incident
-                # relations. This keeps a foreign endpoint visible as context
-                # without following relations from that endpoint.
-                ViewAudienceSelector.for_item(
-                  issue, scope: scope, user: user, relation_types: relation_types
-                ).diagram_model
-              else
-                source = self.source_model(issue.project, user: user, relation_types: relation_types)
-                item_id = issue.csid.presence || "item:#{issue.id}"
-                source.for_item(item_id, scope: scope, relation_types: relation_types)
-              end
-
-      new(model, focus_project_id: issue.project_id, user: user)
-    end
-
-    def self.source_model(project, user:, relation_types:, expand_relation_graph: false)
-      tree_projects = project.root.self_and_descendants.to_a.select { |candidate| candidate.visible?(user) }
-      tree_project_ids = tree_projects.map(&:id)
-      tree_issues = Issue.visible(user).where(project_id: tree_project_ids)
-                         .includes(:project, :parent, :tracker, :status, :priority).to_a
-                         .select(&:cosmosys_diagram_visible?)
-      tree_issue_ids = tree_issues.map(&:id)
-      issues_by_id = tree_issues.index_by(&:id)
-      relations_by_id = {}
-      frontier_ids = tree_issue_ids.dup
-      visited_issue_ids = tree_issue_ids.to_set
-      while frontier_ids.any?
-        batch = IssueRelation.where(relation_type: Array(relation_types).map(&:to_s))
-                             .where('issue_from_id IN (:ids) OR issue_to_id IN (:ids)', ids: frontier_ids)
-                             .includes(issue_from: [:project, :tracker, :status, :priority], issue_to: [:project, :tracker, :status, :priority])
-                             .order(:id).to_a.select do |relation|
-          from = relation.issue_from
-          to = relation.issue_to
-          from&.visible?(user) && to&.visible?(user) &&
-            from.cosmosys_diagram_visible? && to.cosmosys_diagram_visible? &&
-            from.cosmosys_dependency_relation_visible?(relation.relation_type)
-        end
-        batch.each { |relation| relations_by_id[relation.id] = relation }
-        break unless expand_relation_graph
-
-        fresh_ids = batch.flat_map { |relation| [relation.issue_from_id, relation.issue_to_id] }
-                         .uniq.reject { |issue_id| visited_issue_ids.include?(issue_id) }
-        break if fresh_ids.empty?
-
-        fresh_issues = Issue.visible(user).where(id: fresh_ids)
-                            .includes(:project, :parent, :tracker, :status, :priority).to_a
-                            .select(&:cosmosys_diagram_visible?)
-        issues_by_id.merge!(fresh_issues.index_by(&:id))
-        visited_issue_ids.merge(fresh_issues.map(&:id))
-        frontier_ids = fresh_issues.map(&:id)
+    def self.for_item(issue, scope:, user:, relation_types: ViewAudienceSelector::DEFAULT_RELATION_TYPES, selection_only: false)
+      selection = PerformanceTrace.measure_with_sql('diagram.selection', category: :item, scope: scope, focus_id: issue.id) do
+        ViewAudienceSelector.for_item(
+          issue, scope: scope, user: user, relation_types: relation_types
+        )
       end
-      # Keep structural context for foreign relation endpoints (for example,
-      # the project-owned container above the first boundary node). Do not add
-      # these parents to the relation frontier: hierarchy context must not
-      # cause the dependency walk to fan out into their siblings.
-      parent_frontier_ids = issues_by_id.values.filter_map(&:parent_id).uniq
-      visited_parent_ids = issues_by_id.keys.to_set
-      while parent_frontier_ids.any?
-        fresh_parent_ids = parent_frontier_ids.reject { |issue_id| visited_parent_ids.include?(issue_id) }
-        break if fresh_parent_ids.empty?
+      return selection if selection_only
 
-        parents = Issue.visible(user).where(id: fresh_parent_ids)
-                       .includes(:project, :parent, :tracker, :status, :priority).to_a
-                       .select(&:cosmosys_diagram_visible?)
-        break if parents.empty?
-
-        issues_by_id.merge!(parents.index_by(&:id))
-        visited_parent_ids.merge(parents.map(&:id))
-        parent_frontier_ids = parents.filter_map(&:parent_id).uniq
+      selection = PerformanceTrace.measure('diagram.selection_filter', category: :item, scope: scope) do
+        diagram_selection(selection)
       end
-      relations = relations_by_id.values.sort_by(&:id)
-      projects = (tree_projects + issues_by_id.values.map(&:project)).compact.uniq(&:id)
-      ViewAudienceModel.from_records(
-        projects: projects,
-        issues: issues_by_id.values,
-        relations: relations,
-        focus_id: project.identifier,
-        category: :source,
-        scope: :all
-      )
+      model = PerformanceTrace.measure('diagram.model_projection', category: :item, scope: scope) do
+        ViewAudienceModel.from_selection(selection)
+      end
+      PerformanceTrace.measure('diagram.data_adapter', category: :item, scope: scope) do
+        new(
+          model,
+          focus_project_id: issue.project_id,
+          selected_issues: selection.all_items,
+          selected_relations: selection.relations + selection.boundary_relations
+        )
+      end
     end
 
     def self.project_boundary_issue_ids(issues, focus_project_id:)
       Array(issues).select { |issue| issue.project_id != focus_project_id }.map(&:id).to_set
     end
 
-    def initialize(model, focus_project_id:, user:)
+    def initialize(model, focus_project_id:, selected_issues:, selected_relations:)
       @model = model
       @focus_project_id = focus_project_id
-      @user = user
-      hydrate_items
-      hydrate_relations
+      hydrate_selected_items(selected_issues)
+      @relations = Array(selected_relations).sort_by(&:id)
     end
 
     def root_entries
@@ -137,36 +119,18 @@ module Cosmosys
 
     private
 
-    def hydrate_items
-      records = model.all_items
-      source_ids = records.filter_map(&:source_id).uniq
-      loaded = Issue.visible(@user).where(id: source_ids)
-                    .includes(:project, :tracker, :parent)
-                    .to_a.select(&:cosmosys_diagram_visible?)
-      @issues_by_source_id = loaded.index_by(&:id)
-      @model_items = records.select { |item| @issues_by_source_id.key?(item.source_id) }
-      @issues_by_model_id = @model_items.to_h { |item| [item.id, @issues_by_source_id.fetch(item.source_id)] }
+    def hydrate_selected_items(selected_issues)
+      @issues_by_source_id = Array(selected_issues).index_by(&:id)
+      @model_items = model.all_items.select { |item| @issues_by_source_id.key?(item.source_id) }
+      @issues_by_model_id = @model_items.to_h do |item|
+        [item.id, @issues_by_source_id.fetch(item.source_id)]
+      end
       @issues = @issues_by_model_id.values.uniq(&:id)
       @model_item_ids = @model_items.map(&:id).to_set
       @audience_issue_ids = model.audience_items.filter_map do |item|
         @issues_by_model_id[item.id]&.id
       end.to_set
-      # Relation context is not synonymous with a project boundary: a selector
-      # may add same-project predecessors/successors as context. The painter's
-      # `+` marker means only that this item belongs to a different project
-      # than the focus item/project.
       @boundary_issue_ids = self.class.project_boundary_issue_ids(@issues, focus_project_id: @focus_project_id)
-    end
-
-    def hydrate_relations
-      source_ids = model.all_relations.filter_map(&:source_id).map(&:to_i).uniq
-      return @relations = [] if source_ids.empty?
-
-      @relations = IssueRelation.where(id: source_ids).includes(:issue_from, :issue_to).order(:id).to_a.select do |relation|
-        from = @issues_by_source_id[relation.issue_from_id]
-        to = @issues_by_source_id[relation.issue_to_id]
-        from && to && from.cosmosys_dependency_relation_visible?(relation.relation_type)
-      end
     end
 
     def model_items
