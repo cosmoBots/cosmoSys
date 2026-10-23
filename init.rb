@@ -94,6 +94,17 @@ require_dependency File.expand_path('lib/cosmosys/item_kind_registry', __dir__)
 require_dependency File.expand_path('lib/cosmosys/report_template_catalog', __dir__)
 require_dependency File.expand_path('lib/cosmosys/report_template_inspector', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_profile_registry', __dir__)
+require_dependency File.expand_path('lib/cosmosys/canonical_json', __dir__)
+require_dependency File.expand_path('app/models/cosmosys/consolidation_state', __dir__)
+require_dependency File.expand_path('lib/cosmosys/consolidation_service', __dir__)
+require_dependency File.expand_path('lib/cosmosys/required_project_trackers_consolidator', __dir__)
+register_cosmosys_consolidations = proc do
+  Cosmosys::ConsolidationService.register('required_project_trackers') do
+    Cosmosys::RequiredProjectTrackersConsolidator.call
+  end
+end
+register_cosmosys_consolidations.call
+Rails.application.config.to_prepare(&register_cosmosys_consolidations)
 require_dependency File.expand_path('lib/cosmosys/tracker_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issue_status_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issue_workflow_patch', __dir__)
@@ -145,7 +156,6 @@ require_dependency File.expand_path('app/models/cosmosys/ods_import_identity', _
 require_dependency File.expand_path('app/models/cosmosys/project_snapshot', __dir__)
 require_dependency File.expand_path('app/models/cosmosys/negative_status_selection', __dir__)
 require_dependency File.expand_path('app/models/cosmosys/presentation_baseline', __dir__)
-require_dependency File.expand_path('lib/cosmosys/canonical_json', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_selection', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_capture', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_package', __dir__)
@@ -237,3 +247,4 @@ end
 patch_cosmosys_models.call
 Rails.application.config.to_prepare(&patch_cosmosys_models)
 Rails.application.config.after_initialize { Cosmosys::DiagramCacheBootstrap.invalidate_all_if_enabled! }
+Rails.application.config.after_initialize { Cosmosys::ConsolidationService.run_at_server_start! }
