@@ -81,7 +81,12 @@ module Cosmosys
         column = columns_by_name[column_name.to_s]
         next unless column
 
-        value = normalize_value(column, column.value_object(issue))
+        source_value = if column.respond_to?(:custom_field) && column.custom_field&.field_format == 'user'
+                         column.value(issue)
+                       else
+                         column.value_object(issue)
+                       end
+        value = normalize_value(column, source_value)
         next if blank_value?(value)
 
         ResolvedField.new(
