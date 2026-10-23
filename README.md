@@ -188,6 +188,15 @@ for example, the Architecture PBS profile adds `archNode` without enabling
 requirement trackers. `csNegative` is cosmoSys' report placeholder for listing
 unsuccessfully closed items and is available in specialized profiles as well.
 
+### Report exports
+
+Report metadata renders user custom fields by user name, including fields with
+multiple selections. ODT/DOCX/PDF exports center natural-size raster images
+inside the printable width with transparent padding instead of scaling visible
+pixels. Consecutive images that are the only contents of a Markdown paragraph
+are composed side by side and bottom-aligned; paragraphs with text or explicit
+image sizing keep their authored layout.
+
 ## Repository
 
 The canonical repository for this project is
