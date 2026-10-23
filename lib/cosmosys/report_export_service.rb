@@ -34,8 +34,9 @@ module Cosmosys
       'landscape' => ['COSMOSYS_REPORT_LANDSCAPE_START', 'COSMOSYS_REPORT_LANDSCAPE_END'],
       'portrait' => ['COSMOSYS_REPORT_PORTRAIT_START', 'COSMOSYS_REPORT_PORTRAIT_END']
     }.freeze
-    CACHE_SCHEMA = 'cosmosys-report-artifact-v25'.freeze
+    CACHE_SCHEMA = 'cosmosys-report-artifact-v26'.freeze
     MAX_CACHED_REPORTS_PER_PROJECT = 5
+    IMAGE_MAGICK_RESOURCE_LIMITS = %w[-limit memory 256MiB -limit map 512MiB -limit disk 1GiB -limit area 40MP].freeze
 
     class ExportError < StandardError; end
 
@@ -208,7 +209,7 @@ module Cosmosys
     def export_html(work_dir)
       document = Nokogiri::HTML5(@html)
       secure_embedded_resources!(document)
-      prepare_export_document(document)
+      prepare_export_document(document, work_dir: work_dir)
       document.css('svg').each_with_index do |svg, index|
         dimensions = svg_dimensions_css_px(svg)
         unless dimensions
@@ -358,7 +359,8 @@ module Cosmosys
       start_marker.content = start_text
       end_marker = Nokogiri::XML::Node.new('p', document)
       end_marker.content = end_text
-      container = image.ancestors.find { |ancestor| ancestor['class'].to_s.split.include?('cosmosys-report-diagram') } || image
+      container = image.ancestors.find { |ancestor| ancestor['class'].to_s.split.include?('cosmosys-report-diagram') } ||
+                  image.ancestors.find { |ancestor| ancestor.name == 'p' } || image
       container.add_previous_sibling(start_marker)
       container.add_next_sibling(end_marker)
     end
@@ -459,7 +461,7 @@ module Cosmosys
       nil
     end
 
-    def prepare_export_document(document)
+    def prepare_export_document(document, work_dir:)
       # `chapter` is useful in the browser report, but Writer already numbers the
       # imported heading styles. Keeping both produces headings such as
       # "1.1 1.1: ..." in the document and its generated table of contents.
@@ -497,6 +499,8 @@ module Cosmosys
         link.remove
       end
 
+      prepare_inline_image_rows(document, work_dir)
+
       # Field labels and diagram captions describe content inside an item; they
       # are not levels in the item hierarchy. LibreOffice maps every h1..h6 to
       # an outline level, so an h6 caption used to create spurious 1.1.1.1.1.1
@@ -526,6 +530,8 @@ module Cosmosys
       # width and margins, since CSS max-width is not consistently honoured by
       # Writer's HTML importer.
       document.css('img').each do |image|
+        prepare_report_image(image, document, work_dir)
+
         # Writer's HTML importer distorts an image when an explicit CSS width is
         # paired with `height: auto` and no concrete pixel height: with e.g.
         # `style="width: 695px"` on a portrait PNG it lays the graphic out with
@@ -646,6 +652,132 @@ module Cosmosys
       document.css('.cosmosys-report-negative-item, .cosmosys-report-negative-item *').each do |node|
         add_inline_declarations(node, 'color' => '#8b1a1a')
       end
+    end
+
+    # Markdown renders consecutive images from one paragraph as adjacent inline
+    # elements. Join those into one raster so Writer keeps them on one row, with
+    # each image anchored to the common bottom edge. Images with explicit sizing
+    # or surrounding text keep their authored layout.
+    def prepare_inline_image_rows(document, work_dir)
+      document.css('p').each_with_index do |paragraph, index|
+        children = paragraph.children.to_a
+        images = children.select { |child| child.element? && child.name == 'img' }
+        next unless images.length > 1
+        next unless children.all? { |child| (child.element? && child.name == 'img') || (child.text? && child.text.strip.empty?) }
+        next if images.any? { |image| declared_image_width_px(image) || declared_image_height_px(image) }
+
+        paths = []
+        row_width = 0
+        row_height = 0
+        images.each_with_index do |image, image_index|
+          image_data = decoded_embedded_image(image)
+          break unless image_data
+
+          source_path = File.join(work_dir, "inline-image-source-#{index}-#{image_index}.#{image_data.fetch(:extension)}")
+          path = File.join(work_dir, "inline-image-#{index}-#{image_index}.png")
+          File.binwrite(source_path, image_data.fetch(:bytes))
+          _output, conversion = run_image_magick("#{source_path}[0]", '-auto-orient', path)
+          break unless conversion.success? && File.file?(path) && File.size?(path)
+
+          dimensions = image_dimensions(path)
+          break unless dimensions
+          break if (row_width + dimensions.fetch(:width)) * [row_height, dimensions.fetch(:height)].max > 40_000_000
+
+          paths << path
+          row_width += dimensions.fetch(:width)
+          row_height = [row_height, dimensions.fetch(:height)].max
+        end
+        next unless paths.length == images.length
+
+        output_path = File.join(work_dir, "inline-image-row-#{index}.png")
+        _output, status = run_image_magick(*paths, '-background', 'none', '-gravity', 'south', '+append', output_path)
+        next unless status.success? && File.file?(output_path) && File.size?(output_path)
+
+        first_image = images.first
+        alt_text = images.map { |image| image['alt'].to_s.strip }.reject(&:blank?).join(' · ')
+        first_image['src'] = png_data_url(output_path)
+        first_image['alt'] = alt_text
+        images.drop(1).each(&:remove)
+        children.select { |child| child.text? && child.text.strip.empty? }.each(&:remove)
+      rescue StandardError => error
+        Rails.logger.warn("cosmoSys report image-row composition skipped: #{error.class}: #{error.message}")
+      end
+    end
+
+    # Center a natural-size image by extending its transparent canvas, never by
+    # scaling its visible pixels. If the image is too large for the current
+    # page, reuse the report's existing orientation decision before measuring
+    # the final page width. Explicitly sized images retain their authored size.
+    def prepare_report_image(image, document, work_dir)
+      return if declared_image_width_px(image) || declared_image_height_px(image)
+
+      image_data = decoded_embedded_image(image)
+      return unless image_data
+
+      input_path = File.join(work_dir, "report-image-#{image.object_id}.#{image_data.fetch(:extension)}")
+      File.binwrite(input_path, image_data.fetch(:bytes))
+      dimensions = image_dimensions(input_path)
+      return unless dimensions
+
+      alternate_orientation = alternate_orientation_for(dimensions)
+      add_orientation_markers(image, document, alternate_orientation) if alternate_orientation
+      page = if alternate_orientation
+               report_template_dimensions.donor_for(alternate_orientation)
+             else
+               report_template_dimensions.current_page
+             end
+      target_width = page&.content_width_px&.round
+      return unless target_width&.positive? && dimensions.fetch(:width) < target_width
+
+      output_path = File.join(work_dir, "report-image-padded-#{image.object_id}.png")
+      _output, status = run_image_magick(
+        "#{input_path}[0]", '-auto-orient', '-background', 'none', '-gravity', 'center',
+        '-extent', "#{target_width}x#{dimensions.fetch(:height)}", output_path
+      )
+      return unless status.success? && File.file?(output_path) && File.size?(output_path)
+
+      image['src'] = png_data_url(output_path)
+      image['width'] = target_width.to_s
+      image['height'] = dimensions.fetch(:height).to_s
+      add_inline_declarations(image, 'width' => "#{target_width}px", 'height' => "#{dimensions.fetch(:height)}px")
+    rescue StandardError => error
+      Rails.logger.warn("cosmoSys report image layout skipped: #{error.class}: #{error.message}")
+    end
+
+    def decoded_embedded_image(image)
+      match = image['src'].to_s.match(%r{\Adata:image/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/=]+)\z}i)
+      return unless match
+
+      bytes = Base64.strict_decode64(match[2])
+      return if bytes.empty? || bytes.bytesize > 40.megabytes
+
+      {
+        bytes: bytes,
+        extension: { 'jpeg' => 'jpg' }.fetch(match[1].downcase, match[1].downcase)
+      }
+    rescue ArgumentError
+      nil
+    end
+
+    def image_dimensions(path)
+      source = path.to_s.end_with?('[0]') ? path.to_s : "#{path}[0]"
+      output, status = run_image_magick(source, '-auto-orient', '-format', '%w %h', 'info:')
+      return unless status.success?
+
+      width, height = output.split.map { |value| Integer(value, 10) }
+      return unless width.positive? && height.positive? && (width * height) <= 40_000_000
+
+      { width: width, height: height }
+    rescue ArgumentError
+      nil
+    end
+
+    def run_image_magick(*arguments)
+      Open3.capture2e('/usr/bin/magick', *IMAGE_MAGICK_RESOURCE_LIMITS, *arguments)
+    end
+
+    def png_data_url(path)
+      "data:image/png;base64,#{Base64.strict_encode64(File.binread(path))}"
     end
 
     def convert_description_heading(heading, document, level)

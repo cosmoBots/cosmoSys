@@ -38,7 +38,8 @@ major versions are not supported. It is licensed under GPLv3 by cosmoBots.eu.
 
 In addition to the normal Redmine runtime, cosmoSys needs:
 
-- **System packages**: `graphviz` (diagrams), `librsvg2-bin` and
+- **System packages**: `graphviz` (diagrams), `imagemagick` (rasterizing
+  diagrams and composing report images), `librsvg2-bin` and
   `libreoffice-writer` (report export to ODT/DOCX/PDF), `libxml2-dev` and
   `pkg-config` (build `libxml-ruby`), and `git` (dependency resolution).
 - **Ruby gems** (declared in this plugin's `Gemfile`):
