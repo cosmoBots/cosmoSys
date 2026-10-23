@@ -84,6 +84,9 @@ module Cosmosys
       raise ArgumentError, 'item kind key must contain only lowercase letters, numbers and underscores' unless normalized_key.match?(/\A[a-z][a-z0-9_]*\z/)
       raise ArgumentError, "#{DEFAULT_KEY} is the reserved, immutable default item profile" if normalized_key == DEFAULT_KEY
       raise ArgumentError, "item profile #{normalized_key} is already registered" if profiles.key?(normalized_key)
+      if attributes.fetch(:closed_presentation, 'consolidated') != 'consolidated'
+        raise ArgumentError, 'only the normal item profile may use struck closure presentation'
+      end
 
       profiles[normalized_key] = build_profile(
         key: normalized_key,
@@ -159,7 +162,7 @@ module Cosmosys
         allowed_parent_profiles: nil,
         dsm_mode: 'leaves',
         reference_tracker: true,
-        closed_presentation: 'struck',
+        closed_presentation: 'consolidated',
         allow_unsuccessful_closure_when_blocked: false,
         validate_blocking_maturity: false,
         tree_visible: true,
@@ -272,23 +275,4 @@ Cosmosys::ItemKindRegistry.register(
   dsm_mode: 'none',
   reference_mode: 'chapter',
   reference_tracker: false
-)
-
-Cosmosys::ItemKindRegistry.register(
-  'alternate_1',
-  label: 'Alternate 1',
-  description: :text_cosmosys_item_profile_alternate_1,
-  provider: :cosmosys,
-  diagram_shape: 'note',
-  diagram_fill_color: 'lightyellow',
-  dependency_rankdir: 'LR'
-)
-Cosmosys::ItemKindRegistry.register(
-  'alternate_2',
-  label: 'Alternate 2',
-  description: :text_cosmosys_item_profile_alternate_2,
-  provider: :cosmosys,
-  diagram_shape: 'component',
-  diagram_fill_color: 'lightcyan',
-  dependency_rankdir: 'TB'
 )

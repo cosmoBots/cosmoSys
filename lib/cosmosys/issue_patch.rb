@@ -5,7 +5,7 @@ module Cosmosys
   module IssuePresentationPatch
     def css_classes
       classes = super
-      return classes unless cosmosys_closure_outcome == :successful
+      return classes unless cosmosys_closure_outcome == :successful && cosmosys_item_kind.closed_presentation == 'consolidated'
 
       [classes, 'cosmosys-closure-successful'].compact.join(' ')
     end
