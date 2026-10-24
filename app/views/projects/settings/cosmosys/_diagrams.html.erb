@@ -1,0 +1,44 @@
+<% combined_layout_mode = @project.cosmosys_combined_diagram_layout_mode %>
+<% combined_render_variant = @project.cosmosys_combined_diagram_render_variant %>
+    <h4><%= l(:label_cosmosys_requirement_chain_validity) %></h4>
+    <p>
+      <%= hidden_field_tag 'cosmosys_setting[calculate_requirement_chain_validity]', '0' %>
+      <label class="block">
+        <%= check_box_tag 'cosmosys_setting[calculate_requirement_chain_validity]', '1', @project.cosmosys_calculate_requirement_chain_validity? %>
+        <%= l(:label_cosmosys_calculate_requirement_chain_validity) %>
+      </label>
+      <em class="info"><%= l(:text_cosmosys_calculate_requirement_chain_validity_help) %></em>
+    </p>
+    <div class="cosmosys-report-field-presentations">
+      <h4><%= l(:label_cosmosys_combined_render_variant) %></h4>
+      <p class="info"><%= l(:text_cosmosys_combined_render_variant_help) %></p>
+      <p>
+        <%= select_tag(
+          'cosmosys_setting[combined_render_variant]',
+          options_for_select(
+            [
+              [l(:label_cosmosys_combined_render_variant_v1), 'v1'],
+              [l(:label_cosmosys_combined_render_variant_v2), 'v2']
+            ],
+            combined_render_variant
+          )
+        ) %>
+      </p>
+    </div>
+
+    <div class="cosmosys-report-field-presentations">
+      <h4><%= l(:label_cosmosys_combined_layout_mode) %></h4>
+      <p class="info"><%= l(:text_cosmosys_combined_layout_mode_help) %></p>
+      <p>
+        <%= select_tag(
+          'cosmosys_setting[combined_layout_mode]',
+          options_for_select(
+            [
+              [l(:label_cosmosys_combined_layout_mode_dot), 'dot'],
+              [l(:label_cosmosys_combined_layout_mode_fdp), 'fdp']
+            ],
+            combined_layout_mode
+          )
+        ) %>
+      </p>
+    </div>

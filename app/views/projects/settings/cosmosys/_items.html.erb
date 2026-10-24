@@ -1,0 +1,8 @@
+<% query = Cosmosys::MainReportFieldRegistry.query_for_project(@project, user: User.current) %>
+<% item_list_column_names = @project.cosmosys_item_list_column_names %>
+    <h4><%= l(:label_cosmosys_item_list_columns) %></h4>
+    <p class="info"><%= l(:text_cosmosys_item_list_columns_help) %></p>
+    <% query.column_names = item_list_column_names %>
+    <div class="cosmosys-report-columns-selection">
+      <%= render_query_columns_selection(query, name: 'cosmosys_setting[item_list_column_names]') %>
+    </div>

@@ -213,6 +213,12 @@ These report improvements and startup contract reconciliation are included in
 cosmoSys 0.2.0, validated locally in Redmine 3001 and tagged in the local
 repository. Publication and deployment pinning are separate steps.
 
+## Project settings
+
+Project settings use separate General, Reports, Item list, Diagrams and Branding
+sections. Each form saves only its submitted settings and returns to that
+section. Save before switching sections.
+
 ## Repository
 
 The canonical repository for this project is

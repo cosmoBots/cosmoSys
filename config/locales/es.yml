@@ -1,4 +1,8 @@
 es:
+  label_cosmosys_settings_items: "Lista de ítems"
+  label_cosmosys_settings_reports: "Informes"
+  label_cosmosys_diagrams: "Diagramas"
+  button_cosmosys_save_settings_section: "Guardar %{section}"
   label_cosmosys_issue_tree_fragment: Fragmento del árbol
   label_cosmosys_issue_content: Vistas del ítem
   label_cosmosys_issue_sidebar: Herramientas del ítem

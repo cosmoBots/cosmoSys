@@ -56,10 +56,10 @@ module Cosmosys
       report_payload.fetch('landscape_scale_threshold', 55).to_i.clamp(0, 100)
     end
 
-    def assign_report_settings(columns:, field_presentations:, options: nil, landscape_scale_threshold: nil, item_list_columns: nil)
+    def assign_report_settings(columns: nil, field_presentations: nil, options: nil, landscape_scale_threshold: nil, item_list_columns: nil)
       update_report_payload(
-        columns: Array(columns).map(&:to_s).reject(&:blank?),
-        field_presentations: Hash(field_presentations).transform_keys(&:to_s).transform_values(&:to_s),
+        columns: columns.nil? ? nil : Array(columns).map(&:to_s).reject(&:blank?),
+        field_presentations: field_presentations.nil? ? nil : Hash(field_presentations).transform_keys(&:to_s).transform_values(&:to_s),
         options: options,
         landscape_scale_threshold: landscape_scale_threshold,
         item_list_columns: item_list_columns

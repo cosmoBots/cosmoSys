@@ -1,4 +1,8 @@
 en:
+  label_cosmosys_settings_items: "Item list"
+  label_cosmosys_settings_reports: "Reports"
+  label_cosmosys_diagrams: "Diagrams"
+  button_cosmosys_save_settings_section: "Save %{section}"
   label_cosmosys_issue_tree_fragment: Tree fragment
   label_cosmosys_issue_content: Item views
   label_cosmosys_issue_sidebar: Item tools

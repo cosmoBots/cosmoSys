@@ -1,0 +1,107 @@
+<% selected_column_names = @project.cosmosys_report_column_names(user: User.current) %>
+<% field_presentations = @project.cosmosys_report_field_presentations(user: User.current) %>
+<% report_options = @project.cosmosys_report_options %>
+<% landscape_scale_threshold = @project.cosmosys_report_landscape_scale_threshold %>
+<% columns_by_name = Cosmosys::MainReportFieldRegistry.available_inline_columns_for_project(@project, user: User.current).index_by { |column| column.name.to_s } %>
+
+    <% report_template_resolution = @project.cosmosys_effective_report_template %>
+    <% selected_report_template = @project.csys_report_template_asset_id ? "asset:#{@project.csys_report_template_asset_id}" : (@project.csys_report_template_key.present? ? "builtin:#{@project.csys_report_template_key}" : '') %>
+    <% report_template_options = [[l(:label_cosmosys_inherit_profile_template), '']] + Cosmosys::ReportTemplateCatalog.all.map { |template| [template.label, "builtin:#{template.key}"] } + Cosmosys::TemplateAsset.available_reports.map { |asset| [asset.name, "asset:#{asset.id}"] } %>
+    <h4><%= l(:label_cosmosys_report_generation) %></h4>
+    <p>
+      <%= label_tag 'cosmosys_setting_report_code', l(:field_cosmosys_report_code) %>
+      <%= text_field_tag 'cosmosys_setting[report_code]', @project.csys_report_code, id: 'cosmosys_setting_report_code', maxlength: 255 %>
+      <em class="info"><%= l(:text_cosmosys_report_code_help) %></em>
+    </p>
+    <p>
+      <%= label_tag 'cosmosys_setting_wp', l(:field_cosmosys_wp) %>
+      <%= text_field_tag 'cosmosys_setting[wp]', @project.csys_wp, id: 'cosmosys_setting_wp', maxlength: 255 %>
+      <em class="info"><%= l(:text_cosmosys_wp_help) %></em>
+    </p>
+    <p>
+      <%= label_tag 'cosmosys_setting_wp_title', l(:field_cosmosys_wp_title) %>
+      <%= text_field_tag 'cosmosys_setting[wp_title]', @project.csys_wp_title, id: 'cosmosys_setting_wp_title', maxlength: 255 %>
+      <em class="info"><%= l(:text_cosmosys_wp_title_help) %></em>
+    </p>
+    <p>
+      <%= label_tag 'cosmosys_setting_report_export_format', l(:label_cosmosys_report_format_default) %>
+      <%= select_tag 'cosmosys_setting[report_export_format]',
+                     options_for_select(
+                       [[l(:label_cosmosys_report_format_inherit), '']] + Cosmosys::ReportFormat.options.map { |format| [l("label_cosmosys_report_format_#{format}"), format] },
+                       @project.csys_report_export_format.to_s
+                     ),
+                     id: 'cosmosys_setting_report_export_format' %>
+      <em class="info"><%= l(:text_cosmosys_project_report_export_format_help, effective_format: l("label_cosmosys_report_format_#{@project.cosmosys_effective_report_export_format}")) %></em>
+    </p>
+    <p>
+      <%= label_tag 'cosmosys_setting_report_template', l(:label_cosmosys_template) %>
+      <%= select_tag 'cosmosys_setting[report_template]', options_for_select(report_template_options, selected_report_template) %>
+      <% report_source = if report_template_resolution.asset
+           l(:text_cosmosys_template_asset_source, template: report_template_resolution.asset.name, project: report_template_resolution.source_project.name)
+         elsif report_template_resolution.catalog_template
+           l(:text_cosmosys_template_catalog_source, template: report_template_resolution.catalog_template.label, project: report_template_resolution.source_project.name)
+         else
+           l(:text_cosmosys_template_profile_source, profile: l(report_template_resolution.profile.label))
+         end %>
+      <em class="info"><%= l(:text_cosmosys_effective_template, source: report_source) %></em>
+    </p>
+    <p class="buttons">
+      <%= link_to l(:button_cosmosys_download_profile_template), project_cosmosys_profile_report_template_path(@project), class: 'icon icon-download' %>
+      <%= link_to l(:button_cosmosys_download_effective_template), project_cosmosys_effective_report_template_path(@project), class: 'icon icon-download' %>
+    </p>
+    <p class="info"><%= l(:text_cosmosys_report_settings_help) %></p>
+    <h4><%= l(:label_cosmosys_report_landscape_scale_threshold) %></h4>
+    <p>
+      <%= number_field_tag 'cosmosys_setting[landscape_scale_threshold]', landscape_scale_threshold, min: 0, max: 100, step: 1 %> %
+      <em class="info"><%= l(:text_cosmosys_report_landscape_scale_threshold_help) %></em>
+    </p>
+    <div id="list-definition" class="cosmosys-report-columns-selection">
+      <%= render_cosmosys_report_columns_selection(
+            columns: Cosmosys::MainReportFieldRegistry.available_inline_columns_for_project(@project, user: User.current),
+            selected_names: selected_column_names,
+            name: 'cosmosys_setting[column_names]'
+          ) %>
+    </div>
+
+    <div class="cosmosys-report-options-selection">
+      <h4><%= l(:label_cosmosys_report_contents) %></h4>
+      <% Cosmosys::MainReportSettings::OPTION_NAMES.each do |option_name| %>
+        <%= hidden_field_tag "cosmosys_setting[report_options][#{option_name}]", '0', id: nil %>
+        <label class="block">
+          <%= check_box_tag "cosmosys_setting[report_options][#{option_name}]", '1', report_options[option_name] %>
+          <%= l(option_name == 'include_negative_items' ? :label_cosmosys_report_include_negative_items : "label_cosmosys_report_include_#{option_name}") %>
+        </label>
+      <% end %>
+    </div>
+
+    <div class="cosmosys-report-field-presentations">
+      <h4><%= l(:label_cosmosys_report_field_presentations) %></h4>
+      <p class="info"><%= l(:text_cosmosys_report_field_presentations_help) %></p>
+      <table class="list cosmosys-report-field-presentations-table">
+        <thead>
+          <tr>
+            <th><%= l(:label_cosmosys_report_field) %></th>
+            <th><%= l(:label_cosmosys_report_representation) %></th>
+          </tr>
+        </thead>
+        <tbody data-cosmosys-report-field-presentations data-selected-source-id="selected_cosmosys_setting_column_names">
+          <% columns_by_name.each do |column_name, column| %>
+            <tr data-column-name="<%= column_name %>">
+              <td><%= column.caption.is_a?(Symbol) ? l(column.caption) : column.caption %></td>
+              <td>
+                <%= select_tag(
+                  "cosmosys_setting[field_presentations][#{column_name}]",
+                  options_for_select(
+                    [
+                      [l(:label_cosmosys_report_representation_metadata), 'metadata'],
+                      [l(:label_cosmosys_report_representation_section), 'section']
+                    ],
+                    field_presentations[column_name] || Cosmosys::MainReportFieldRegistry::DEFAULT_REPRESENTATION_MODE
+                  )
+                ) %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>

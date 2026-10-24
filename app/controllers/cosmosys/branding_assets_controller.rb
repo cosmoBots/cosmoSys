@@ -27,7 +27,7 @@ module Cosmosys
     end
 
     def update_project
-      update_scope(@project, settings_project_path(@project, tab: 'cosmosys'))
+      update_scope(@project, settings_project_path(@project, tab: 'cosmosys', cosmosys_section: 'branding'))
     end
 
     private

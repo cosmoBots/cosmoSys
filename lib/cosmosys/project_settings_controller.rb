@@ -6,7 +6,19 @@ module Cosmosys
     before_action :authorize_project_settings
 
     def update
+      @submitted_settings = params.fetch(:cosmosys_setting, ActionController::Parameters.new)
       return unless update_project_profile!
+      if %i[column_names item_list_column_names report_options landscape_scale_threshold combined_layout_mode combined_render_variant].any? { |key| submitted?(key) }
+        update_report_settings!
+      end
+
+      flash[:notice] = l(:notice_successful_update)
+      redirect_to settings_project_path(@project, tab: 'cosmosys', cosmosys_section: settings_section)
+    end
+
+    private
+
+    def update_report_settings!
       query = Cosmosys::MainReportFieldRegistry.query_for_project(@project, user: User.current)
       available_names = Cosmosys::MainReportFieldRegistry.available_column_names_for_project(@project, user: User.current)
       available_item_list_names = query.available_columns.reject(&:frozen?).map { |column| column.name.to_s }
@@ -47,29 +59,32 @@ module Cosmosys
 
       setting = @project.cosmosys_report_setting_record || @project.build_cosmosys_report_setting_record
       setting.assign_report_settings(
-        columns: sanitized_names,
-        field_presentations: sanitized_presentations,
-        options: report_options,
-        landscape_scale_threshold: landscape_scale_threshold,
-        item_list_columns: sanitized_item_list_names
+        columns: submitted?(:column_names) ? sanitized_names : nil,
+        field_presentations: submitted?(:column_names) ? sanitized_presentations : nil,
+        options: submitted?(:report_options) ? report_options : nil,
+        landscape_scale_threshold: submitted?(:landscape_scale_threshold) ? landscape_scale_threshold : nil,
+        item_list_columns: submitted?(:item_list_column_names) ? sanitized_item_list_names : nil
       )
-      setting.assign_combined_layout_mode(layout_mode)
-      setting.assign_combined_render_variant(render_variant)
-      setting.save!
-
-      flash[:notice] = l(:notice_successful_update)
-      redirect_to settings_project_path(@project, tab: 'cosmosys')
+      setting.assign_combined_layout_mode(layout_mode) if submitted?(:combined_layout_mode)
+      setting.assign_combined_render_variant(render_variant) if submitted?(:combined_render_variant)
+      setting.save! if setting.changed?
     end
 
-    private
+    def submitted?(name)
+      @submitted_settings.key?(name)
+    end
+
+    def settings_section
+      params[:cosmosys_section].presence_in(%w[general reports items diagrams]) || 'general'
+    end
 
     def update_project_profile!
-      profile_key = Cosmosys::ProjectProfileRegistry.normalize_key(params.dig(:cosmosys_setting, :project_profile))
+      profile_key = Cosmosys::ProjectProfileRegistry.normalize_key(submitted?(:project_profile) ? params.dig(:cosmosys_setting, :project_profile) : @project.csys_project_profile)
       raise ActiveRecord::RecordInvalid, @project unless Cosmosys::ProjectProfileRegistry.registered?(profile_key)
       profile_changed = @project.csys_project_profile != profile_key
       if profile_changed && !ActiveModel::Type::Boolean.new.cast(params.dig(:cosmosys_setting, :confirm_profile_reconfiguration))
         flash[:error] = l(:error_cosmosys_project_profile_confirmation_required)
-        redirect_to settings_project_path(@project, tab: 'cosmosys')
+        redirect_to settings_project_path(@project, tab: 'cosmosys', cosmosys_section: settings_section)
         return false
       end
 
@@ -79,26 +94,26 @@ module Cosmosys
       root_key = nil unless root_key.nil? || allowed_keys.include?(root_key)
       @project.csys_project_profile = profile_key
       language = params.dig(:cosmosys_setting, :language).to_s
-      @project.csys_language = Cosmosys::ProjectLanguage.normalize(language, allow_blank: true)
-      @project.csys_report_code = params.dig(:cosmosys_setting, :report_code).to_s.strip.presence
-      @project.csys_wp = params.dig(:cosmosys_setting, :wp).to_s.strip.presence
-      @project.csys_wp_title = params.dig(:cosmosys_setting, :wp_title).to_s.strip.presence
+      @project.csys_language = Cosmosys::ProjectLanguage.normalize(language, allow_blank: true) if submitted?(:language)
+      @project.csys_report_code = params.dig(:cosmosys_setting, :report_code).to_s.strip.presence if submitted?(:report_code)
+      @project.csys_wp = params.dig(:cosmosys_setting, :wp).to_s.strip.presence if submitted?(:wp)
+      @project.csys_wp_title = params.dig(:cosmosys_setting, :wp_title).to_s.strip.presence if submitted?(:wp_title)
       @project.csys_report_export_format = Cosmosys::ReportFormat.normalize(
         params.dig(:cosmosys_setting, :report_export_format),
         allow_blank: true
-      )
-      @project.csys_root_tracker_key = root_key
+      ) if submitted?(:report_export_format)
+      @project.csys_root_tracker_key = root_key if submitted?(:root_tracker_key)
       template_asset_id = params.dig(:cosmosys_setting, :ods_template_asset_id).presence
-      @project.cosmosys_ods_template_asset = template_asset_id ? Cosmosys::TemplateAsset.available_ods.find(template_asset_id) : nil
-      assign_report_template!
-      @project.csys_project_passphrase = params.dig(:cosmosys_setting, :project_passphrase).to_s.presence
+      @project.cosmosys_ods_template_asset = template_asset_id ? Cosmosys::TemplateAsset.available_ods.find(template_asset_id) : nil if submitted?(:ods_template_asset_id)
+      assign_report_template! if submitted?(:report_template)
+      @project.csys_project_passphrase = params.dig(:cosmosys_setting, :project_passphrase).to_s.presence if submitted?(:project_passphrase)
       validity_setting = params.dig(:cosmosys_setting, :calculate_requirement_chain_validity)
       unless validity_setting.nil?
         @project.csys_calculate_requirement_chain_validity = ActiveModel::Type::Boolean.new.cast(validity_setting)
       end
-      @project.cosmosys_enable_required_trackers!
+      @project.cosmosys_enable_required_trackers! if submitted?(:project_profile)
       @project.cosmosys_reconfigure_modules_for_profile! if profile_changed
-      @project.save!
+      @project.save! if @project.changed?
       true
     end
 
