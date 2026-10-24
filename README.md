@@ -100,7 +100,10 @@ Redmine plugin. You do not need Docker or the deployment repository for this.
    is absent, so it also repairs databases where an earlier 0.1.5 build already
    added it. An upgrade from an earlier release migrates through the latest
    available migration. Release 0.1.9 seals migration `010`, which enables
-   missing required profile trackers on existing projects.
+   missing required profile trackers on existing projects. Release 0.1.11
+   seals migration `011`, adding the per-project requirement-chain-validity
+   setting (enabled by default). Release 0.2.0 seals migration `012`, which
+   stores fingerprints for post-migration contract reconciliation.
 
 5. **Normalise item query names (recommended).** cosmoSys sets the visible
    domain vocabulary to `item`/`items` (and `ítem`/`ítems` in Spanish) and
@@ -139,6 +142,15 @@ existing assignments. It is idempotent and keeps these assignments on rollback.
 This addresses the 0.1.8 upgrade failure when bootstrap saves legacy help
 projects. Ordinary project saves no longer validate unrelated tracker state;
 the tracker assignment methods continue to reject removal of required trackers.
+
+After plugin migrations have run, the web server runs
+`Cosmosys::ConsolidationService` at startup. It compares the current registered
+profile-contract fingerprints with the stored fingerprints and reconciles only
+the affected profile scopes. The initial consolidator ensures that existing
+projects have the required trackers for their profile; it does not remove
+trackers. Plugin migrations remain conventional and do not need to call this
+service. `rails runner` and migration tasks do not trigger startup
+consolidation; restart the web server after applying migrations.
 
 The migration base is developed fast and the project is still in alpha: the
 schema is not yet backward-compatible by design, so back up the database
@@ -196,6 +208,10 @@ inside the printable width with transparent padding instead of scaling visible
 pixels. Consecutive images that are the only contents of a Markdown paragraph
 are composed side by side and bottom-aligned; paragraphs with text or explicit
 image sizing keep their authored layout.
+
+These report improvements and startup contract reconciliation are included in
+cosmoSys 0.2.0, validated locally in Redmine 3001 and tagged in the local
+repository. Publication and deployment pinning are separate steps.
 
 ## Repository
 
