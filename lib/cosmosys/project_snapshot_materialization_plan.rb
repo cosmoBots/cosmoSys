@@ -14,6 +14,7 @@ module Cosmosys
       @user = user || User.anonymous
       raw = attributes.respond_to?(:to_unsafe_h) ? attributes.to_unsafe_h : attributes.to_h
       @attributes = raw.stringify_keys
+      @attributes['is_public'] = ActiveModel::Type::Boolean.new.cast(@attributes['is_public']) == true
       validate_schema!
       @identity_collisions = find_identity_collisions
       @project_data_reconciliation = ProjectDataReconciliation.new(
@@ -26,6 +27,14 @@ module Cosmosys
       @fallback_warnings = find_fallback_warnings
       @plugin_compatibility = compare_plugins
       @external_relation_reconciliation = inspect_external_relations
+    end
+
+    def destination_parent
+      parent
+    end
+
+    def public_projects?
+      attributes['is_public'] == true
     end
 
     def blocking_messages
@@ -50,7 +59,8 @@ module Cosmosys
       messages << I18n.t(:error_cosmosys_snapshot_identifiers_taken, identifiers: collisions.join(', ')) if collisions.any?
       invalid_identifiers = destination_projects.filter_map do |entry|
         probe = Project.new(name: entry[:name], identifier: entry[:identifier], cscode: entry[:cscode])
-        entry[:identifier] unless probe.valid? || probe.errors[:identifier].empty?
+        probe.valid?
+        entry[:identifier] if probe.errors.details.fetch(:identifier, []).any? { |error| error[:error] != :taken }
       end
       if invalid_identifiers.any?
         messages << I18n.t(:error_cosmosys_snapshot_identifiers_invalid,
@@ -368,7 +378,7 @@ module Cosmosys
     def canonical_payload
       {
         source_digest: manifest.fetch('content_sha256'),
-        destination: attributes.slice('name', 'identifier', 'cscode', 'parent_id', 'identity_mode', 'project_data_conflict_policy'),
+        destination: attributes.slice('name', 'identifier', 'cscode', 'parent_id', 'identity_mode', 'project_data_conflict_policy', 'is_public'),
         destination_projects: destination_projects.map { |entry| entry.slice(:key, :parent_key, :identifier, :cscode) },
         counts: counts,
         identity_collisions: identity_collisions.sort,

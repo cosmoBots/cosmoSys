@@ -1,0 +1,12 @@
+<% messages = plan.blocking_messages %>
+<% if messages.any? %>
+  <div id="errorExplanation" role="alert" data-cosmosys-snapshot-blockers>
+    <h3><%= l(:label_cosmosys_snapshot_import_blocked) %></h3>
+    <ul>
+      <% messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+    </ul>
+    <p><%= l(:text_cosmosys_snapshot_import_blocked) %></p>
+  </div>
+<% end %>

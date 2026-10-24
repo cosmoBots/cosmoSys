@@ -1,0 +1,9 @@
+<% if Array(@import_operations).any? %>
+  <h3><%= l(:label_cosmosys_snapshot_recent_imports) %></h3>
+  <ul>
+    <% @import_operations.each do |operation| %>
+      <li><%= link_to "#{format_time(Time.parse(operation.data['created_at']))} — #{l("text_cosmosys_snapshot_phase_#{operation.summary['progress_phase']}")}",
+                      snapshot_import_operation_path(operation.token) %></li>
+    <% end %>
+  </ul>
+<% end %>

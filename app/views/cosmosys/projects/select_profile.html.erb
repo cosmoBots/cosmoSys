@@ -1,3 +1,9 @@
+<% if User.current.admin? && @cosmosys_parent_id.blank? %>
+  <div class="contextual">
+    <%= link_to l(:button_cosmosys_import_project_snapshot), new_cosmosys_snapshot_import_path, class: 'icon icon-import' %>
+  </div>
+<% end %>
+
 <%= title l(:label_project_new) %>
 
 <div class="box tabular cosmosys-project-profile-step">

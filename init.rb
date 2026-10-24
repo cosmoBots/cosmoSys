@@ -20,6 +20,12 @@ Redmine::Plugin.register :cosmosys do
     permission: false,
     if: proc { |project| project&.visible?(User.current) }
 
+  menu :admin_menu, :cosmosys_snapshot_import, { controller: 'cosmosys/project_snapshots', action: 'new_import' },
+    caption: :button_cosmosys_import_project_snapshot,
+    after: :projects,
+    icon: 'import',
+    html: { class: 'icon icon-import' }
+
   menu :admin_menu, :cosmosys_item_kinds, { controller: 'cosmosys/item_kinds', action: 'index' },
     caption: :label_cosmosys_item_kinds,
     icon: 'bookmarked',
@@ -160,6 +166,8 @@ require_dependency File.expand_path('lib/cosmosys/project_snapshot_selection', _
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_capture', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_package', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_import_stage', __dir__)
+require_dependency File.expand_path('lib/cosmosys/project_snapshot_import_operation', __dir__)
+require_dependency File.expand_path('lib/cosmosys/project_snapshot_import_job', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_package_reader', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_materialization_plan', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_snapshot_materialization_summary', __dir__)

@@ -9,6 +9,7 @@
     <p><%= label_tag 'destination_cscode', 'cscode' %><%= text_field_tag 'destination[cscode]', @destination['cscode'], required: true, size: 20 %></p>
     <p><%= label_tag 'destination_profile', l(:label_cosmosys_project_profile) %><strong><%= @destination['profile'] || @snapshot.manifest.dig('content', 'projects', 0, 'project', 'profile') %></strong></p>
     <p><%= label_tag 'destination_parent_id', l(:field_parent) %><%= select_tag 'destination[parent_id]', options_from_collection_for_select(@parent_projects, :id, :name, @destination['parent_id']), include_blank: l(:label_none) %></p>
+    <%= render 'visibility' %>
     <p>
       <label><%= l(:field_cosmosys_identity_mode) %></label>
       <%= radio_button_tag 'destination[identity_mode]', 'preserve', @destination['identity_mode'].to_s != 'new' %> <%= l(:label_cosmosys_identity_mode_preserve) %>
@@ -28,9 +29,7 @@
       <div class="cosmosys-project-copy-preflight">
         <h3><%= l(:label_cosmosys_snapshot_materialization_preflight) %></h3>
         <p class="warning"><%= l(:text_cosmosys_snapshot_materialization_confirmation) %></p>
-        <% @materialization_plan.blocking_messages.each do |message| %>
-          <p class="error"><%= message %></p>
-        <% end %>
+        <%= render 'destination_parent', plan: @materialization_plan %>
         <%= hidden_field_tag :confirmed_plan, @materialization_plan.confirmation_token %>
         <table class="list">
           <thead><tr><th><%= l(:label_cosmosys_copy_preflight_content) %></th><th><%= l(:label_cosmosys_copy_count) %></th></tr></thead>
@@ -75,6 +74,10 @@
         <p class="info"><%= l(:text_cosmosys_snapshot_internal_relations_only) %></p>
       </div>
     <% end %>
-    <p><%= submit_tag l(:button_cosmosys_materialize_project_snapshot), class: 'button-positive' %></p>
+    <%= render 'preflight_blockers', plan: @materialization_plan if @materialization_plan %>
+    <p>
+      <%= button_tag l(:button_cosmosys_review_import), type: 'submit', name: 'review_plan', value: '1' if @materialization_plan %>
+      <%= submit_tag l(:button_cosmosys_materialize_project_snapshot), class: 'button-positive' if !@materialization_plan || @materialization_plan.blocking_messages.empty? %>
+    </p>
   <% end %>
 </div>

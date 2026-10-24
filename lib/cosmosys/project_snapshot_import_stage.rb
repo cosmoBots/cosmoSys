@@ -90,7 +90,7 @@ module Cosmosys
 
       def write_metadata(directory, user:, project:)
         File.write(File.join(directory, METADATA_FILENAME), JSON.generate(
-          created_at: Time.now.utc.iso8601, user_id: user.id, project_id: project.id
+          created_at: Time.now.utc.iso8601, user_id: user.id, project_id: project&.id
         ))
       end
 
@@ -101,7 +101,7 @@ module Cosmosys
       end
 
       def owned_by?(metadata, user:, project:)
-        metadata['user_id'].to_i == user.id.to_i && metadata['project_id'].to_i == project.id.to_i
+        metadata['user_id'] == user.id && metadata['project_id'] == project&.id
       end
 
       def staged_directory(token)

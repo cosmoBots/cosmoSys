@@ -1,0 +1,7 @@
+<p>
+  <%= label_tag 'destination_is_public', l(:label_cosmosys_snapshot_visibility) %>
+  <%= select_tag 'destination[is_public]', options_for_select(
+        [[l(:label_cosmosys_snapshot_private), '0'], [l(:label_cosmosys_snapshot_public), '1']],
+        ActiveModel::Type::Boolean.new.cast(@destination['is_public']) ? '1' : '0') %>
+  <em class="info"><%= l(:text_cosmosys_snapshot_visibility) %></em>
+</p>

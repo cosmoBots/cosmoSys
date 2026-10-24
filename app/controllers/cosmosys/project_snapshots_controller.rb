@@ -31,14 +31,18 @@ module Cosmosys
 
     menu_item :cosmosys
 
-    before_action :find_project_by_project_id
-    before_action :authorize_project
+    before_action :find_project_by_project_id, if: -> { params[:project_id].present? }
+    before_action :authorize_project, if: -> { @project.present? }
     before_action :find_snapshot, only: [:show, :download, :destroy, :new_materialization, :materialize]
+
+    helper_method :snapshot_import_form_path, :snapshot_import_cancel_path,
+                  :snapshot_import_history_path, :snapshot_import_operation_path, :snapshot_import_status_path
 
     def index
       @snapshots = Cosmosys::ProjectSnapshot.where(project_id: @project.id, created_by_id: User.current.id).recent_first
       @snapshots = Cosmosys::ProjectSnapshot.where(project_id: @project.id).recent_first if User.current.admin?
       @snapshot_selection = ProjectSnapshotSelection.new(@project, user: User.current)
+      @import_operations = User.current.admin? ? ProjectSnapshotImportOperation.recent(user: User.current, project: @project) : []
     end
 
     def create
@@ -55,13 +59,14 @@ module Cosmosys
     end
 
     def new_import
-      deny_access unless User.current.admin?
-      @destination = { 'parent_id' => @project.id, 'identity_mode' => 'preserve' }
+      return deny_access unless User.current.admin?
+      @destination = { 'parent_id' => @project&.id, 'identity_mode' => 'preserve' }
+      @import_operations = ProjectSnapshotImportOperation.recent(user: User.current, project: @project)
       @parent_projects = Project.visible(User.current).order(:name)
     end
 
     def import
-      deny_access unless User.current.admin?
+      return deny_access unless User.current.admin?
       attributes = snapshot_destination_attributes
 
       if params[:confirmed_plan].present?
@@ -78,33 +83,54 @@ module Cosmosys
     end
 
     def cancel_import
-      deny_access unless User.current.admin?
+      return deny_access unless User.current.admin?
       Cosmosys::ProjectSnapshotImportStage.cleanup(params[:import_token].to_s, user: User.current, project: @project)
-      redirect_to project_cosmosys_snapshots_path(@project), notice: l(:notice_cosmosys_snapshot_import_cancelled)
+      redirect_to snapshot_import_history_path, notice: l(:notice_cosmosys_snapshot_import_cancelled)
+    end
+
+    def import_operation
+      return unless find_import_operation
+    end
+
+    def import_status
+      return unless find_import_operation
+
+      summary = @import_operation.summary
+      response.headers['Cache-Control'] = 'no-store'
+      render json: {
+        state: @import_operation.state, progress: summary['progress'], phase: summary['progress_phase'],
+        phase_label: l("text_cosmosys_snapshot_phase_#{summary['progress_phase']}"),
+        processed: summary['processed'], total: summary['total'],
+        attachments_processed: summary['attachments_processed'], attachments_total: summary['attachments_total'],
+        elapsed_seconds: summary['duration_seconds'] || (Time.now - Time.parse(@import_operation.data.fetch('created_at'))).round(1),
+        updated_at: @import_operation.data['updated_at'], duration_seconds: summary['duration_seconds'],
+        result_message: summary['result_message'], error: summary['error'],
+        destination_url: summary['destination_identifier'].present? ? project_path(summary['destination_identifier']) : nil
+      }
     end
 
     def show; end
 
     def destroy
-      deny_access unless @snapshot.created_by_id == User.current.id || User.current.admin?
+      return deny_access unless @snapshot.created_by_id == User.current.id || User.current.admin?
       @snapshot.destroy!
       redirect_to project_cosmosys_snapshots_path(@project), notice: l(:notice_cosmosys_project_snapshot_deleted)
     end
 
     def new_materialization
-      deny_access unless User.current.admin?
+      return deny_access unless User.current.admin?
       @destination = destination_defaults
       @parent_projects = Project.visible(User.current).order(:name)
     end
 
     def materialize
-      deny_access unless User.current.admin?
-      attributes = params.require(:destination).permit(:name, :identifier, :cscode, :parent_id, :identity_mode, :project_data_conflict_policy)
+      return deny_access unless User.current.admin?
+      attributes = params.require(:destination).permit(:name, :identifier, :cscode, :parent_id, :identity_mode, :project_data_conflict_policy, :is_public)
       plan = Cosmosys::ProjectSnapshotMaterializationPlan.new(
         source: @snapshot, attributes: attributes, user: User.current
       )
       confirmed_digest = Cosmosys::ProjectSnapshotMaterializationPlan.verified_digest(params[:confirmed_plan])
-      unless confirmed_digest && ActiveSupport::SecurityUtils.secure_compare(confirmed_digest, plan.digest)
+      if params[:review_plan] == '1' || !(confirmed_digest && ActiveSupport::SecurityUtils.secure_compare(confirmed_digest, plan.digest))
         @destination = attributes.to_h
         @parent_projects = Project.visible(User.current).order(:name)
         @materialization_plan = plan
@@ -149,10 +175,50 @@ module Cosmosys
 
     private
 
+    def snapshot_import_form_path
+      @project ? import_project_cosmosys_snapshot_path(@project) : cosmosys_snapshot_import_path
+    end
+
+    def snapshot_import_cancel_path(import_token:)
+      @project ? cancel_import_project_cosmosys_snapshot_path(@project, import_token: import_token) :
+        cancel_cosmosys_snapshot_import_path(import_token: import_token)
+    end
+
+    def snapshot_import_history_path
+      @project ? project_cosmosys_snapshots_path(@project) : new_cosmosys_snapshot_import_path
+    end
+
+    def snapshot_import_operation_path(token)
+      @project ? project_cosmosys_snapshot_import_operation_path(@project, token) : cosmosys_snapshot_import_operation_path(token)
+    end
+
+    def snapshot_import_status_path(token)
+      @project ? status_project_cosmosys_snapshot_import_operation_path(@project, token) : status_cosmosys_snapshot_import_operation_path(token)
+    end
+
+    def log_snapshot_import_progress(percent, phase, details = {})
+      Rails.logger.info({ cosmosys_snapshot_import: 'progress', project_id: @project&.id,
+                          phase: phase, progress: percent, **details }.to_json)
+    end
+
+    def find_import_operation
+      unless User.current.admin?
+        deny_access
+        return false
+      end
+
+      @import_operation = ProjectSnapshotImportOperation.find(params[:token], user: User.current, project: @project)
+      unless @import_operation
+        render_404
+        return false
+      end
+      true
+    end
+
     def snapshot_destination_attributes
       params.require(:destination).permit(
         :name, :identifier, :cscode, :parent_id, :identity_mode,
-        :project_data_conflict_policy, :primary_source_id, :allow_multiple_roots,
+        :project_data_conflict_policy, :primary_source_id, :allow_multiple_roots, :is_public,
         project_identifiers: {}
       )
     end
@@ -164,6 +230,7 @@ module Cosmosys
       upload = params[:snapshot_file]
       raise ProjectSnapshotPackageError, I18n.t(:error_cosmosys_snapshot_file_required) unless upload.respond_to?(:read) && upload.tempfile
 
+      log_snapshot_import_progress(0, 'staging')
       token = Cosmosys::ProjectSnapshotImportStage.create(upload.tempfile.path, user: User.current, project: @project)
       @destination = attributes.to_h
       @parent_projects = Project.visible(User.current).order(:name)
@@ -174,9 +241,10 @@ module Cosmosys
       end
 
       begin
-        Cosmosys::ProjectSnapshotPackageReader.open(path) do |source|
+        Cosmosys::ProjectSnapshotPackageReader.open(path, progress: method(:log_snapshot_import_progress)) do |source|
           attributes = complete_import_attributes(attributes, source)
           @destination = attributes
+          log_snapshot_import_progress(3, 'preflight')
           @import_plan = Cosmosys::ProjectSnapshotMaterializationPlan.new(
             source: source, attributes: attributes, user: User.current
           )
@@ -206,12 +274,12 @@ module Cosmosys
         return render :new_import
       end
 
-      Cosmosys::ProjectSnapshotPackageReader.open(path) do |source|
+      Cosmosys::ProjectSnapshotPackageReader.open(path, progress: method(:log_snapshot_import_progress)) do |source|
         attributes = complete_import_attributes(attributes, source)
         plan = Cosmosys::ProjectSnapshotMaterializationPlan.new(
           source: source, attributes: attributes, user: User.current
         )
-        unless ActiveSupport::SecurityUtils.secure_compare(confirmed_digest, plan.digest)
+        if params[:review_plan] == '1' || !ActiveSupport::SecurityUtils.secure_compare(confirmed_digest, plan.digest)
           @import_plan = plan
           @import_token = token
           @destination = attributes.to_h
@@ -219,6 +287,23 @@ module Cosmosys
           return render :new_import
         end
         raise ProjectCopyError, plan.blocking_messages.join(' ') if plan.blocking_messages.any?
+
+        if params[:background] == '1'
+          operation = ProjectSnapshotImportOperation.create(
+            path, user: User.current, project: @project, attributes: attributes,
+            confirmed_plan: params[:confirmed_plan].to_s
+          )
+          begin
+            ProjectSnapshotImportJob.perform_later(operation.token)
+          rescue StandardError => error
+            operation.update!(state: 'failed', summary: operation.summary.merge('progress_phase' => 'failed', 'error' => error.message))
+            operation.release_package!
+            raise
+          end
+          ProjectSnapshotImportStage.cleanup(token, user: User.current, project: @project)
+          ProjectSnapshotImportOperation.cleanup_expired!
+          return redirect_to snapshot_import_operation_path(operation.token)
+        end
 
         begin
           destination = Cosmosys::ProjectSnapshotMaterializer.new(

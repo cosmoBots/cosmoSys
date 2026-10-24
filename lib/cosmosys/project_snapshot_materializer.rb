@@ -3,11 +3,13 @@ require 'digest'
 
 module Cosmosys
   class ProjectSnapshotMaterializer
-    def initialize(source, user:, attributes:, purpose: :materialization)
+    def initialize(source, user:, attributes:, purpose: :materialization, progress: nil)
       @source = source
       @user = user
       @attributes = attributes.to_h.stringify_keys
       @purpose = purpose.to_sym
+      @progress = progress
+      @progress_counts = Hash.new(0)
     end
 
     def call
@@ -20,11 +22,14 @@ module Cosmosys
     # runs after every project shell exists but before snapshot content is
     # written, allowing Redmine to copy its native project-owned entities.
     def materialize_projects!(selected_parts: nil)
+      report_progress(4, 'preflight')
       @plan = preflight!
 
-      ActiveRecord::Base.transaction do
+      result = ActiveRecord::Base.transaction do
         content = source.manifest.fetch('content')
         entries = content.fetch('projects')
+        initialize_progress_totals(entries)
+        report_progress(5, 'projects', processed: 0, total: entries.length)
         create_custom_fields!(@plan.custom_field_creations)
         projects = create_projects!(entries)
         yield projects if block_given?
@@ -36,8 +41,11 @@ module Cosmosys
           # (live copy block above), the snapshot must not duplicate it.
           restore_wiki: !block_given?
         )
+        report_progress(99, 'committing')
         projects
       end
+      report_progress(100, 'completed') unless @progress
+      result
     end
 
     # Populate a project which Redmine has already created while copying its
@@ -69,6 +77,43 @@ module Cosmosys
       @plan
     end
 
+    def initialize_progress_totals(entries)
+      @progress_totals = {
+        items: entries.sum { |entry| entry.fetch('items').length },
+        documents: entries.sum { |entry| entry.fetch('documents').length },
+        attachments: entries.sum do |entry|
+          (entry.fetch('items') + entry.fetch('documents') + entry.fetch('wiki', {}).fetch('pages', [])).sum do |row|
+            row.fetch('attachments', []).length
+          end
+        end
+      }
+    end
+
+    def progress_tick(phase, start_percent, end_percent, total)
+      @progress_counts[phase] += 1
+      processed = @progress_counts[phase]
+      percent = start_percent + (end_percent - start_percent) * processed / [total, 1].max
+      report_progress(percent, phase, processed: processed, total: total)
+    end
+
+    def report_progress(percent, phase, **details)
+      now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      changed_phase = phase != @last_progress_phase
+      finished = details[:total].present? && details[:processed] == details[:total]
+      return unless changed_phase || finished || !@last_progress_at || now - @last_progress_at >= 1
+
+      @last_progress_at = now
+      @last_progress_phase = phase
+      @last_progress_percent = percent
+      details = { processed: nil, total: nil }.merge(details) if changed_phase
+      if @progress_totals
+        details = details.merge(attachments_processed: @progress_counts['attachments'], attachments_total: @progress_totals[:attachments])
+      end
+      @progress&.call(percent, phase, details)
+      Rails.logger.info({ cosmosys_snapshot_import: 'progress', phase: phase, progress: percent,
+                          elapsed_seconds: (now - (@progress_started_at ||= now)).round(1), **details }.to_json)
+    end
+
     def preflight!
       plan = ProjectSnapshotMaterializationPlan.new(source: source, attributes: attributes, user: user)
       return plan if plan.blocking_messages.empty?
@@ -90,6 +135,7 @@ module Cosmosys
           destination = destination_rows.fetch(entry.fetch('key'))
           parent = entry['parent_key'].present? ? projects.fetch(entry['parent_key']) : destination_parent
           projects[entry.fetch('key')] = create_project!(destination, parent)
+          progress_tick('projects', 5, 10, entries.length)
         end
       end
       projects
@@ -98,30 +144,39 @@ module Cosmosys
     def materialize_contents!(content, entries, projects, selected_parts: nil, copy_context: nil,
                               include_external_relations: false, restore_wiki: true)
       @reused_item_keys = Set.new
+      initialize_progress_totals(entries) unless @progress_totals
       include_items = selected_parts.nil? || selected_parts.include?('issues')
       include_documents = selected_parts.nil? || selected_parts.include?('documents')
       items = {}
       if include_items
+        report_progress(10, 'items', processed: 0, total: @progress_totals[:items])
         items = entries.each_with_object({}) do |entry, map|
           map.merge!(create_items!(projects.fetch(entry.fetch('key')), entry.fetch('items')))
         end
+        report_progress(45, 'identities')
         entries.each do |entry|
           apply_identity_policy!(projects.fetch(entry.fetch('key')), items, entry.fetch('items'))
         end
         rows = entries.flat_map { |entry| entry.fetch('items') }
+        report_progress(47, 'profile_fields', processed: 0, total: rows.length)
         apply_deferred_profile_fields!(items, rows)
+        report_progress(50, 'hierarchy', processed: 0, total: rows.length)
         restore_hierarchy!(items, rows)
+        report_progress(60, 'relations', processed: 0, total: content.fetch('relations').length)
         restore_relations!(items, content.fetch('relations'))
+        report_progress(72, 'external_relations')
         restore_external_relations!(items) if include_external_relations
       end
 
       documents = {}
       if include_documents
+        report_progress(74, 'documents', processed: 0, total: @progress_totals[:documents])
         documents = entries.each_with_object({}) do |entry, map|
           map.merge!(create_documents!(projects.fetch(entry.fetch('key')), entry.fetch('documents')))
         end
       end
 
+      report_progress(84, 'catalog')
       marker_map = {}
       if include_items && include_documents
         entries.each do |entry|
@@ -129,9 +184,13 @@ module Cosmosys
                                              entry.fetch('document_catalog')))
         end
       end
+      report_progress(88, 'wiki')
       restore_wikis!(projects, entries) if restore_wiki
+      report_progress(91, 'references')
       rewrite_internal_references!(items, entries.flat_map { |entry| entry.fetch('items') }, marker_map) if include_items
+      report_progress(94, 'baselines')
       restore_presentation_baselines!(items, entries.flat_map { |entry| entry.fetch('items') }) if include_items && faithful?
+      report_progress(97, 'consolidation')
       Cosmosys::ProjectSnapshotMaterializationCallbacks.run(
         purpose: purpose,
         projects: projects.values,
@@ -150,7 +209,7 @@ module Cosmosys
         cscode: destination.fetch(:cscode),
         description: source['description'].to_s,
         parent: parent,
-        is_public: false,
+        is_public: plan.public_projects?,
         csys_project_profile: source.fetch('profile'),
         csys_language: source['language'],
         csys_report_code: source['report_code'],
@@ -180,6 +239,7 @@ module Cosmosys
           existing = reconcile_project_data!(project, row)
           if existing
             @reused_item_keys.add(row.fetch('key'))
+            progress_tick('items', 10, 45, @progress_totals[:items])
             next [row.fetch('key'), existing]
           end
         end
@@ -207,6 +267,7 @@ module Cosmosys
         assign_custom_fields!(issue, project, row.fetch('custom_fields', []))
         issue.save!
         restore_attachments!(issue, row.fetch('attachments'))
+        progress_tick('items', 10, 45, @progress_totals[:items])
         [row.fetch('key'), issue]
       end
     end
@@ -229,6 +290,7 @@ module Cosmosys
           issue, row.fetch('profile_fields', {}), phase: :deferred, context: { csid_map: csid_map }
         )
         issue.save! if issue.changed?
+        progress_tick('profile_fields', 47, 50, rows.length)
       end
     end
 
@@ -252,6 +314,7 @@ module Cosmosys
         # Redmine's nested-set maintenance can advance siblings' lock_version
         # while preceding parents are restored.  Always update a fresh object.
         items.fetch(row.fetch('key')).reload.update!(parent_issue_id: parent.id) if parent
+        progress_tick('hierarchy', 50, 60, rows.length)
       end
     end
 
@@ -328,6 +391,7 @@ module Cosmosys
       rows.each do |row|
         IssueRelation.create!(issue_from: items.fetch(row.fetch('from')), issue_to: items.fetch(row.fetch('to')),
                               relation_type: row.fetch('type'), delay: row['delay'], csys_restricted: row['restricted'])
+        progress_tick('relations', 60, 72, rows.length)
       end
     end
 
@@ -403,6 +467,7 @@ module Cosmosys
                                     description: row['description'].to_s, external_code: row['external_code'],
                                     csys_document_date: row['date'], csys_document_version: row['version'])
         restore_attachments!(document, row.fetch('attachments'))
+        progress_tick('documents', 74, 84, @progress_totals[:documents])
         [row.fetch('key'), document]
       end
     end
@@ -434,6 +499,9 @@ module Cosmosys
         File.open(asset_path(row.fetch('content_sha256')), 'rb') do |file|
           Attachment.create!(container: container, author: user, file: file, filename: row.fetch('filename'),
                              content_type: row['content_type'], description: row['description'])
+          @progress_counts['attachments'] += 1
+          report_progress(@last_progress_percent || 0, @last_progress_phase || 'items',
+                          attachments_processed: @progress_counts['attachments'], attachments_total: @progress_totals&.fetch(:attachments, 0))
         end
       end
     end

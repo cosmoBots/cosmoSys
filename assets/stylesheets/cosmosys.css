@@ -1178,6 +1178,17 @@
 .cosmosys-progress-success { color: #256b29; }
 .cosmosys-progress-failure { color: #8e1b1b; }
 
+.cosmosys-snapshot-import-progress {
+  display: block;
+}
+
+.cosmosys-snapshot-import-progress-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .cosmosys-report-spinner {
   animation: cosmosys-report-spin 0.8s linear infinite;
   border: 2px solid #c7d2dd;

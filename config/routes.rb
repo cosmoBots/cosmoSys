@@ -25,6 +25,12 @@ RedmineApp::Application.routes.draw do
   get 'cosmosys/branding/:id/:filename', to: 'cosmosys/branding_assets#show', as: :cosmosys_branding_asset,
       constraints: { filename: /[^\/]+/ }
 
+  get 'cosmosys/snapshots/import', to: 'cosmosys/project_snapshots#new_import', as: :new_cosmosys_snapshot_import
+  post 'cosmosys/snapshots/import', to: 'cosmosys/project_snapshots#import', as: :cosmosys_snapshot_import
+  post 'cosmosys/snapshots/import/cancel', to: 'cosmosys/project_snapshots#cancel_import', as: :cancel_cosmosys_snapshot_import
+  get 'cosmosys/snapshots/import/operations/:token', to: 'cosmosys/project_snapshots#import_operation', as: :cosmosys_snapshot_import_operation
+  get 'cosmosys/snapshots/import/operations/:token/status', to: 'cosmosys/project_snapshots#import_status', as: :status_cosmosys_snapshot_import_operation
+
   scope ':project_id', constraints: { project_id: /[^\/]+/ } do
     get 'cosmosys', to: 'cosmosys/items#index'
     get 'cosmosys/overview', to: 'cosmosys/items#overview'
@@ -47,6 +53,8 @@ RedmineApp::Application.routes.draw do
     get 'cosmosys/snapshots/import', to: 'cosmosys/project_snapshots#new_import', as: :new_import_project_cosmosys_snapshot
     post 'cosmosys/snapshots/import', to: 'cosmosys/project_snapshots#import', as: :import_project_cosmosys_snapshot
     post 'cosmosys/snapshots/import/cancel', to: 'cosmosys/project_snapshots#cancel_import', as: :cancel_import_project_cosmosys_snapshot
+    get 'cosmosys/snapshots/import/operations/:token', to: 'cosmosys/project_snapshots#import_operation', as: :project_cosmosys_snapshot_import_operation
+    get 'cosmosys/snapshots/import/operations/:token/status', to: 'cosmosys/project_snapshots#import_status', as: :status_project_cosmosys_snapshot_import_operation
     get 'cosmosys/snapshots/:id', to: 'cosmosys/project_snapshots#show', as: :project_cosmosys_snapshot
     get 'cosmosys/snapshots/:id/download', to: 'cosmosys/project_snapshots#download', as: :download_project_cosmosys_snapshot
     get 'cosmosys/snapshots/:id/materialize', to: 'cosmosys/project_snapshots#new_materialization', as: :materialize_project_cosmosys_snapshot

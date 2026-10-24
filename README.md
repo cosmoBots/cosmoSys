@@ -213,11 +213,26 @@ These report improvements and startup contract reconciliation are included in
 cosmoSys 0.2.0, validated locally in Redmine 3001 and tagged in the local
 repository. Publication and deployment pinning are separate steps.
 
-## Project settings
+## Project settings and snapshot imports
 
 Project settings use separate General, Reports, Item list, Diagrams and Branding
 sections. Each form saves only its submitted settings and returns to that
 section. Save before switching sections.
+
+Administrators can import directly from the global Projects list, New project
+or Administration via `/cosmosys/snapshots/import`, without creating an origin
+project. The parent is optional and defaults to root-level placement. Global
+and project-scoped uploads and results remain separately bound to their owner.
+
+Snapshot preflight lets administrators choose private (default) or public
+visibility for the entire new tree; changing it requires a new confirmation.
+Confirmed browser `.csys` imports run via the configured ActiveJob adapter and
+show phase/count progress with recent results retained for seven days in
+`tmp/cosmosys/snapshot-import-operations`. The web server and workers must share
+that temporary directory. The uploaded work package is removed after success or
+failure. This uses the same job infrastructure as ODS; the `async` adapter does
+not resume interrupted jobs after restarting the server. Do not restart during
+an import. No new database migration is required.
 
 ## Repository
 

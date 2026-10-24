@@ -1289,6 +1289,43 @@
     });
   }
 
+  function initSnapshotImportProgress() {
+    document.querySelectorAll('[data-cosmosys-snapshot-import-form]').forEach(function(form) {
+      if (form.dataset.cosmosysBound === '1') return;
+      form.dataset.cosmosysBound = '1';
+      form.addEventListener('submit', function(event) {
+        if (form.dataset.cosmosysSubmitting === '1') {
+          event.preventDefault();
+          return;
+        }
+        form.dataset.cosmosysSubmitting = '1';
+        var busy = form.querySelector('[data-cosmosys-snapshot-import-busy]');
+        if (busy) busy.hidden = false;
+      });
+    });
+    document.querySelectorAll('[data-cosmosys-snapshot-import-status]').forEach(function(panel) {
+      if (panel.dataset.cosmosysBound === '1') return;
+      panel.dataset.cosmosysBound = '1';
+      var bar = panel.querySelector('[data-cosmosys-operation-progress]');
+      var label = panel.querySelector('[data-cosmosys-operation-label]');
+      var result = panel.querySelector('[data-cosmosys-snapshot-result]');
+      pollCosmosysOperation(panel.dataset.statusUrl, function(status) {
+        setOperationProgressState(panel, status.state === 'failed' ? 'failure' : (status.state === 'completed' ? 'success' : 'running'), status.progress || 0);
+        label.textContent = status.phase_label;
+        panel.querySelector('[data-cosmosys-snapshot-counts]').textContent = status.total == null ? '' : status.processed + ' / ' + status.total;
+        panel.querySelector('[data-cosmosys-snapshot-attachments]').textContent = status.attachments_total == null ? '' : panel.dataset.attachmentsTemplate.replace('__processed__', status.attachments_processed || 0).replace('__total__', status.attachments_total);
+        panel.querySelector('[data-cosmosys-snapshot-duration]').textContent = status.elapsed_seconds == null ? '' : status.elapsed_seconds + ' s';
+        result.textContent = status.error || status.result_message || '';
+        var destination = panel.querySelector('[data-cosmosys-snapshot-destination]');
+        destination.hidden = !status.destination_url;
+        if (status.destination_url) destination.href = status.destination_url;
+      }, ['completed', 'failed']).catch(function() {
+        setOperationProgressState(panel, 'failure', bar.value);
+        result.textContent = panel.dataset.errorLabel;
+      });
+    });
+  }
+
   function initDsm() {
     var frame = document.querySelector('[data-cosmosys-dsm]');
     var source = document.getElementById('cosmosys-dsm-data');
@@ -1479,6 +1516,7 @@
     initReportExport();
     initOdsExport();
     initOdsImportForms();
+    initSnapshotImportProgress();
     initDsm();
     initCombinedDiagramControls();
     initLazyPageDiagrams();

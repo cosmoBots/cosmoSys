@@ -1,0 +1,22 @@
+<%= render partial: 'cosmosys/items/nav', locals: { current: :snapshots } if @project %>
+<h2><%= l(:label_cosmosys_import_project_snapshot) %></h2>
+<p class="info"><%= l(:text_cosmosys_snapshot_progress_help) %></p>
+<% summary = @import_operation.summary %>
+<div class="box cosmosys-report-export-progress cosmosys-snapshot-import-progress" data-cosmosys-snapshot-import-status
+     data-status-url="<%= snapshot_import_status_path(@import_operation.token) %>"
+     data-attachments-template="<%= l(:text_cosmosys_snapshot_attachments_progress, processed: '__processed__', total: '__total__') %>"
+     data-error-label="<%= l(:error_cosmosys_snapshot_status_unavailable) %>"
+     role="status" aria-live="polite">
+  <div class="cosmosys-snapshot-import-progress-heading">
+  <span class="cosmosys-report-spinner" data-cosmosys-operation-spinner></span>
+  <strong data-cosmosys-operation-label><%= l("text_cosmosys_snapshot_phase_#{summary['progress_phase']}") %></strong>
+  <progress value="<%= summary['progress'].to_i %>" max="100" data-cosmosys-operation-progress></progress>
+  <span data-cosmosys-snapshot-counts><%= "#{summary['processed']} / #{summary['total']}" if summary['total'] %></span>
+  </div>
+  <p data-cosmosys-snapshot-attachments><%= l(:text_cosmosys_snapshot_attachments_progress, processed: summary['attachments_processed'].to_i, total: summary['attachments_total']) if summary['attachments_total'] %></p>
+  <p data-cosmosys-snapshot-duration></p>
+  <p data-cosmosys-snapshot-result><%= summary['result_message'] || summary['error'] %></p>
+  <p><a data-cosmosys-snapshot-destination href="<%= project_path(summary['destination_identifier']) if summary['destination_identifier'] %>" <%= 'hidden' unless summary['destination_identifier'] %>><%= l(:label_cosmosys_copy_destination_project) %></a></p>
+</div>
+<p><%= link_to l(@project ? :label_cosmosys_project_snapshots : :label_cosmosys_snapshot_imports), snapshot_import_history_path %></p>
+<noscript><p><%= link_to l(:button_refresh), request.path %></p></noscript>

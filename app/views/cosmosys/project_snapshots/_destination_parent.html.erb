@@ -1,0 +1,12 @@
+<p data-cosmosys-snapshot-destination-parent>
+  <strong><%= l(:label_cosmosys_snapshot_destination_parent) %>:</strong>
+  <% if (destination_parent = plan.destination_parent) %>
+    <% destination_parent.ancestors.each do |ancestor| %>
+      <%= link_to ancestor.name, project_path(ancestor) %> »
+    <% end %>
+    <%= link_to destination_parent.name, project_path(destination_parent) %>
+    (<code><%= destination_parent.identifier %></code>)
+  <% else %>
+    <%= l(:label_cosmosys_snapshot_no_parent) %>
+  <% end %>
+</p>

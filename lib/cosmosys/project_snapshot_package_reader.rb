@@ -15,20 +15,22 @@ module Cosmosys
 
     attr_reader :manifest
 
-    def self.open(path)
+    def self.open(path, progress: nil)
       Dir.mktmpdir('cosmosys-snapshot-import') do |directory|
-        source = new(path, directory).load!
+        source = new(path, directory, progress: progress).load!
         yield source
       end
     end
 
-    def initialize(path, directory)
+    def initialize(path, directory, progress: nil)
       @path = path.to_s
       @directory = directory
       @assets = {}
+      @progress = progress
     end
 
     def load!
+      @progress&.call(1, 'validating')
       Zip::File.open(path) do |archive|
         validate_archive_shape!(archive)
         entry = archive.find_entry(ProjectSnapshotPackage::MANIFEST_PATH)
@@ -68,7 +70,9 @@ module Cosmosys
 
     def extract_assets!(archive)
       total_bytes = 0
-      required_assets.each do |digest|
+      digests = required_assets
+      last_update = nil
+      digests.each_with_index do |digest, index|
         unless digest.match?(/\A[0-9a-f]{64}\z/)
           raise ProjectSnapshotPackageError, I18n.t(:error_cosmosys_snapshot_asset_digest, digest: digest)
         end
@@ -86,6 +90,11 @@ module Cosmosys
           raise ProjectSnapshotPackageError, I18n.t(:error_cosmosys_snapshot_asset_digest, digest: digest)
         end
         @assets[digest] = target
+        now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        if @progress && (!last_update || now - last_update >= 1 || index + 1 == digests.length)
+          @progress.call(2, 'validating', processed: index + 1, total: digests.length)
+          last_update = now
+        end
       end
     end
 
