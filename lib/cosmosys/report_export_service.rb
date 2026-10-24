@@ -34,7 +34,7 @@ module Cosmosys
       'landscape' => ['COSMOSYS_REPORT_LANDSCAPE_START', 'COSMOSYS_REPORT_LANDSCAPE_END'],
       'portrait' => ['COSMOSYS_REPORT_PORTRAIT_START', 'COSMOSYS_REPORT_PORTRAIT_END']
     }.freeze
-    CACHE_SCHEMA = 'cosmosys-report-artifact-v26'.freeze
+    CACHE_SCHEMA = 'cosmosys-report-artifact-v27'.freeze
     MAX_CACHED_REPORTS_PER_PROJECT = 5
     IMAGE_MAGICK_RESOURCE_LIMITS = %w[-limit memory 256MiB -limit map 512MiB -limit disk 1GiB -limit area 40MP].freeze
 
@@ -656,15 +656,13 @@ module Cosmosys
 
     # Markdown renders consecutive images from one paragraph as adjacent inline
     # elements. Join those into one raster so Writer keeps them on one row, with
-    # each image anchored to the common bottom edge. Images with explicit sizing
-    # or surrounding text keep their authored layout.
+    # each image anchored to the common bottom edge. Preserve authored image
+    # dimensions in the composed raster; surrounding text keeps its own layout.
     def prepare_inline_image_rows(document, work_dir)
       document.css('p').each_with_index do |paragraph, index|
         children = paragraph.children.to_a
-        images = children.select { |child| child.element? && child.name == 'img' }
-        next unless images.length > 1
-        next unless children.all? { |child| (child.element? && child.name == 'img') || (child.text? && child.text.strip.empty?) }
-        next if images.any? { |image| declared_image_width_px(image) || declared_image_height_px(image) }
+        images = inline_image_row_images(children)
+        next unless images
 
         paths = []
         row_width = 0
@@ -676,7 +674,12 @@ module Cosmosys
           source_path = File.join(work_dir, "inline-image-source-#{index}-#{image_index}.#{image_data.fetch(:extension)}")
           path = File.join(work_dir, "inline-image-#{index}-#{image_index}.png")
           File.binwrite(source_path, image_data.fetch(:bytes))
-          _output, conversion = run_image_magick("#{source_path}[0]", '-auto-orient', path)
+          resize_arguments = image_resize_arguments(image, source_path)
+          break unless resize_arguments
+
+          _output, conversion = run_image_magick(
+            "#{source_path}[0]", '-auto-orient', *resize_arguments, path
+          )
           break unless conversion.success? && File.file?(path) && File.size?(path)
 
           dimensions = image_dimensions(path)
@@ -696,12 +699,69 @@ module Cosmosys
         first_image = images.first
         alt_text = images.map { |image| image['alt'].to_s.strip }.reject(&:blank?).join(' · ')
         first_image['src'] = png_data_url(output_path)
+        first_image['width'] = row_width.to_s
         first_image['alt'] = alt_text
+        first_image.remove_attribute('height')
+        add_inline_declarations(first_image, 'width' => "#{row_width}px", 'height' => 'auto')
         images.drop(1).each(&:remove)
         children.select { |child| child.text? && child.text.strip.empty? }.each(&:remove)
+        children.select { |child| child.element? && child.name == 'br' }.each(&:remove)
       rescue StandardError => error
         Rails.logger.warn("cosmoSys report image-row composition skipped: #{error.class}: #{error.message}")
       end
+    end
+
+    def inline_image_row_images(children)
+      images = []
+      trailing_break = false
+
+      children.each do |child|
+        if child.element? && child.name == 'img'
+          return unless images.empty? || !trailing_break
+
+          images << child
+        elsif child.element? && child.name == 'br'
+          return if images.empty? || trailing_break
+
+          trailing_break = true
+        elsif child.text? && child.text.strip.empty?
+          next
+        else
+          return
+        end
+      end
+
+      images if images.length > 1
+    end
+
+    def image_resize_arguments(image, source_path)
+      dimensions = image_dimensions(source_path)
+      return nil unless dimensions
+
+      declared_width = style_declaration(image, 'width')
+      declared_height = style_declaration(image, 'height')
+      width = declared_image_width_px(image)&.round
+      height = declared_image_height_px(image)&.round
+      return nil if (declared_width && !width) || (declared_height && !height)
+
+      if width && height
+        target_width = width
+        target_height = height
+      elsif width
+        target_width = width
+        target_height = (width * dimensions.fetch(:height).to_f / dimensions.fetch(:width)).round
+      elsif height
+        target_height = height
+        target_width = (height * dimensions.fetch(:width).to_f / dimensions.fetch(:height)).round
+      else
+        return []
+      end
+
+      return nil if target_width <= 0 || target_height <= 0
+      return nil if target_width * target_height > 40_000_000
+      return [] if target_width == dimensions.fetch(:width) && target_height == dimensions.fetch(:height)
+
+      ['-resize', "#{target_width}x#{target_height}!"]
     end
 
     # Center a natural-size image by extending its transparent canvas, never by
