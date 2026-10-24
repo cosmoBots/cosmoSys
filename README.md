@@ -26,6 +26,11 @@ the project's earlier history and authorship.
 
 ## Status
 
+The current code declares version **0.2.1**, including the tree editor, report
+image layout fixes, independent settings tabs and global snapshot imports with
+signed preflight, visibility and progress. These workflows were validated in
+Redmine 3001. Tagging, publication and deployment pinning are separate steps.
+
 This repository contains an early alpha artifact. It is suitable for controlled
 evaluation and is not yet declared production-ready. You can install it and try
 it, but expect breaking changes.
@@ -210,8 +215,9 @@ are composed side by side and bottom-aligned; paragraphs with text or explicit
 image sizing keep their authored layout.
 
 These report improvements and startup contract reconciliation are included in
-cosmoSys 0.2.0, validated locally in Redmine 3001 and tagged in the local
-repository. Publication and deployment pinning are separate steps.
+cosmoSys since 0.2.0. Version 0.2.1 also fixes composition of explicitly sized
+inline HTML images and centers the composed row within the printable width.
+Validation runs against Redmine 3001 before publication and deployment.
 
 ## Project settings and snapshot imports
 
