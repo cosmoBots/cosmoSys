@@ -1,4 +1,7 @@
 <div class="cosmosys-tree-issue-details">
+  <% if local_assigns[:editor] %>
+    <%= render partial: 'tree_creation_controls', locals: { issue: issue } %>
+  <% end %>
   <div class="cosmosys-tree-issue-header">
     <h3 class="inline-block"><%= "#{issue.tracker}##{issue.cosmosys_display_ref}" %></h3>
     <span class="badge"><%= issue.status.name %></span>

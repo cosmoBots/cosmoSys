@@ -177,7 +177,7 @@ module Cosmosys
     end
 
     def details
-      render partial: 'issue_details', locals: { issue: @issue }
+      render partial: 'issue_details', locals: { issue: @issue, editor: true }
     end
 
     def resolve
@@ -399,6 +399,12 @@ module Cosmosys
       @project_ancestor_map = build_project_ancestor_map(@tree_issues)
       @reorderable_issue_ids = @local_tree_issues.select { |issue| User.current.allowed_to?(:edit_issues, issue.project) }.map(&:id)
       @tree_health_problem = Cosmosys::IssueTreeHealth.first_problem(@local_tree_issues)
+      requested_focus_id = params[:focus_issue_id].to_s
+      @tree_focus_issue = @tree_issues.find { |issue| issue.id.to_s == requested_focus_id } if requested_focus_id.present?
+      @tree_focus_issue ||= @local_tree_issues.first || @tree_issues.first
+      @can_add_tree_items = User.current.allowed_to?(:add_issues, @project, global: true)
+      @root_item_tracker = @project.cosmosys_root_tracker if @can_add_tree_items
+      @tree_trackers_by_profile = @project.trackers.index_by(&:csys_item_kind) if @can_add_tree_items
     end
 
     def visible_tree_issues

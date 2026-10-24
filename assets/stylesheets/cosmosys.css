@@ -231,6 +231,109 @@
   padding: 0.35rem;
 }
 
+.cosmosys-tree-editor {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(15rem, 30%) minmax(0, 1fr);
+}
+
+.cosmosys-tree-editor-navigation,
+.cosmosys-tree-editor-workspace {
+  min-width: 0;
+}
+
+.cosmosys-tree-editor-heading,
+.cosmosys-tree-editor-workspace-heading {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.cosmosys-tree-editor-heading h3,
+.cosmosys-tree-editor-workspace-heading h3 {
+  margin: 0;
+}
+
+.cosmosys-tree-editor-workspace-heading span {
+  color: #66717a;
+  font-size: 0.9em;
+  text-align: right;
+}
+
+.cosmosys-tree-editor-navigation .cosmosys-tree-scrollbox {
+  max-height: calc(100vh - 16rem);
+}
+
+.cosmosys-tree-editor-workspace .cosmosys-tree-sidebar-body {
+  max-height: calc(100vh - 16rem);
+  overflow: auto;
+}
+
+.cosmosys-tree-editor-workspace .cosmosys-tree-issue-details {
+  background: #fff;
+  border: 1px solid #d7dce1;
+  border-radius: 4px;
+  padding: 1rem;
+}
+
+.cosmosys-tree-editor-actions {
+  border-bottom: 1px solid #d7dce1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: -0.25rem 0 1rem;
+  padding-bottom: 0.75rem;
+}
+
+.cosmosys-tree-editor-form-loading {
+  color: #66717a;
+  padding: 1rem;
+}
+
+.cosmosys-tree-context-menu {
+  background: #fff;
+  border: 1px solid #c8d7ea;
+  border-radius: 4px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  padding: 0.25rem;
+  position: fixed;
+  z-index: 1000;
+}
+
+.cosmosys-tree-context-menu[hidden] {
+  display: none;
+}
+
+.cosmosys-tree-context-menu button {
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  padding: 0.45rem 0.65rem;
+  text-align: left;
+}
+
+.cosmosys-tree-context-menu button:hover,
+.cosmosys-tree-context-menu button:focus {
+  background: #eef4fb;
+}
+
+@media screen and (max-width: 899px) {
+  .cosmosys-tree-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cosmosys-tree-editor-navigation .cosmosys-tree-scrollbox,
+  .cosmosys-tree-editor-workspace .cosmosys-tree-sidebar-body {
+    max-height: 55vh;
+  }
+}
+
 .cosmosys-tree-root,
 .cosmosys-tree-children {
   box-sizing: border-box;

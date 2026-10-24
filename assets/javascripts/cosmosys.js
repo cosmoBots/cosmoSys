@@ -439,28 +439,172 @@
 
     if (!body || !issueUrl) return;
 
+    var requestId = String((parseInt(body.dataset.requestId || '0', 10) || 0) + 1);
+    body.dataset.requestId = requestId;
     body.dataset.loading = '1';
     window.fetch(issueUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(function(response) { return response.text(); })
       .then(function(html) {
-        if (!item.classList.contains('cosmosys-selected')) return;
+        if (body.dataset.requestId !== requestId || !item.classList.contains('cosmosys-selected')) return;
         body.innerHTML = html;
       })
       .catch(function() {
-        if (!item.classList.contains('cosmosys-selected')) return;
+        if (body.dataset.requestId !== requestId || !item.classList.contains('cosmosys-selected')) return;
         body.innerHTML = '<p class="nodata">Unable to load item details.</p>';
       })
       .finally(function() {
-        delete body.dataset.loading;
+        if (body.dataset.requestId === requestId) delete body.dataset.loading;
       });
+  }
+
+  function bindTreeEditorForm(form) {
+    if (form.dataset.cosmosysEditorBound === '1') return;
+    form.dataset.cosmosysEditorBound = '1';
+    form.addEventListener('submit', function(event) {
+      event.preventDefault();
+      var submitter = event.submitter;
+      var formData = new FormData(form);
+      if (submitter && submitter.name) formData.append(submitter.name, submitter.value);
+      var body = document.querySelector('[data-cosmosys-tree-sidebar-body]');
+      var requestId = body ? String((parseInt(body.dataset.requestId || '0', 10) || 0) + 1) : null;
+      if (body) body.dataset.requestId = requestId;
+      if (body) body.dataset.loading = '1';
+      fetch(form.action, {
+        method: (form.method || 'post').toUpperCase(),
+        body: formData,
+        credentials: 'same-origin',
+        headers: { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
+      }).then(function(response) {
+        if (body && body.dataset.requestId !== requestId) return null;
+        if (response.url.indexOf('/cosmosys/tree') !== -1) {
+          window.location.assign(response.url);
+          return null;
+        }
+        if (!response.ok && response.status !== 422) throw new Error('HTTP ' + response.status);
+        return response.text();
+      }).then(function(html) {
+        if (!html || !body || body.dataset.requestId !== requestId) return;
+        var parsed = new DOMParser().parseFromString(html, 'text/html');
+        var replacement = parsed.querySelector('#issue-form');
+        if (!replacement) throw new Error('The issue form response was not found.');
+        body.replaceChildren(replacement);
+        bindTreeEditorForm(replacement);
+      }).catch(function(error) {
+        if (body && body.dataset.requestId === requestId) body.innerHTML = '<p class="nodata">Could not save this item. Please try again.</p>';
+        console.error('Could not submit the tree editor form.', error);
+      }).finally(function() { if (body && body.dataset.requestId === requestId) delete body.dataset.loading; });
+    });
+  }
+
+  function loadTreeEditorForm(url) {
+    var body = document.querySelector('[data-cosmosys-tree-sidebar-body]');
+    if (!body || !url) return;
+    var requestId = String((parseInt(body.dataset.requestId || '0', 10) || 0) + 1);
+    body.dataset.requestId = requestId;
+    body.dataset.loading = '1';
+    body.innerHTML = '<p class="cosmosys-tree-editor-form-loading" role="status">Loading form…</p>';
+    fetch(url, {
+      credentials: 'same-origin',
+      headers: { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(function(response) {
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.text();
+    }).then(function(html) {
+      if (body.dataset.requestId !== requestId) return;
+      var parsed = new DOMParser().parseFromString(html, 'text/html');
+      var form = parsed.querySelector('#issue-form');
+      if (!form) throw new Error('The standard Redmine issue form was not found.');
+      body.replaceChildren(form);
+      bindTreeEditorForm(form);
+    }).catch(function(error) {
+      if (body.dataset.requestId !== requestId) return;
+      body.innerHTML = '<p class="nodata">Could not load the item form.</p>';
+      console.error('Could not load the tree editor form.', error);
+    }).finally(function() { if (body.dataset.requestId === requestId) delete body.dataset.loading; });
+  }
+
+  function initTreeEditor() {
+    var editor = document.querySelector('[data-cosmosys-tree-editor]');
+    if (!editor || editor.dataset.cosmosysBound === '1') return;
+    editor.dataset.cosmosysBound = '1';
+
+    editor.addEventListener('click', function(event) {
+      var button = event.target.closest('[data-cosmosys-editor-form-url]');
+      if (!button) return;
+      event.preventDefault();
+      loadTreeEditorForm(button.dataset.cosmosysEditorFormUrl);
+    });
+
+    var tree = editor.querySelector('.cosmosys-tree-view');
+    if (tree) {
+      var menu = document.createElement('div');
+      menu.className = 'cosmosys-tree-context-menu';
+      menu.setAttribute('role', 'menu');
+      menu.hidden = true;
+      editor.appendChild(menu);
+
+      tree.addEventListener('click', function(event) {
+        var link = event.target.closest('.cosmosys-tree-node a');
+        if (!link) return;
+        event.preventDefault();
+        var item = link.closest('.cosmosys-tree-item');
+        if (item) updateSidebarSelection(item);
+      });
+
+      tree.addEventListener('contextmenu', function(event) {
+        var item = event.target.closest('.cosmosys-tree-item[data-issue-id]');
+        if (!item) return;
+        var actions = [
+          [item.dataset.createChildUrl, item.dataset.createChildLabel],
+          [item.dataset.createSiblingUrl, item.dataset.createSiblingLabel]
+        ].filter(function(action) { return !!action[0]; });
+        if (!actions.length) return;
+        event.preventDefault();
+        updateSidebarSelection(item);
+        menu.replaceChildren();
+        actions.forEach(function(action) {
+          var button = document.createElement('button');
+          button.type = 'button';
+          button.setAttribute('role', 'menuitem');
+          button.textContent = action[1];
+          button.dataset.cosmosysEditorFormUrl = action[0];
+          menu.appendChild(button);
+        });
+        menu.style.left = Math.min(event.clientX, window.innerWidth - 220) + 'px';
+        menu.style.top = Math.min(event.clientY, window.innerHeight - 120) + 'px';
+        menu.hidden = false;
+        menu.querySelector('button').focus();
+      });
+
+      document.addEventListener('click', function(event) {
+        if (!menu.contains(event.target)) menu.hidden = true;
+      });
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') menu.hidden = true;
+      });
+    }
   }
 
   function initTreeSidebar() {
     var sidebar = document.querySelector('[data-cosmosys-tree-sidebar]');
     if (!sidebar) return;
 
-    var selected = document.querySelector('.cosmosys-tree-item[data-issue-id]');
-    if (selected) updateSidebarSelection(selected);
+    var tree = document.querySelector('.cosmosys-tree-view');
+    var focusId = tree && tree.dataset.focusIssueId;
+    var selected = document.querySelector('.cosmosys-tree-item.cosmosys-selected');
+    if (!selected && focusId) selected = document.querySelector('.cosmosys-tree-item[data-issue-id="' + focusId + '"]');
+    selected = selected || document.querySelector('.cosmosys-tree-item[data-issue-id]');
+    if (selected) {
+      var ancestor = selected.parentElement && selected.parentElement.closest('li[data-issue-id]');
+      while (ancestor) {
+        if (ancestor.classList.contains('cosmosys-collapsed')) {
+          setCollapsed(ancestor, false);
+          rememberCollapsed(ancestor, false);
+        }
+        ancestor = ancestor.parentElement && ancestor.parentElement.closest('li[data-issue-id]');
+      }
+      updateSidebarSelection(selected);
+    }
 
     document.querySelectorAll('.cosmosys-tree-node').forEach(function(node) {
       if (node.dataset.cosmosysSidebarBound === '1') return;
@@ -1327,6 +1471,7 @@
     initTreeToolbar();
     initDragAndDrop();
     initTreeSidebar();
+    initTreeEditor();
     initReportSearch();
     initReportTocNavigation();
     initReportFieldPresentations();

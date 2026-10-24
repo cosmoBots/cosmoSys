@@ -4,6 +4,21 @@
 <% can_reorganize = !boundary && reorderable_issue_ids.include?(issue.id) %>
 <% project_ancestors = Array(project_ancestor_map[issue.project_id]).join(',') %>
 <% profile = issue.cosmosys_item_kind %>
+<% editor_tracker = @tree_trackers_by_profile && @tree_trackers_by_profile[profile.key] %>
+<% editor_local = !boundary && issue.project_id == project.id %>
+<% editor_can_add = editor_local && User.current.allowed_to?(:add_issues, project, global: true) && editor_tracker.present? %>
+<% child_editor_url = nil %>
+<% sibling_editor_url = nil %>
+<% if editor_can_add %>
+  <% child_return = url_for(controller: '/cosmosys/items', action: :tree, project_id: project, only_path: true, cosmosys_editor_mode: 'child', cosmosys_editor_reference_id: issue.id) %>
+  <% child_editor_url = new_project_issue_path(project, issue: { tracker_id: editor_tracker.id, parent_issue_id: issue.id }, back_url: child_return) if profile.can_have_children %>
+  <% if User.current.allowed_to?(:edit_issues, project) %>
+    <% sibling_return = url_for(controller: '/cosmosys/items', action: :tree, project_id: project, only_path: true, cosmosys_editor_mode: 'sibling', cosmosys_editor_reference_id: issue.id) %>
+    <% sibling_attributes = { tracker_id: editor_tracker.id }
+       sibling_attributes[:parent_issue_id] = issue.parent_id if issue.parent_id.present? %>
+    <% sibling_editor_url = new_project_issue_path(project, issue: sibling_attributes, back_url: sibling_return) %>
+  <% end %>
+<% end %>
 <% parent_profile = issue.parent&.cosmosys_item_kind %>
 <% node_depth = [local_assigns.fetch(:depth, 0).to_i, 5].min %>
 <% closure_class = if issue.cosmosys_closure_outcome == :unsuccessful
@@ -19,6 +34,10 @@
     data-project-id="<%= issue.project_id %>"
     data-project-ancestors="<%= project_ancestors %>"
     data-item-profile="<%= profile.key %>"
+    data-create-child-url="<%= child_editor_url %>"
+    data-create-sibling-url="<%= sibling_editor_url %>"
+    data-create-child-label="<%= l(:button_cosmosys_tree_new_child) %>"
+    data-create-sibling-label="<%= l(:button_cosmosys_tree_new_sibling) %>"
     data-allowed-parent-profiles="<%= Array(profile.allowed_parent_profiles).join(',') %>"
     data-boundary="<%= boundary %>"
     data-reorderable="<%= can_reorganize %>"

@@ -1,0 +1,22 @@
+<% profile = issue.cosmosys_item_kind %>
+<% local_item = issue.project_id == @project.id %>
+<% tracker = @project.trackers.find_by(csys_item_kind: profile.key) if local_item %>
+<% can_add = local_item && User.current.allowed_to?(:add_issues, @project, global: true) && tracker.present? %>
+<% can_create_child = can_add && profile.can_have_children %>
+<% can_create_sibling = can_add && User.current.allowed_to?(:edit_issues, @project) %>
+<% if can_create_child || can_create_sibling %>
+  <div class="cosmosys-tree-editor-actions">
+    <% if can_create_child %>
+      <% back_url = url_for(controller: '/cosmosys/items', action: :tree, project_id: @project, only_path: true, cosmosys_editor_mode: 'child', cosmosys_editor_reference_id: issue.id) %>
+      <% new_url = new_project_issue_path(@project, issue: { tracker_id: tracker.id, parent_issue_id: issue.id }, back_url: back_url) %>
+      <button type="button" data-cosmosys-editor-form-url="<%= new_url %>"><%= l(:button_cosmosys_tree_new_child) %></button>
+    <% end %>
+    <% if can_create_sibling %>
+      <% back_url = url_for(controller: '/cosmosys/items', action: :tree, project_id: @project, only_path: true, cosmosys_editor_mode: 'sibling', cosmosys_editor_reference_id: issue.id) %>
+      <% issue_attributes = { tracker_id: tracker.id }
+         issue_attributes[:parent_issue_id] = issue.parent_id if issue.parent_id.present? %>
+      <% new_url = new_project_issue_path(@project, issue: issue_attributes, back_url: back_url) %>
+      <button type="button" data-cosmosys-editor-form-url="<%= new_url %>"><%= l(:button_cosmosys_tree_new_sibling) %></button>
+    <% end %>
+  </div>
+<% end %>
