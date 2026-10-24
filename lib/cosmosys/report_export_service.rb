@@ -34,7 +34,7 @@ module Cosmosys
       'landscape' => ['COSMOSYS_REPORT_LANDSCAPE_START', 'COSMOSYS_REPORT_LANDSCAPE_END'],
       'portrait' => ['COSMOSYS_REPORT_PORTRAIT_START', 'COSMOSYS_REPORT_PORTRAIT_END']
     }.freeze
-    CACHE_SCHEMA = 'cosmosys-report-artifact-v27'.freeze
+    CACHE_SCHEMA = 'cosmosys-report-artifact-v28'.freeze
     MAX_CACHED_REPORTS_PER_PROJECT = 5
     IMAGE_MAGICK_RESOURCE_LIMITS = %w[-limit memory 256MiB -limit map 512MiB -limit disk 1GiB -limit area 40MP].freeze
 
@@ -699,10 +699,10 @@ module Cosmosys
         first_image = images.first
         alt_text = images.map { |image| image['alt'].to_s.strip }.reject(&:blank?).join(' · ')
         first_image['src'] = png_data_url(output_path)
-        first_image['width'] = row_width.to_s
         first_image['alt'] = alt_text
+        first_image.remove_attribute('width')
         first_image.remove_attribute('height')
-        add_inline_declarations(first_image, 'width' => "#{row_width}px", 'height' => 'auto')
+        remove_inline_declarations(first_image, 'width', 'height')
         images.drop(1).each(&:remove)
         children.select { |child| child.text? && child.text.strip.empty? }.each(&:remove)
         children.select { |child| child.element? && child.name == 'br' }.each(&:remove)
@@ -872,6 +872,13 @@ module Cosmosys
       declarations.reject! { |declaration| declaration.match?(/\A(?:#{replaced_properties})\s*:/i) }
       declarations.concat(additions.map { |property, value| "#{property}: #{value}" })
       node['style'] = "#{declarations.join('; ')};"
+    end
+
+    def remove_inline_declarations(node, *properties)
+      removed_properties = properties.map { |property| Regexp.escape(property) }.join('|')
+      declarations = node['style'].to_s.split(';').map(&:strip).reject(&:blank?)
+      declarations.reject! { |declaration| declaration.match?(/\A(?:#{removed_properties})\s*:/i) }
+      node['style'] = declarations.empty? ? nil : "#{declarations.join('; ')};"
     end
 
     def profile_source
