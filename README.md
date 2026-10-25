@@ -26,10 +26,11 @@ the project's earlier history and authorship.
 
 ## Status
 
-The current code declares version **0.2.1**, including the tree editor, report
-image layout fixes, independent settings tabs and global snapshot imports with
-signed preflight, visibility and progress. These workflows were validated in
-Redmine 3001. Tagging, publication and deployment pinning are separate steps.
+The current code declares version **0.2.2**, adding server-side LaTeX report
+export and preserving complete macro sources during report normalization.
+It includes the tree editor, report image layout fixes, independent settings
+tabs and global snapshot imports from 0.2.1. These workflows were validated in
+Redmine 3001. Publication and deployment pinning are separate steps.
 
 This repository contains an early alpha artifact. It is suitable for controlled
 evaluation and is not yet declared production-ready. You can install it and try
@@ -206,6 +207,19 @@ requirement trackers. `csNegative` is cosmoSys' report placeholder for listing
 unsuccessfully closed items and is available in specialized profiles as well.
 
 ### Report exports
+
+Report spacing normalization leaves Redmine macro sources intact, including
+indentation, CRLF/LF line endings and line continuations. Redmine expands macros
+before HTML-specific export preparation; the report does not rewrite their
+embedded diagram code.
+
+
+When `redmine_cbots_latex` is installed, static ODT/DOCX/PDF export invokes its
+server-side renderer before importing HTML into Writer. Browser MathJax is not
+used for document export. Formula images keep their CSS print dimensions so
+inline formulas and table cells retain their layout. Unsupported expressions
+remain readable as source text; the static renderer supports a subset of TeX.
+
 
 Report metadata renders user custom fields by user name, including fields with
 multiple selections. ODT/DOCX/PDF exports center natural-size raster images

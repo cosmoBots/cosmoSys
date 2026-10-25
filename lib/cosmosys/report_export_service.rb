@@ -34,7 +34,7 @@ module Cosmosys
       'landscape' => ['COSMOSYS_REPORT_LANDSCAPE_START', 'COSMOSYS_REPORT_LANDSCAPE_END'],
       'portrait' => ['COSMOSYS_REPORT_PORTRAIT_START', 'COSMOSYS_REPORT_PORTRAIT_END']
     }.freeze
-    CACHE_SCHEMA = 'cosmosys-report-artifact-v28'.freeze
+    CACHE_SCHEMA = 'cosmosys-report-artifact-v30'.freeze
     MAX_CACHED_REPORTS_PER_PROJECT = 5
     IMAGE_MAGICK_RESOURCE_LIMITS = %w[-limit memory 256MiB -limit map 512MiB -limit disk 1GiB -limit area 40MP].freeze
 
@@ -207,7 +207,15 @@ module Cosmosys
     end
 
     def export_html(work_dir)
-      document = Nokogiri::HTML5(@html)
+      # Browser MathJax runs after the page loads; Writer imports static HTML
+      # and never executes it. Reuse the optional LaTeX plugin's server renderer
+      # before normal resource checks and document layout, as notebook exports do.
+      html = if defined?(RedmineCbotsLatex::LatexRenderer)
+               RedmineCbotsLatex::LatexRenderer.render_html(@html)
+             else
+               @html
+             end
+      document = Nokogiri::HTML5(html)
       secure_embedded_resources!(document)
       prepare_export_document(document, work_dir: work_dir)
       document.css('svg').each_with_index do |svg, index|
