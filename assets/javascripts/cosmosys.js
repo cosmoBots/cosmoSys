@@ -31,14 +31,18 @@
     loading.appendChild(spinner);
     loading.appendChild(loadingText);
     content.replaceChildren(loading);
+    var controller = trackDiagramRequestController(new AbortController());
+    content._cosmosysRenderController = controller;
     fetch(tab.dataset.panelUrl, {
+      signal: controller.signal,
       credentials: 'same-origin',
-      headers: { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
+      headers: renderRequestHeaders(controller, { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' })
     }).then(function(response) {
       if (response.redirected) throw new Error('Authentication required');
       if (!response.ok) throw new Error('HTTP ' + response.status);
       return response.text();
     }).then(function(html) {
+      if (controller.signal.aborted) return;
       content.innerHTML = html;
       content.dataset.loaded = '1';
       delete content.dataset.loading;
@@ -55,11 +59,16 @@
         }
       }
     }).catch(function(error) {
+      if (content._cosmosysRenderController !== controller) return;
       delete content.dataset.loading;
       content.dataset.loaded = '0';
+      if (error.name === 'AbortError') return;
       content.textContent = content.dataset.errorText || 'Could not load this panel.';
       content.dataset.failed = '1';
       console.error('Could not load deferred issue panel.', key, error);
+    }).finally(function() {
+      releaseDiagramRequestController(controller);
+      if (content._cosmosysRenderController === controller) delete content._cosmosysRenderController;
     });
   }
 
@@ -74,7 +83,10 @@
           candidate.tabIndex = active ? 0 : -1;
           candidate.classList.toggle('selected', active);
           var content = wrapper.querySelector('[data-cosmosys-issue-panel-content="' + candidate.dataset.cosmosysIssuePanelTab + '"]');
-          if (content) content.hidden = !active;
+          if (content) {
+            content.hidden = !active;
+            if (!active) cancelPanelRequest(content);
+          }
         });
         if (focus) tab.focus();
         loadIssuePanel(wrapper, tab.dataset.cosmosysIssuePanelTab);
@@ -113,14 +125,18 @@
     loading.appendChild(text);
     panel.appendChild(loading);
 
+    var controller = trackDiagramRequestController(new AbortController());
+    panel._cosmosysRenderController = controller;
     fetch(tab.dataset.panelUrl, {
+      signal: controller.signal,
       credentials: 'same-origin',
-      headers: { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
+      headers: renderRequestHeaders(controller, { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' })
     }).then(function(response) {
       if (response.redirected) throw new Error('Authentication required');
       if (!response.ok) throw new Error('HTTP ' + response.status);
       return response.text();
     }).then(function(html) {
+      if (controller.signal.aborted) return;
       panel.innerHTML = html;
       panel.dataset.loaded = '1';
       delete panel.dataset.loading;
@@ -128,10 +144,15 @@
         detail: { key: key, panel: panel }
       }));
     }).catch(function(error) {
+      if (panel._cosmosysRenderController !== controller) return;
       delete panel.dataset.loading;
       panel.dataset.loaded = '0';
+      if (error.name === 'AbortError') return;
       panel.textContent = panel.dataset.errorText || 'Could not load this panel. Select the tab to try again.';
       console.error('Could not load deferred project diagram.', key, error);
+    }).finally(function() {
+      releaseDiagramRequestController(controller);
+      if (panel._cosmosysRenderController === controller) delete panel._cosmosysRenderController;
     });
   }
 
@@ -146,7 +167,10 @@
           candidate.tabIndex = active ? 0 : -1;
           candidate.classList.toggle('selected', active);
           var panel = wrapper.querySelector('[data-cosmosys-project-diagram-panel="' + candidate.dataset.cosmosysProjectDiagramTab + '"]');
-          if (panel) panel.hidden = !active;
+          if (panel) {
+            panel.hidden = !active;
+            if (!active) cancelPanelRequest(panel);
+          }
         });
         if (focus) tab.focus();
         loadProjectDiagramPanel(wrapper, tab.dataset.cosmosysProjectDiagramTab);
@@ -721,6 +745,33 @@
   var diagramRequestControllers = [];
   var diagramPageLeaving = false;
 
+  function cancelPanelRequest(panel) {
+    var controller = panel._cosmosysRenderController;
+    if (!controller) return;
+    delete panel._cosmosysRenderController;
+    delete panel.dataset.loading;
+    controller.abort();
+  }
+
+  function renderRequestHeaders(controller, headers) {
+    var endpoint = document.querySelector('meta[name="cosmosys-render-cancel-url"]');
+    var csrf = document.querySelector('meta[name="csrf-token"]');
+    if (!endpoint || !csrf || !window.crypto) return headers;
+    var bytes = window.crypto.getRandomValues(new Uint8Array(16));
+    var token = Array.from(bytes, function(byte) { return byte.toString(16).padStart(2, '0'); }).join('');
+    headers['X-Cosmosys-Render-Token'] = token;
+    controller.signal.addEventListener('abort', function() {
+      var body = new URLSearchParams();
+      body.append('render_tokens[]', token);
+      body.append('authenticity_token', csrf.content);
+      // Unlike an aborted fetch, a beacon can reach Rails during pagehide.
+      // The server scopes this capability to the same logged-in user.
+      if (window.navigator && window.navigator.sendBeacon && window.navigator.sendBeacon(endpoint.content, body)) return;
+      window.fetch(endpoint.content, { method: 'POST', body: body, credentials: 'same-origin', keepalive: true }).catch(function() {});
+    }, { once: true });
+    return headers;
+  }
+
   function trackDiagramRequestController(controller) {
     diagramRequestControllers.push(controller);
     return controller;
@@ -734,6 +785,7 @@
   function abortDeferredDiagramRequests() {
     diagramPageLeaving = true;
     diagramRequestControllers.splice(0).forEach(function(controller) { controller.abort(); });
+    reportDiagramRequestControllers.splice(0).forEach(function(controller) { controller.abort(); });
     reportDiagramQueue.splice(0).forEach(function(job) {
       job.reject(new DOMException('Page is leaving', 'AbortError'));
     });
@@ -774,7 +826,7 @@
       var controller = trackDiagramRequestController(new AbortController());
       window.fetch(node.dataset.url, {
         credentials: 'same-origin',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        headers: renderRequestHeaders(controller, { 'X-Requested-With': 'XMLHttpRequest' }),
         signal: controller.signal
       })
         .then(function(response) {
@@ -830,8 +882,10 @@
         requestUrl.searchParams.append(key, value);
       });
 
+      var controller = trackDiagramRequestController(new AbortController());
       window.fetch(requestUrl.toString(), {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        signal: controller.signal,
+        headers: renderRequestHeaders(controller, { 'X-Requested-With': 'XMLHttpRequest' })
       })
         .then(function(response) {
           if (!response.ok) throw new Error('Request failed');
@@ -844,6 +898,7 @@
           panel.classList.remove('cosmosys-diagram-panel-loading');
         })
         .finally(function() {
+          releaseDiagramRequestController(controller);
           delete panel.dataset.loading;
         });
   }
@@ -868,7 +923,7 @@
       let job = reportDiagramQueue.shift();
       activeReportDiagramLoads += 1;
       let controller = trackReportDiagramRequestController(new AbortController());
-      window.fetch(job.node.dataset.url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' }, signal: controller.signal })
+      window.fetch(job.node.dataset.url, { credentials: 'same-origin', headers: renderRequestHeaders(controller, { 'X-Requested-With': 'XMLHttpRequest' }), signal: controller.signal })
         .then(function(response) {
           if (!response.ok) throw new Error('Diagram request failed');
           return response.text();
@@ -1198,11 +1253,14 @@
 
   function pollCosmosysOperation(statusUrl, onProgress, terminalStates) {
     terminalStates = terminalStates || ['applied'];
-    return window.fetch(statusUrl, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    if (diagramPageLeaving) return Promise.reject(new DOMException('Page is leaving', 'AbortError'));
+    var controller = trackDiagramRequestController(new AbortController());
+    return window.fetch(statusUrl, { signal: controller.signal, credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(function(response) {
         if (!response.ok) throw new Error('Background operation status failed');
         return response.json();
       })
+      .finally(function() { releaseDiagramRequestController(controller); })
       .then(function(status) {
         onProgress(status);
         if (terminalStates.indexOf(status.state) >= 0) return status;
@@ -1498,8 +1556,15 @@
     render();
   }
 
-  window.addEventListener('beforeunload', abortDeferredDiagramRequests);
+  // beforeunload may be cancelled by the user (e.g. an unsaved form).
+  // Only abort once the page really leaves.
   window.addEventListener('pagehide', abortDeferredDiagramRequests);
+  window.addEventListener('pageshow', function(event) {
+    // A back/forward-cache restoration reuses this JS heap. Aborted lazy
+    // panels must be loadable again rather than retaining a leaving flag.
+    diagramPageLeaving = false;
+    if (event.persisted) window.location.reload();
+  });
 
   document.addEventListener('DOMContentLoaded', function() {
     initIssuePanelTabs();

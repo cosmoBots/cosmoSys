@@ -4,7 +4,7 @@ require 'i18n/backend/fallbacks'
 I18n::Backend::Simple.include(I18n::Backend::Fallbacks) unless I18n::Backend::Simple < I18n::Backend::Fallbacks
 I18n.fallbacks.defaults = [:en]
 
-Rails.application.config.filter_parameters += [:html, :instance_passphrase, :project_passphrase]
+Rails.application.config.filter_parameters += [:html, :instance_passphrase, :project_passphrase, :render_tokens]
 
 Redmine::Plugin.register :cosmosys do
   name 'cosmoSys'
@@ -128,6 +128,7 @@ require_dependency File.expand_path('lib/cosmosys/project_tree_scope', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issue_tree_fragment', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issue_panel_registry', __dir__)
 require_dependency File.expand_path('lib/cosmosys/view_audience_selector', __dir__)
+require_dependency File.expand_path('lib/cosmosys/render_cancellation', __dir__)
 require_dependency File.expand_path('lib/cosmosys/sibling_order', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issue_tree_health', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issue_tree_audit', __dir__)

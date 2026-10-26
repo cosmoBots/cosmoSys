@@ -111,6 +111,7 @@ module Cosmosys
       pending = [issue]
       visited = Set.new
       until pending.empty?
+        Cosmosys::RenderCancellation.check!
         blocked = pending.shift
         next unless visited.add?(blocked.id)
 

@@ -25,7 +25,10 @@ module Cosmosys
         return diagram
       end
 
-      with_diagram_generation_lock(lookup, trace_attributes) do
+      # All requests for this exact result register before waiting for its
+      # generation lock. An abandoned owner can finish for surviving waiters.
+      with_diagram_generation(lookup, trace_attributes, signature: signature, revision_state: revision_state) do
+        RenderCancellation.check!
         diagram = Cosmosys::PerformanceTrace.measure('diagram.cache_lookup', trace_attributes.merge(stage: 'locked_recheck')) do
           Cosmosys::Diagram.find_or_initialize_by(lookup)
         end
@@ -57,6 +60,7 @@ module Cosmosys
         svg_body = svg_source.present? ? embed_svg_metadata(svg_source, metadata) : nil
 
         Cosmosys::PerformanceTrace.measure('diagram.persist', trace_attributes.merge(cache: 'cold')) do
+          RenderCancellation.check!
           persist_cached_diagram!(
             diagram,
             dot_body: dot_body,
@@ -71,13 +75,24 @@ module Cosmosys
       end
     end
 
+    def with_diagram_generation(lookup, trace_attributes, signature:, revision_state:)
+      identity = [lookup.sort_by { |key, _| key.to_s }, signature, revision_state].to_json
+      RenderCancellation.with_consumers(identity) do
+        with_diagram_generation_lock(lookup, trace_attributes) { yield }
+      end
+    end
+
     def with_diagram_generation_lock(lookup, trace_attributes = {})
       lock_root = Rails.root.join('files', 'cosmosys', 'diagram_locks')
       FileUtils.mkdir_p(lock_root)
       lock_key = Digest::SHA256.hexdigest(lookup.sort_by { |key, _value| key.to_s }.flatten.join("\0"))
       File.open(lock_root.join("#{lock_key}.lock"), File::RDWR | File::CREAT, 0o640) do |lock|
         lock_started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        lock.flock(File::LOCK_EX)
+        until lock.flock(File::LOCK_EX | File::LOCK_NB)
+          RenderCancellation.check!(shared: false)
+          sleep 0.05
+        end
+        RenderCancellation.check!(shared: false)
         Cosmosys::PerformanceTrace.emit('diagram.cache_lock_wait', trace_attributes, lock_started)
         yield
       ensure

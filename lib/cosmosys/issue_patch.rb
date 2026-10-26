@@ -482,6 +482,7 @@ module Cosmosys
     public
 
     def cosmosys_diagram_valid?
+      Cosmosys::RenderCancellation.check!
       return true unless project&.cosmosys_calculate_requirement_chain_validity?
 
       PerformanceTrace.measure(
@@ -517,6 +518,7 @@ module Cosmosys
     end
 
     def cosmosys_blocking_maturity_consistent?(visited = Set.new)
+      Cosmosys::RenderCancellation.check!
       return true if id.blank? || visited.include?(id)
 
       maturity = status&.cosmosys_maturity_level

@@ -10,8 +10,8 @@ module Cosmosys
       result = yield
       record_or_emit(event, attributes.merge(status: 'ok'), started)
       result
-    rescue StandardError
-      record_or_emit(event, attributes.merge(status: 'error'), started)
+    rescue StandardError => error
+      record_or_emit(event, attributes.merge(status: exception_status(error)), started)
       raise
     end
 
@@ -27,8 +27,8 @@ module Cosmosys
       stack << aggregate
       result = yield
       result
-    rescue StandardError
-      aggregate[:status] = 'error'
+    rescue StandardError => error
+      aggregate[:status] = exception_status(error)
       raise
     ensure
       if aggregate
@@ -68,6 +68,14 @@ module Cosmosys
 
     def report(event, attributes = {})
       Rails.logger.info({ cosmosys_performance: event }.merge(attributes).to_json)
+    end
+
+    def exception_status(error)
+      if defined?(Cosmosys::RenderCancellation::Cancelled) && error.is_a?(Cosmosys::RenderCancellation::Cancelled)
+        'cancelled'
+      else
+        'error'
+      end
     end
 
     def emit(event, attributes, started)

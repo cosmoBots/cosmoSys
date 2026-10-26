@@ -20,6 +20,7 @@ module Cosmosys
     before_action :authorize_tree_repair, only: :rebuild_tree
     before_action :find_detail_issue, only: :details
     around_action :use_project_language, only: :report_diagram
+    around_action :with_render_cancellation, only: [:report_diagram, :diagram_export, :diagram_panel]
 
     accept_api_auth :resolve, :resolve_by_id, :update_by_id
 
@@ -313,6 +314,17 @@ module Cosmosys
     end
 
     private
+
+    def with_render_cancellation
+      RenderCancellation.with_request(request.headers['X-Cosmosys-Render-Token'], user: User.current) do
+        yield
+        RenderCancellation.check!(shared: false)
+      end
+    rescue RenderCancellation::Cancelled
+      Rails.logger.info({ cosmosys_render: 'cancelled', action: action_name, project_id: @project&.id }.to_json)
+      self.response_body = nil
+      head 499
+    end
 
     def item_api_payload(issue)
       {

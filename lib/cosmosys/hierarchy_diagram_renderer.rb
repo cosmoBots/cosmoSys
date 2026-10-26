@@ -1,5 +1,6 @@
 require 'open3'
 require_relative 'graphviz_text_support'
+require_relative 'cancellable_graphviz'
 
 module Cosmosys
   class HierarchyDiagramRenderer
@@ -40,7 +41,7 @@ module Cosmosys
     end
 
     def render_svg(dot_body)
-      stdout, stderr, status = Open3.capture3('dot', '-Tsvg', stdin_data: dot_body)
+      stdout, stderr, status = CancellableGraphviz.capture(dot_body)
       raise "Graphviz dot failed: #{stderr.presence || 'unknown error'}" unless status.success?
 
       stdout.sub(/\A.*?<svg/m, '<svg')

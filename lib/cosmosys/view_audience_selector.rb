@@ -1,4 +1,5 @@
 require 'set'
+require_relative 'render_cancellation'
 
 module Cosmosys
   # Selects the model content that belongs to a view, independently of how a
@@ -81,6 +82,7 @@ module Cosmosys
     end
 
     def select
+      RenderCancellation.check!
       reset_traversal_metrics
       selection = PerformanceTrace.measure_with_sql(
         'selector.selection',
@@ -246,6 +248,7 @@ module Cosmosys
       pending = [@focus.id]
 
       until pending.empty?
+        RenderCancellation.check!
         children = Issue.visible(@user).where(parent_id: pending).pluck(:id)
         @traversal_metrics[:candidate_item_ids].merge(children)
         fresh = children.reject { |issue_id| selected.include?(issue_id) }
@@ -261,6 +264,7 @@ module Cosmosys
       pending = [@focus.parent_id].compact
 
       until pending.empty?
+        RenderCancellation.check!
         parents = visible_items(pending)
         fresh = parents.reject { |issue| selected.include?(issue.id) }
         selected.merge(fresh.map(&:id))
@@ -282,6 +286,7 @@ module Cosmosys
       pending = [@focus.id]
 
       until pending.empty?
+        RenderCancellation.check!
         children = Issue.visible(@user).where(parent_id: pending, project_id: project_id).pluck(:id)
         @traversal_metrics[:candidate_item_ids].merge(children)
         fresh = children.reject { |issue_id| selected.include?(issue_id) }
@@ -293,6 +298,7 @@ module Cosmosys
     end
 
     def visible_items(ids)
+      RenderCancellation.check!
       return [] if ids.empty?
 
       items = Issue.visible(@user).where(id: ids.to_a)
@@ -313,6 +319,7 @@ module Cosmosys
       parent_ids = Array(seed_items || visible_items(seed_ids.to_a)).filter_map(&:parent_id).uniq
 
       until parent_ids.empty?
+        RenderCancellation.check!
         ancestors = visible_items(parent_ids)
         fresh = ancestors.reject { |issue| visited.include?(issue.id) }
         break if fresh.empty?
@@ -486,6 +493,7 @@ module Cosmosys
       focus_project_id = @focus.project_id
 
       until frontiers.values.all?(&:empty?)
+        RenderCancellation.check!
         frontiers.each do |direction, frontier_ids|
           next if frontier_ids.empty?
 
@@ -525,6 +533,7 @@ module Cosmosys
     end
 
     def relation_query(where_sql, ids)
+      RenderCancellation.check!
       return [] if ids.empty?
 
       relations = IssueRelation.where(relation_type: @relation_types)
