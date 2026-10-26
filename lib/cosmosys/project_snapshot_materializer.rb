@@ -189,7 +189,7 @@ module Cosmosys
       report_progress(91, 'references')
       rewrite_internal_references!(items, entries.flat_map { |entry| entry.fetch('items') }, marker_map) if include_items
       report_progress(94, 'baselines')
-      restore_presentation_baselines!(items, entries.flat_map { |entry| entry.fetch('items') }) if include_items && faithful?
+      restore_presentation_baselines!(items, entries.flat_map { |entry| entry.fetch('items') }, marker_map: marker_map) if include_items && faithful?
       report_progress(97, 'consolidation')
       Cosmosys::ProjectSnapshotMaterializationCallbacks.run(
         purpose: purpose,
@@ -415,10 +415,10 @@ module Cosmosys
       end
     end
 
-    def restore_presentation_baselines!(items, rows)
+    def restore_presentation_baselines!(items, rows, marker_map: {})
       csid_map = rows.to_h { |row| [row.fetch('csid'), items.fetch(row.fetch('key')).csid] }
       id_map = rows.to_h { |row| ["##{row.fetch('source_id')}", "##{items.fetch(row.fetch('key')).id}"] }
-      rewriter = MaterializationReferenceRewriter.new(issues: [], csid_map: csid_map, id_map: id_map)
+      rewriter = MaterializationReferenceRewriter.new(issues: [], csid_map: csid_map, id_map: id_map, marker_map: marker_map)
       rows.each do |row|
         next if @reused_item_keys.include?(row.fetch('key'))
 

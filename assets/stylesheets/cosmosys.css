@@ -1228,6 +1228,11 @@
   border-inline-start: 5px solid #c62828;
 }
 
+.cosmosys-approved-presentation-warning p,
+.cosmosys-approved-presentation-warning strong {
+  color: #c62828;
+}
+
 .cosmosys-approved-presentation-warning table {
   table-layout: fixed;
   width: 100%;

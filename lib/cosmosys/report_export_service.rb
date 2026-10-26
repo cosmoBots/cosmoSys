@@ -34,7 +34,7 @@ module Cosmosys
       'landscape' => ['COSMOSYS_REPORT_LANDSCAPE_START', 'COSMOSYS_REPORT_LANDSCAPE_END'],
       'portrait' => ['COSMOSYS_REPORT_PORTRAIT_START', 'COSMOSYS_REPORT_PORTRAIT_END']
     }.freeze
-    CACHE_SCHEMA = 'cosmosys-report-artifact-v30'.freeze
+    CACHE_SCHEMA = 'cosmosys-report-artifact-v31'.freeze
     MAX_CACHED_REPORTS_PER_PROJECT = 5
     IMAGE_MAGICK_RESOURCE_LIMITS = %w[-limit memory 256MiB -limit map 512MiB -limit disk 1GiB -limit area 40MP].freeze
 
@@ -560,6 +560,22 @@ module Cosmosys
         end
         add_inline_declarations(image, 'max-width' => '100%')
         add_inline_declarations(image, 'height' => 'auto') unless declared_height_px
+      end
+
+      # External stylesheets are not transported to Writer. Apply warning
+      # colours to the actual text nodes too: container inheritance alone is
+      # not preserved consistently by its HTML importer.
+      document.css('.cosmosys-approved-presentation-warning').each do |warning|
+        add_inline_declarations(warning, 'border-left' => '5px solid #c62828')
+        warning.css('p, strong').each do |text|
+          add_inline_declarations(text, 'color' => '#c62828')
+        end
+        warning.css('.cosmosys-approved-old').each do |cell|
+          add_inline_declarations(cell, 'background-color' => '#ffe5e5')
+        end
+        warning.css('.cosmosys-approved-new').each do |cell|
+          add_inline_declarations(cell, 'background-color' => '#e5f5e5')
+        end
       end
 
       # The browser report gets its table presentation from Redmine's external
