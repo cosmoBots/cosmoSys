@@ -680,7 +680,8 @@ module Cosmosys
 
     def cosmosys_prevent_used_project_data_deletion
       return unless cosmosys_defines_project_data?
-      usages = Cosmosys::ProjectDataUsageScanner.new(self).call(limit: 4)
+      excluded = Cosmosys::ProjectDeletionContext.current&.project_ids || []
+      usages = Cosmosys::ProjectDataUsageScanner.new(self).call(limit: 4, excluding_project_ids: excluded)
       return if usages.empty?
 
       cosmosys_add_project_data_usage_error(usages)

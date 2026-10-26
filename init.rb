@@ -203,6 +203,11 @@ require_dependency File.expand_path('lib/cosmosys/approved_presentation_baseline
 require_dependency File.expand_path('lib/cosmosys/project_data_report_scanner', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_data_scope_scanner', __dir__)
 require_dependency File.expand_path('lib/cosmosys/project_data_usage_scanner', __dir__)
+require_dependency File.expand_path('lib/cosmosys/project_tree_audit', __dir__)
+require_dependency File.expand_path('lib/cosmosys/project_deletion_context', __dir__)
+require_dependency File.expand_path('lib/cosmosys/project_deletion_patch', __dir__)
+require_dependency 'destroy_project_job'
+require_dependency 'destroy_projects_job'
 require_dependency File.expand_path('lib/cosmosys/project_data_reconciliation', __dir__)
 require_dependency File.expand_path('lib/cosmosys/application_helper_patch', __dir__)
 require_dependency File.expand_path('lib/cosmosys/issues_helper_patch', __dir__)
@@ -230,6 +235,10 @@ end
 
 patch_cosmosys_models = proc do
   Project.include Cosmosys::ProjectPatch unless Project < Cosmosys::ProjectPatch
+  Project.prepend Cosmosys::ProjectDeletionPatch unless Project < Cosmosys::ProjectDeletionPatch
+  DestroyProjectJob.singleton_class.prepend Cosmosys::ProjectDeletionSchedulePatch unless DestroyProjectJob.singleton_class < Cosmosys::ProjectDeletionSchedulePatch
+  DestroyProjectsJob.singleton_class.prepend Cosmosys::ProjectsDeletionSchedulePatch unless DestroyProjectsJob.singleton_class < Cosmosys::ProjectsDeletionSchedulePatch
+  ProjectsController.prepend Cosmosys::ProjectsControllerDeletionPatch unless ProjectsController < Cosmosys::ProjectsControllerDeletionPatch
   Project.prepend Cosmosys::ProjectNativeCopyPatch unless Project < Cosmosys::ProjectNativeCopyPatch
   Issue.include Cosmosys::IssuePatch unless Issue < Cosmosys::IssuePatch
   Issue.prepend Cosmosys::IssueWorkflowPatch unless Issue < Cosmosys::IssueWorkflowPatch

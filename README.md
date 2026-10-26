@@ -1,5 +1,9 @@
 # cosmoSys
 
+Post-0.2.2 development: project subtree deletion preserves external datum
+consumers and rolls back child failures. Administrators can audit project trees
+and explicitly retry scheduled deletions with the scripts in `scripts/`.
+
 Base plugin for [Redmine](https://www.redmine.org), providing a shared
 engineering model on which domain extensions are built.
 

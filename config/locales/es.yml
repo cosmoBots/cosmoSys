@@ -66,6 +66,9 @@ es:
   button_add_subtask: "Añadir subítem"
   text_issues_destroy_descendants_confirmation: "También se eliminarán los subítems descendientes (%{count})."
   label_cosmosys_approved_presentation_changed: "La evidencia consolidada ha cambiado"
+  error_cosmosys_project_tree_unhealthy: "La jerarquía de proyectos es inconsistente. Un administrador debe auditarla antes del borrado."
+  error_cosmosys_project_external_children: "Hay ítems de este árbol con descendientes en proyectos que se conservarían. Mueva esos descendientes antes de borrar el árbol."
+  error_cosmosys_project_deletion_failed: "Se ha revertido el borrado del proyecto: %{reason}"
   label_cosmosys_requirement_chain_validity: Validez de la cadena de requisitos
   label_cosmosys_calculate_requirement_chain_validity: Calcular la validez a lo largo de la cadena de requisitos
   text_cosmosys_calculate_requirement_chain_validity_help: "Si se desactiva, el pintado de diagramas omite las comprobaciones de madurez y evidencia consolidada de la cadena de requisitos para evitar recorrer las cadenas bloqueantes. Está activado por defecto; puede desactivarse por proyecto si el rendimiento lo requiere."

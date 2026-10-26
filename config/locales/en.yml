@@ -66,6 +66,9 @@ en:
   button_add_subtask: "Add subitem"
   text_issues_destroy_descendants_confirmation: "The %{count} descendant subitem(s) will also be deleted."
   label_cosmosys_approved_presentation_changed: "Consolidated evidence has changed"
+  error_cosmosys_project_tree_unhealthy: "Project hierarchy is inconsistent. An administrator must audit it before deletion."
+  error_cosmosys_project_external_children: "Items in this subtree have descendants in surviving projects. Move those descendants before deleting the subtree."
+  error_cosmosys_project_deletion_failed: "Project deletion was rolled back: %{reason}"
   label_cosmosys_requirement_chain_validity: Requirement-chain validity
   label_cosmosys_calculate_requirement_chain_validity: Calculate validity across the requirement chain
   text_cosmosys_calculate_requirement_chain_validity_help: "When disabled, diagram rendering skips requirement-chain maturity and approved-presentation checks to avoid traversing blocker chains. It is enabled by default; disable it per project if performance requires it."

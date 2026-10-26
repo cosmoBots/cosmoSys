@@ -6,11 +6,12 @@ module Cosmosys
       @datum = datum
     end
 
-    def call(limit: nil)
+    def call(limit: nil, excluding_project_ids: [])
       return [] unless datum.project && datum.csid.present?
 
       matches = []
-      scope.find_each do |issue|
+      candidates = excluding_project_ids.empty? ? scope : scope.where.not(project_id: excluding_project_ids)
+      candidates.find_each do |issue|
         text_attributes.each do |attribute|
           next unless issue.public_send(attribute).to_s.match?(expression_pattern)
 
