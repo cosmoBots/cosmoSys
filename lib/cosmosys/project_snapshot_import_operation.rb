@@ -113,5 +113,48 @@ module Cosmosys
     def release_package!
       FileUtils.rm_f(package_path)
     end
+
+    # Only the execution lock proves a running worker has stopped. A slow
+    # phase or old timestamp is not evidence of interruption.
+    def detect_interruption!
+      return self unless state == 'running'
+
+      with_idle_lock do
+        if state == 'running'
+          update!(state: 'interrupted', summary: summary.merge(
+            'progress_phase' => 'interrupted',
+            'error' => I18n.t(:text_cosmosys_snapshot_interrupted)
+          ))
+        end
+      end
+      self
+    end
+
+    # Explicitly withdraw a queued delivery before copying its package to a
+    # fresh preflight. A delayed duplicate job will then be a no-op.
+    def prepare_retry!
+      with_idle_lock do
+        next unless %w[queued running interrupted failed].include?(state) && package_path.file?
+
+        update!(state: 'interrupted', summary: summary.merge(
+          'progress_phase' => 'interrupted', 'error' => I18n.t(:text_cosmosys_snapshot_interrupted)
+        ))
+        yield package_path
+      end
+    end
+
+    private
+
+    def with_idle_lock
+      File.open(self.class.root.join(token, 'execution.lock'), 'a', 0o600) do |lock|
+        return unless lock.flock(File::LOCK_EX | File::LOCK_NB)
+
+        fresh = self.class.find(token)
+        return unless fresh
+
+        @data = fresh.data
+        yield
+      end
+    end
   end
 end

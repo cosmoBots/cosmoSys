@@ -45,7 +45,9 @@ module Cosmosys
           ))
           Rails.logger.error("cosmoSys snapshot import failed (#{token}): #{error.class}: #{error.message}")
         ensure
-          operation.release_package!
+          # Failed attempts retain their bounded temporary package for an
+          # explicit fresh preflight; never replay a materialization blindly.
+          operation.release_package! if operation.state == 'completed'
         end
       end
     ensure

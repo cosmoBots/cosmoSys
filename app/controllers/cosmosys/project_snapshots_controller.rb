@@ -37,6 +37,7 @@ module Cosmosys
 
     helper_method :snapshot_import_form_path, :snapshot_import_cancel_path,
                   :snapshot_import_history_path, :snapshot_import_operation_path, :snapshot_import_status_path
+    helper_method :snapshot_import_retry_path
 
     def index
       @snapshots = Cosmosys::ProjectSnapshot.where(project_id: @project.id, created_by_id: User.current.id).recent_first
@@ -105,8 +106,26 @@ module Cosmosys
         elapsed_seconds: summary['duration_seconds'] || (Time.now - Time.parse(@import_operation.data.fetch('created_at'))).round(1),
         updated_at: @import_operation.data['updated_at'], duration_seconds: summary['duration_seconds'],
         result_message: summary['result_message'], error: summary['error'],
+        retry_available: %w[queued interrupted failed].include?(@import_operation.state) && @import_operation.package_path.file?,
         destination_url: summary['destination_identifier'].present? ? project_path(summary['destination_identifier']) : nil
       }
+    end
+
+    def retry_import
+      return unless find_import_operation
+
+      token = @import_operation.prepare_retry! do |path|
+        ProjectSnapshotImportStage.create(path, user: User.current, project: @project)
+      end
+      unless token
+        return redirect_to snapshot_import_operation_path(@import_operation.token),
+                           alert: l(:error_cosmosys_snapshot_retry_unavailable)
+      end
+
+      preview_staged_import(token, @import_operation.data.fetch('attributes'))
+    rescue ProjectSnapshotPackageError, ProjectCopyError, ActiveRecord::RecordNotFound => error
+      ProjectSnapshotImportStage.cleanup(token, user: User.current, project: @project) if token
+      redirect_to snapshot_import_operation_path(@import_operation.token), alert: error.message
     end
 
     def show; end
@@ -196,6 +215,10 @@ module Cosmosys
       @project ? status_project_cosmosys_snapshot_import_operation_path(@project, token) : status_cosmosys_snapshot_import_operation_path(token)
     end
 
+    def snapshot_import_retry_path(token)
+      @project ? retry_project_cosmosys_snapshot_import_operation_path(@project, token) : retry_cosmosys_snapshot_import_operation_path(token)
+    end
+
     def log_snapshot_import_progress(percent, phase, details = {})
       Rails.logger.info({ cosmosys_snapshot_import: 'progress', project_id: @project&.id,
                           phase: phase, progress: percent, **details }.to_json)
@@ -212,6 +235,7 @@ module Cosmosys
         render_404
         return false
       end
+      @import_operation.detect_interruption!
       true
     end
 
@@ -232,6 +256,10 @@ module Cosmosys
 
       log_snapshot_import_progress(0, 'staging')
       token = Cosmosys::ProjectSnapshotImportStage.create(upload.tempfile.path, user: User.current, project: @project)
+      preview_staged_import(token, attributes)
+    end
+
+    def preview_staged_import(token, attributes)
       @destination = attributes.to_h
       @parent_projects = Project.visible(User.current).order(:name)
       path = Cosmosys::ProjectSnapshotImportStage.retrieve(token, user: User.current, project: @project)

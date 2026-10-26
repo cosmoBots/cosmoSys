@@ -18,5 +18,10 @@
   <p data-cosmosys-snapshot-result><%= summary['result_message'] || summary['error'] %></p>
   <p><a data-cosmosys-snapshot-destination href="<%= project_path(summary['destination_identifier']) if summary['destination_identifier'] %>" <%= 'hidden' unless summary['destination_identifier'] %>><%= l(:label_cosmosys_copy_destination_project) %></a></p>
 </div>
+<% if @import_operation.package_path.file? %>
+  <div data-cosmosys-snapshot-retry <%= 'hidden' unless %w[queued interrupted failed].include?(@import_operation.state) %>>
+    <%= button_to l(:button_cosmosys_snapshot_retry), snapshot_import_retry_path(@import_operation.token), method: :post %>
+  </div>
+<% end %>
 <p><%= link_to l(@project ? :label_cosmosys_project_snapshots : :label_cosmosys_snapshot_imports), snapshot_import_history_path %></p>
 <noscript><p><%= link_to l(:button_refresh), request.path %></p></noscript>

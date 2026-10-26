@@ -1310,16 +1310,19 @@
       var label = panel.querySelector('[data-cosmosys-operation-label]');
       var result = panel.querySelector('[data-cosmosys-snapshot-result]');
       pollCosmosysOperation(panel.dataset.statusUrl, function(status) {
-        setOperationProgressState(panel, status.state === 'failed' ? 'failure' : (status.state === 'completed' ? 'success' : 'running'), status.progress || 0);
+        setOperationProgressState(panel, ['failed', 'interrupted'].indexOf(status.state) >= 0 ? 'failure' : (status.state === 'completed' ? 'success' : 'running'), status.progress || 0);
         label.textContent = status.phase_label;
         panel.querySelector('[data-cosmosys-snapshot-counts]').textContent = status.total == null ? '' : status.processed + ' / ' + status.total;
         panel.querySelector('[data-cosmosys-snapshot-attachments]').textContent = status.attachments_total == null ? '' : panel.dataset.attachmentsTemplate.replace('__processed__', status.attachments_processed || 0).replace('__total__', status.attachments_total);
         panel.querySelector('[data-cosmosys-snapshot-duration]').textContent = status.elapsed_seconds == null ? '' : status.elapsed_seconds + ' s';
         result.textContent = status.error || status.result_message || '';
+        var retry = document.querySelector('[data-cosmosys-snapshot-retry]');
+        if (retry) retry.hidden = !status.retry_available;
         var destination = panel.querySelector('[data-cosmosys-snapshot-destination]');
         destination.hidden = !status.destination_url;
         if (status.destination_url) destination.href = status.destination_url;
-      }, ['completed', 'failed']).catch(function() {
+      }, ['completed', 'failed', 'interrupted']).catch(function(error) {
+        if (error.name === 'AbortError') return;
         setOperationProgressState(panel, 'failure', bar.value);
         result.textContent = panel.dataset.errorLabel;
       });
