@@ -66,6 +66,8 @@ es:
   button_add_subtask: "Añadir subítem"
   text_issues_destroy_descendants_confirmation: "También se eliminarán los subítems descendientes (%{count})."
   label_cosmosys_approved_presentation_changed: "La evidencia consolidada ha cambiado"
+  label_cosmosys_approved_evidence_missing: "Falta evidencia consolidada"
+  text_cosmosys_approved_evidence_missing: "La madurez de este ítem requiere evidencia, pero su registro está ausente o incompleto. No se puede confirmar su consistencia. Solicite una revisión explícita o una recuperación administrativa; consultar el ítem no crea evidencia."
   error_cosmosys_project_tree_unhealthy: "La jerarquía de proyectos es inconsistente. Un administrador debe auditarla antes del borrado."
   error_cosmosys_project_external_children: "Hay ítems de este árbol con descendientes en proyectos que se conservarían. Mueva esos descendientes antes de borrar el árbol."
   error_cosmosys_project_deletion_failed: "Se ha revertido el borrado del proyecto: %{reason}"

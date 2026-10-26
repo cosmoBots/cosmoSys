@@ -3,6 +3,8 @@
 Post-0.2.2 development: project subtree deletion preserves external datum
 consumers and rolls back child failures. Administrators can audit project trees
 and explicitly retry scheduled deletions with the scripts in `scripts/`.
+Missing consolidated evidence is reported separately from content drift;
+viewing an item never creates approval evidence.
 
 Base plugin for [Redmine](https://www.redmine.org), providing a shared
 engineering model on which domain extensions are built.

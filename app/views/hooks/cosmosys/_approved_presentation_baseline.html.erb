@@ -1,8 +1,14 @@
 <% result = issue.cosmosys_approved_presentation_result(user: User.current) %>
-<% if result.inconsistent %>
-  <div class="warning cosmosys-approved-presentation-warning">
+<% if result.inconsistent || result.missing_evidence? %>
+  <div class="warning cosmosys-approved-presentation-warning" data-cosmosys-evidence-status="<%= result.status %>">
+    <% if result.missing_evidence? %>
+      <p><strong><%= l(:label_cosmosys_approved_evidence_missing) %></strong></p>
+      <p><%= l(:text_cosmosys_approved_evidence_missing) %></p>
+    <% end %>
+    <% if result.inconsistent %>
     <p><strong><%= l(:label_cosmosys_approved_presentation_changed) %></strong></p>
     <p><%= l(:text_cosmosys_approved_presentation_changed) %></p>
+    <% end %>
     <% result.differences.each do |difference| %>
       <% if difference.attribute_name == 'description' %>
         <table class="list">

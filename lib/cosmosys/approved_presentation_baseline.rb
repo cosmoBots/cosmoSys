@@ -4,7 +4,10 @@ require 'set'
 module Cosmosys
   class ApprovedPresentationBaseline
     Difference = Struct.new(:attribute_name, :baseline, :current_text, :current_sha256, keyword_init: true)
-    Result = Struct.new(:inconsistent, :differences, keyword_init: true)
+    Result = Struct.new(:inconsistent, :differences, :status, :missing_attributes, keyword_init: true) do
+      def missing_evidence? = missing_attributes.to_a.any?
+      def valid? = !inconsistent && !missing_evidence?
+    end
     ATTRIBUTES = %w[description blocking_context].freeze
     CONSOLIDATED_MATURITY_FLOOR = 1
 
@@ -45,11 +48,14 @@ module Cosmosys
     end
 
     def inspect
-      return Result.new(inconsistent: false, differences: []) unless enabled?
+      return Result.new(inconsistent: false, differences: [], status: :not_applicable, missing_attributes: []) unless enabled? && consolidated?
 
       baselines = issue.cosmosys_presentation_baselines.where(attribute_name: ATTRIBUTES).index_by(&:attribute_name)
       active = baselines.select { |_key, baseline| current_maturity >= baseline.captured_maturity }
-      return Result.new(inconsistent: false, differences: []) if active.empty?
+      missing = ATTRIBUTES - active.keys
+      if active.empty?
+        return Result.new(inconsistent: false, differences: [], status: :missing_evidence, missing_attributes: missing)
+      end
 
       evidence = evidence_set
       differences = active.filter_map do |attribute_name, baseline|
@@ -62,7 +68,8 @@ module Cosmosys
         Difference.new(attribute_name: attribute_name, baseline: baseline,
                        current_text: current, current_sha256: current_digest)
       end
-      Result.new(inconsistent: differences.any?, differences: differences)
+      status = missing.any? ? :missing_evidence : (differences.any? ? :inconsistent : :consistent)
+      Result.new(inconsistent: differences.any?, differences: differences, status: status, missing_attributes: missing)
     end
 
     private

@@ -66,6 +66,8 @@ en:
   button_add_subtask: "Add subitem"
   text_issues_destroy_descendants_confirmation: "The %{count} descendant subitem(s) will also be deleted."
   label_cosmosys_approved_presentation_changed: "Consolidated evidence has changed"
+  label_cosmosys_approved_evidence_missing: "Missing consolidated evidence"
+  text_cosmosys_approved_evidence_missing: "This item's maturity requires evidence, but its record is missing or incomplete. Its consistency cannot be confirmed. Request an explicit review or an administrator backfill; viewing the item does not create evidence."
   error_cosmosys_project_tree_unhealthy: "Project hierarchy is inconsistent. An administrator must audit it before deletion."
   error_cosmosys_project_external_children: "Items in this subtree have descendants in surviving projects. Move those descendants before deleting the subtree."
   error_cosmosys_project_deletion_failed: "Project deletion was rolled back: %{reason}"

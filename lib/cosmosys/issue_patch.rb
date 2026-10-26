@@ -492,7 +492,7 @@ module Cosmosys
         project_id: project_id
       ) do
         maturity_valid = !cosmosys_item_kind.validate_blocking_maturity || cosmosys_blocking_maturity_consistent?
-        maturity_valid && !cosmosys_approved_presentation_inconsistent?
+        maturity_valid && cosmosys_approved_presentation_result.valid?
       end
     end
 
