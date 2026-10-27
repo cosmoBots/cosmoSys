@@ -9,11 +9,29 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
     self.table_name = 'issues'
   end
 
+  class StatusRecord < ActiveRecord::Base
+    self.table_name = 'issue_statuses'
+  end
+
+  class ProjectTrackerRecord < ActiveRecord::Base
+    self.table_name = 'projects_trackers'
+    self.primary_key = nil
+  end
+
+  class WorkflowRecord < ActiveRecord::Base
+    self.table_name = 'workflows'
+    self.inheritance_column = :_disabled_type
+  end
+
+  class EnabledModuleRecord < ActiveRecord::Base
+    self.table_name = 'enabled_modules'
+  end
+
   def up
     add_column :issue_relations, :csys_restricted, :boolean, null: false, default: false unless column_exists?(:issue_relations, :csys_restricted)
     add_column :trackers, :csys_key, :string unless column_exists?(:trackers, :csys_key)
     add_column :trackers, :csys_item_kind, :string, null: false, default: 'normal' unless column_exists?(:trackers, :csys_item_kind)
-    add_index :trackers, :csys_key, unique: true, where: 'csys_key IS NOT NULL' unless index_exists?(:trackers, :csys_key)
+    add_index :trackers, :csys_key, unique: true unless index_exists?(:trackers, :csys_key)
     add_index :trackers, :csys_item_kind unless index_exists?(:trackers, :csys_item_kind)
 
     add_column :projects, :cscode, :string unless column_exists?(:projects, :cscode)
@@ -29,7 +47,6 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
     add_column :projects, :csys_report_export_format, :string unless column_exists?(:projects, :csys_report_export_format)
 
     add_index :projects, :cscode unless index_exists?(:projects, :cscode)
-    add_index :projects, 'LOWER(cscode)', name: 'idx_projects_lower_cscode' unless index_exists?(:projects, name: 'idx_projects_lower_cscode')
 
     unless table_exists?(:cosmosys_template_assets)
       create_table :cosmosys_template_assets do |t|
@@ -56,7 +73,6 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
                null: false, default: 'combined' unless column_exists?(:issues, :csys_preferred_report_diagram)
 
     add_index :issues, :csid unless index_exists?(:issues, :csid)
-    add_index :issues, 'LOWER(csid)', name: 'idx_issues_lower_csid' unless index_exists?(:issues, name: 'idx_issues_lower_csid')
     add_index :issues, :csidnum unless index_exists?(:issues, :csidnum)
     add_index :issues, [:parent_id, :csposition] unless index_exists?(:issues, [:parent_id, :csposition])
 
@@ -127,8 +143,8 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
 
     remove_index :cosmosys_diagrams, name: 'idx_cosmosys_diagrams_issue_kind' if index_exists?(:cosmosys_diagrams, name: 'idx_cosmosys_diagrams_issue_kind')
     remove_index :cosmosys_diagrams, name: 'idx_cosmosys_diagrams_project_kind' if index_exists?(:cosmosys_diagrams, name: 'idx_cosmosys_diagrams_project_kind')
-    add_index :cosmosys_diagrams, [:issue_id, :kind, :render_variant, :layout_mode], unique: true, where: 'issue_id IS NOT NULL', name: 'idx_cosmosys_diagrams_issue_render_kind' unless index_exists?(:cosmosys_diagrams, [:issue_id, :kind, :render_variant, :layout_mode], unique: true, where: 'issue_id IS NOT NULL', name: 'idx_cosmosys_diagrams_issue_render_kind')
-    add_index :cosmosys_diagrams, [:project_id, :kind, :render_variant, :layout_mode], unique: true, where: 'project_id IS NOT NULL', name: 'idx_cosmosys_diagrams_project_render_kind' unless index_exists?(:cosmosys_diagrams, [:project_id, :kind, :render_variant, :layout_mode], unique: true, where: 'project_id IS NOT NULL', name: 'idx_cosmosys_diagrams_project_render_kind')
+    add_index :cosmosys_diagrams, [:issue_id, :kind, :render_variant, :layout_mode], unique: true, name: 'idx_cosmosys_diagrams_issue_render_kind' unless index_exists?(:cosmosys_diagrams, name: 'idx_cosmosys_diagrams_issue_render_kind')
+    add_index :cosmosys_diagrams, [:project_id, :kind, :render_variant, :layout_mode], unique: true, name: 'idx_cosmosys_diagrams_project_render_kind' unless index_exists?(:cosmosys_diagrams, name: 'idx_cosmosys_diagrams_project_render_kind')
 
     unless table_exists?(:cosmosys_issue_tree_revisions)
       create_table :cosmosys_issue_tree_revisions do |t|
@@ -167,8 +183,8 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
 
     add_column :cosmosys_diagram_preferences, :visible_layers, :text unless column_exists?(:cosmosys_diagram_preferences, :visible_layers)
 
-    add_index :cosmosys_diagram_preferences, [:issue_id, :kind], unique: true, where: 'issue_id IS NOT NULL', name: 'idx_cosmosys_diagram_preferences_issue_kind' unless index_exists?(:cosmosys_diagram_preferences, [:issue_id, :kind], unique: true, where: 'issue_id IS NOT NULL', name: 'idx_cosmosys_diagram_preferences_issue_kind')
-    add_index :cosmosys_diagram_preferences, [:project_id, :kind], unique: true, where: 'project_id IS NOT NULL', name: 'idx_cosmosys_diagram_preferences_project_kind' unless index_exists?(:cosmosys_diagram_preferences, [:project_id, :kind], unique: true, where: 'project_id IS NOT NULL', name: 'idx_cosmosys_diagram_preferences_project_kind')
+    add_index :cosmosys_diagram_preferences, [:issue_id, :kind], unique: true, name: 'idx_cosmosys_diagram_preferences_issue_kind' unless index_exists?(:cosmosys_diagram_preferences, name: 'idx_cosmosys_diagram_preferences_issue_kind')
+    add_index :cosmosys_diagram_preferences, [:project_id, :kind], unique: true, name: 'idx_cosmosys_diagram_preferences_project_kind' unless index_exists?(:cosmosys_diagram_preferences, name: 'idx_cosmosys_diagram_preferences_project_kind')
 
     unless table_exists?(:cosmosys_ods_transfers)
       create_table :cosmosys_ods_transfers do |t|
@@ -310,7 +326,7 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
   def install_structural_trackers
     tracker_class = Class.new(ActiveRecord::Base) { self.table_name = 'trackers' }
     tracker_class.reset_column_information
-    status_id = select_value('SELECT id FROM issue_statuses ORDER BY position, id LIMIT 1')
+    status_id = StatusRecord.order(:position, :id).pick(:id)
     raise 'cosmoSys requires at least one Redmine item status' if status_id.blank?
 
     {
@@ -318,30 +334,28 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
       'cs_ref_doc' => { name: 'csRefDoc', item_profile: 'doc' }
     }.each do |key, definition|
       tracker = tracker_class.find_by(csys_key: key) ||
-                tracker_class.where('LOWER(name) = ?', definition.fetch(:name).downcase).order(:id).first ||
+                tracker_class.where(tracker_class.arel_table[:name].lower.eq(definition.fetch(:name).downcase)).order(:id).first ||
                 tracker_class.new
       tracker.assign_attributes(name: definition.fetch(:name), csys_key: key, csys_item_kind: definition.fetch(:item_profile), default_status_id: status_id)
       tracker.save!
       reset_feature_workflow(tracker.id)
-      execute "INSERT INTO projects_trackers (project_id, tracker_id) SELECT id, #{tracker.id} FROM projects ON CONFLICT DO NOTHING"
+      ProjectRecord.find_each do |project|
+        ProjectTrackerRecord.find_or_create_by!(project_id: project.id, tracker_id: tracker.id)
+      end
     end
   end
 
   def reset_feature_workflow(tracker_id)
     return unless table_exists?(:workflows)
 
-    feature_id = select_value("SELECT id FROM trackers WHERE LOWER(name) = 'feature' ORDER BY id LIMIT 1")
+    tracker_class = Class.new(ActiveRecord::Base) { self.table_name = 'trackers' }
+    feature_id = tracker_class.where(tracker_class.arel_table[:name].lower.eq('feature')).order(:id).pick(:id)
     return if feature_id.blank? || feature_id.to_i == tracker_id.to_i
 
-    workflow_columns = columns(:workflows).map(&:name) - %w[id tracker_id]
-    quoted_columns = workflow_columns.map { |column| connection.quote_column_name(column) }
-    execute "DELETE FROM workflows WHERE tracker_id = #{tracker_id}"
-    execute <<~SQL.squish
-      INSERT INTO workflows (tracker_id, #{quoted_columns.join(', ')})
-      SELECT #{tracker_id}, #{quoted_columns.join(', ')}
-      FROM workflows
-      WHERE tracker_id = #{feature_id}
-    SQL
+    WorkflowRecord.where(tracker_id: tracker_id).delete_all
+    WorkflowRecord.where(tracker_id: feature_id).find_each do |workflow|
+      WorkflowRecord.create!(workflow.attributes.except('id').merge('tracker_id' => tracker_id))
+    end
   end
 
   def backfill_existing_cosmosys_data
@@ -462,7 +476,7 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
     # enabled project module, so projects cannot disable only part of its
     # structural contract.
     Setting[:default_projects_modules] = Array(Setting[:default_projects_modules]).map(&:to_s) - ['cosmosys']
-    execute "DELETE FROM enabled_modules WHERE name = 'cosmosys'" if table_exists?(:enabled_modules)
+    EnabledModuleRecord.where(name: 'cosmosys').delete_all if table_exists?(:enabled_modules)
 
     project_list_defaults = (Setting[:project_list_defaults] || {}).deep_stringify_keys
     project_columns = Array(project_list_defaults['column_names']).map(&:to_s)

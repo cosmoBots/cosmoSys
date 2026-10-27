@@ -18,13 +18,13 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
 
   def down
     TRACKERS.each_key do |key|
-      tracker_id = select_value("SELECT id FROM trackers WHERE csys_key = #{connection.quote(key)}")
+      tracker_id = tracker_record.find_by(csys_key: key)&.id
       next if tracker_id.blank?
-      next if select_value("SELECT 1 FROM issues WHERE tracker_id = #{tracker_id} LIMIT 1")
+      next if issue_record.where(tracker_id: tracker_id).exists?
 
-      execute "DELETE FROM projects_trackers WHERE tracker_id = #{tracker_id}"
-      execute "DELETE FROM workflows WHERE tracker_id = #{tracker_id}" if table_exists?(:workflows)
-      execute "DELETE FROM trackers WHERE id = #{tracker_id}"
+      assignment_record.where(tracker_id: tracker_id).delete_all
+      workflow_record.where(tracker_id: tracker_id).delete_all if table_exists?(:workflows)
+      tracker_record.where(id: tracker_id).delete_all
     end
 
     remove_negative_status_selections_table if table_exists?(:cosmosys_negative_statuses)
@@ -36,6 +36,28 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
   end
 
   private
+
+  def tracker_record
+    @tracker_record ||= Class.new(ActiveRecord::Base) { self.table_name = 'trackers' }
+  end
+
+  def issue_record
+    @issue_record ||= Class.new(ActiveRecord::Base) { self.table_name = 'issues' }
+  end
+
+  def assignment_record
+    @assignment_record ||= Class.new(ActiveRecord::Base) do
+      self.table_name = 'projects_trackers'
+      self.primary_key = nil
+    end
+  end
+
+  def workflow_record
+    @workflow_record ||= Class.new(ActiveRecord::Base) do
+      self.table_name = 'workflows'
+      self.inheritance_column = :_disabled_type
+    end
+  end
 
   def create_presentation_baselines_table
     create_table :cosmosys_presentation_baselines do |t|
@@ -70,25 +92,23 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
   def migrate_legacy_negative_status_selections
     return unless column_exists?(:issues, :csys_negative_status_id)
 
-    execute <<~SQL.squish
-      INSERT INTO cosmosys_negative_statuses (issue_id, issue_status_id, created_at, updated_at)
-      SELECT id, csys_negative_status_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-      FROM issues
-      WHERE csys_negative_status_id IS NOT NULL
-      ON CONFLICT DO NOTHING
-    SQL
-    execute 'UPDATE issues SET csys_negative_status_id = NULL WHERE csys_negative_status_id IS NOT NULL'
+    selection_record = Class.new(ActiveRecord::Base) { self.table_name = 'cosmosys_negative_statuses' }
+    issue_record.where.not(csys_negative_status_id: nil).find_each do |issue|
+      selection_record.find_or_create_by!(issue_id: issue.id, issue_status_id: issue.csys_negative_status_id)
+      issue.update_columns(csys_negative_status_id: nil)
+    end
   end
 
   def install_trackers
     tracker_class = Class.new(ActiveRecord::Base) { self.table_name = 'trackers' }
     tracker_class.reset_column_information
-    status_id = select_value('SELECT id FROM issue_statuses ORDER BY position, id LIMIT 1')
+    status_record = Class.new(ActiveRecord::Base) { self.table_name = 'issue_statuses' }
+    status_id = status_record.order(:position, :id).pick(:id)
     raise 'cosmoSys project data requires at least one Redmine item status' if status_id.blank?
 
     TRACKERS.each do |key, definition|
       tracker = tracker_class.find_by(csys_key: key) ||
-                tracker_class.where('LOWER(name) = ?', definition.fetch(:name).downcase).order(:id).first ||
+                tracker_class.where(tracker_class.arel_table[:name].lower.eq(definition.fetch(:name).downcase)).order(:id).first ||
                 tracker_class.new
       tracker.assign_attributes(
         name: definition.fetch(:name),
@@ -98,24 +118,22 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
       )
       tracker.save!
       copy_feature_workflow(tracker.id)
-      execute "INSERT INTO projects_trackers (project_id, tracker_id) SELECT id, #{tracker.id} FROM projects ON CONFLICT DO NOTHING"
+      project_record = Class.new(ActiveRecord::Base) { self.table_name = 'projects' }
+      project_record.find_each do |project|
+        assignment_record.find_or_create_by!(project_id: project.id, tracker_id: tracker.id)
+      end
     end
   end
 
   def copy_feature_workflow(tracker_id)
     return unless table_exists?(:workflows)
 
-    feature_id = select_value("SELECT id FROM trackers WHERE LOWER(name) = 'feature' ORDER BY id LIMIT 1")
+    feature_id = tracker_record.where(tracker_record.arel_table[:name].lower.eq('feature')).order(:id).pick(:id)
     return if feature_id.blank? || feature_id.to_i == tracker_id.to_i
 
-    workflow_columns = columns(:workflows).map(&:name) - %w[id tracker_id]
-    quoted_columns = workflow_columns.map { |column| connection.quote_column_name(column) }
-    execute "DELETE FROM workflows WHERE tracker_id = #{tracker_id}"
-    execute <<~SQL.squish
-      INSERT INTO workflows (tracker_id, #{quoted_columns.join(', ')})
-      SELECT #{tracker_id}, #{quoted_columns.join(', ')}
-      FROM workflows
-      WHERE tracker_id = #{feature_id}
-    SQL
+    workflow_record.where(tracker_id: tracker_id).delete_all
+    workflow_record.where(tracker_id: feature_id).find_each do |workflow|
+      workflow_record.create!(workflow.attributes.except('id').merge('tracker_id' => tracker_id))
+    end
   end
 end

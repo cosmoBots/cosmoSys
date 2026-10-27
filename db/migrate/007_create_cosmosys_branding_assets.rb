@@ -9,10 +9,10 @@ class CreateCosmosysBrandingAssets < ActiveRecord::Migration[7.2]
       t.boolean :diffuse_effect, null: false, default: false
       t.timestamps null: false
     end
+    # Nullable unique keys allow independent project overrides. The non-null
+    # scope_key below enforces uniqueness of the instance-wide override too.
     add_index :cosmosys_branding_assets, :project_id, unique: true,
-              where: 'project_id IS NOT NULL', name: 'idx_csys_branding_project'
-    add_index :cosmosys_branding_assets, :project_id, unique: true,
-              where: 'project_id IS NULL', name: 'idx_csys_branding_instance'
+              name: 'idx_csys_branding_project'
     add_index :cosmosys_branding_assets, :scope_key, unique: true,
               name: 'idx_csys_branding_scope'
   end

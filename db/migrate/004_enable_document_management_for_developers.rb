@@ -1,6 +1,6 @@
 class EnableDocumentManagementForDevelopers < ActiveRecord::Migration[6.1]
   def up
-    developer = Role.where('LOWER(name) = ?', 'developer').first
+    developer = Role.where(Role.arel_table[:name].lower.eq('developer')).first
     return unless developer
 
     permissions = Array(developer.permissions).map(&:to_sym)
