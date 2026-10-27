@@ -2,9 +2,11 @@ module Cosmosys
   # Schema operations shared by historical migrations and the reconciliation
   # migration for existing installations. All expressions are compiled by Arel.
   module MigrationSchema
-    # Rails selects an appropriately sized text/blob type on bounded adapters.
-    # Adapters with unbounded text/bytea storage retain their native types.
-    LARGE_PAYLOAD_LIMIT = 4_294_967_295
+    # 16 MiB minus one byte selects medium-sized text/blob storage where the
+    # adapter has bounded types, without exceeding PostgreSQL's text limit.
+    # This is schema capacity, not preallocated space or an upload-size policy.
+    # Existing wider/unbounded columns are never narrowed by reconciliation.
+    LARGE_PAYLOAD_LIMIT = 16_777_215
 
     LARGE_PAYLOAD_COLUMNS = {
       issues: %i[csys_value],
