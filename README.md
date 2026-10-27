@@ -1,6 +1,6 @@
 # cosmoSys
 
-Post-0.2.2 development: project subtree deletion preserves external datum
+Version 0.2.3: project subtree deletion preserves external datum
 consumers and rolls back child failures. Administrators can audit project trees
 and explicitly retry scheduled deletions with the scripts in `scripts/`.
 Missing consolidated evidence is reported separately from content drift;
@@ -32,8 +32,10 @@ the project's earlier history and authorship.
 
 ## Status
 
-The current code declares version **0.2.2**, adding server-side LaTeX report
-export and preserving complete macro sources during report normalization.
+The current code declares version **0.2.3**, adding explicit recovery of
+interrupted snapshot imports, cooperative cancellation of abandoned diagram
+renders, safer project deletion and diagnostics for missing approval evidence.
+It retains server-side LaTeX report export and complete macro preservation.
 It includes the tree editor, report image layout fixes, independent settings
 tabs and global snapshot imports from 0.2.1. These workflows were validated in
 Redmine 3001. Publication and deployment pinning are separate steps.
