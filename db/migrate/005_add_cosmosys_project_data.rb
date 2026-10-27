@@ -9,8 +9,8 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
     add_column :issues, :csys_datum_source_issue_id, :integer unless column_exists?(:issues, :csys_datum_source_issue_id)
     add_index :issues, :csys_datum_source_issue_id unless index_exists?(:issues, :csys_datum_source_issue_id)
 
-    create_negative_status_selections_table unless table_exists?(:cosmosys_negative_statuses)
-    create_presentation_baselines_table unless table_exists?(:cosmosys_presentation_baselines)
+    create_negative_status_selections_table
+    create_presentation_baselines_table
     migrate_legacy_negative_status_selections
 
     install_trackers
@@ -61,7 +61,7 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
 
   def create_presentation_baselines_table
     create_table :cosmosys_presentation_baselines do |t|
-      t.references :issue, null: false, foreign_key: { to_table: :issues }
+      t.references :issue, **reference_type(:issues), null: false, foreign_key: { to_table: :issues }
       t.string :attribute_name, null: false
       t.text :source_text, null: false
       t.text :resolved_text, null: false
@@ -71,22 +71,27 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
       t.integer :captured_maturity, null: false
       t.datetime :captured_at, null: false
       t.timestamps null: false
-    end
+    end unless table_exists?(:cosmosys_presentation_baselines)
     add_index :cosmosys_presentation_baselines, [:issue_id, :attribute_name],
-              unique: true, name: 'index_csys_presentation_baselines_on_issue_and_attribute'
+              unique: true, name: 'index_csys_presentation_baselines_on_issue_and_attribute' unless index_exists?(:cosmosys_presentation_baselines, name: 'index_csys_presentation_baselines_on_issue_and_attribute')
   end
 
   def create_negative_status_selections_table
     create_table :cosmosys_negative_statuses do |t|
-      t.references :issue, foreign_key: { to_table: :issues }, null: false
-      t.references :issue_status, foreign_key: true, null: false
+      t.references :issue, **reference_type(:issues), foreign_key: { to_table: :issues }, null: false
+      t.references :issue_status, **reference_type(:issue_statuses), foreign_key: true, null: false
       t.timestamps null: false
-    end
-    add_index :cosmosys_negative_statuses, [:issue_id, :issue_status_id], unique: true, name: 'index_cosmosys_negative_statuses_on_issue_and_status'
+    end unless table_exists?(:cosmosys_negative_statuses)
+    add_index :cosmosys_negative_statuses, [:issue_id, :issue_status_id], unique: true, name: 'index_cosmosys_negative_statuses_on_issue_and_status' unless index_exists?(:cosmosys_negative_statuses, name: 'index_cosmosys_negative_statuses_on_issue_and_status')
   end
 
   def remove_negative_status_selections_table
     drop_table :cosmosys_negative_statuses
+  end
+
+  def reference_type(table)
+    primary_key = columns(table).find { |column| column.name == 'id' }
+    { type: primary_key.type, limit: primary_key.limit }
   end
 
   def migrate_legacy_negative_status_selections

@@ -1,6 +1,8 @@
 require 'set'
+require_relative '../../lib/cosmosys/migration_schema'
 
 class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
+  include Cosmosys::MigrationSchema
   class ProjectRecord < ActiveRecord::Base
     self.table_name = 'projects'
   end
@@ -31,15 +33,15 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
     add_column :issue_relations, :csys_restricted, :boolean, null: false, default: false unless column_exists?(:issue_relations, :csys_restricted)
     add_column :trackers, :csys_key, :string unless column_exists?(:trackers, :csys_key)
     add_column :trackers, :csys_item_kind, :string, null: false, default: 'normal' unless column_exists?(:trackers, :csys_item_kind)
-    add_index :trackers, :csys_key, unique: true unless index_exists?(:trackers, :csys_key)
+    add_index :trackers, :csys_key, unique: true, where: index_presence_predicate(:trackers, :csys_key) unless index_exists?(:trackers, :csys_key)
     add_index :trackers, :csys_item_kind unless index_exists?(:trackers, :csys_item_kind)
 
     add_column :projects, :cscode, :string unless column_exists?(:projects, :cscode)
     add_column :projects, :cslast_id, :integer, null: false, default: 0 unless column_exists?(:projects, :cslast_id)
     add_column :projects, :csys_project_profile, :string, null: false, default: 'items' unless column_exists?(:projects, :csys_project_profile)
     add_column :projects, :csys_root_tracker_key, :string unless column_exists?(:projects, :csys_root_tracker_key)
-    add_column :projects, :csys_ods_template_asset_id, :integer unless column_exists?(:projects, :csys_ods_template_asset_id)
-    add_column :projects, :csys_report_template_asset_id, :integer unless column_exists?(:projects, :csys_report_template_asset_id)
+    add_column :projects, :csys_ods_template_asset_id, :bigint unless column_exists?(:projects, :csys_ods_template_asset_id)
+    add_column :projects, :csys_report_template_asset_id, :bigint unless column_exists?(:projects, :csys_report_template_asset_id)
     add_column :projects, :csys_report_template_key, :string unless column_exists?(:projects, :csys_report_template_key)
     add_column :projects, :csys_project_passphrase, :string unless column_exists?(:projects, :csys_project_passphrase)
     add_column :projects, :csys_language, :string unless column_exists?(:projects, :csys_language)
@@ -47,6 +49,7 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
     add_column :projects, :csys_report_export_format, :string unless column_exists?(:projects, :csys_report_export_format)
 
     add_index :projects, :cscode unless index_exists?(:projects, :cscode)
+    add_index :projects, lower_index_expression(:projects, :cscode), name: 'idx_projects_lower_cscode' unless index_exists?(:projects, name: 'idx_projects_lower_cscode')
 
     unless table_exists?(:cosmosys_template_assets)
       create_table :cosmosys_template_assets do |t|
@@ -63,6 +66,11 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
     end
     add_index :cosmosys_template_assets, :storage_key, unique: true unless index_exists?(:cosmosys_template_assets, :storage_key, unique: true)
     add_index :cosmosys_template_assets, [:kind, :active, :name], name: 'idx_cosmosys_template_assets_catalog' unless index_exists?(:cosmosys_template_assets, [:kind, :active, :name], name: 'idx_cosmosys_template_assets_catalog')
+    # A failed non-transactional installation may have left the old integer
+    # columns behind. Align them with the target before retrying the FK.
+    %i[csys_ods_template_asset_id csys_report_template_asset_id].each do |column|
+      align_reference_type(:projects, column, :cosmosys_template_assets)
+    end
     add_foreign_key :projects, :cosmosys_template_assets, column: :csys_ods_template_asset_id, name: 'fk_projects_cosmosys_ods_template' unless foreign_key_exists?(:projects, :cosmosys_template_assets, column: :csys_ods_template_asset_id, name: 'fk_projects_cosmosys_ods_template')
     add_foreign_key :projects, :cosmosys_template_assets, column: :csys_report_template_asset_id, name: 'fk_projects_cosmosys_report_template' unless foreign_key_exists?(:projects, :cosmosys_template_assets, column: :csys_report_template_asset_id, name: 'fk_projects_cosmosys_report_template')
 
@@ -73,6 +81,7 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
                null: false, default: 'combined' unless column_exists?(:issues, :csys_preferred_report_diagram)
 
     add_index :issues, :csid unless index_exists?(:issues, :csid)
+    add_index :issues, lower_index_expression(:issues, :csid), name: 'idx_issues_lower_csid' unless index_exists?(:issues, name: 'idx_issues_lower_csid')
     add_index :issues, :csidnum unless index_exists?(:issues, :csidnum)
     add_index :issues, [:parent_id, :csposition] unless index_exists?(:issues, [:parent_id, :csposition])
 
@@ -96,7 +105,7 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
 
     unless table_exists?(:cosmosys_catalog_refs)
       create_table :cosmosys_catalog_refs do |t|
-        t.integer :document_catalog_entry_id, null: false
+        t.bigint :document_catalog_entry_id, null: false
         t.integer :issue_id, null: false
         t.string :sense, limit: 255
         t.string :location, limit: 255
@@ -106,6 +115,7 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
     add_index :cosmosys_catalog_refs, :issue_id unless index_exists?(:cosmosys_catalog_refs, :issue_id)
     add_index :cosmosys_catalog_refs, :document_catalog_entry_id, name: 'idx_cosmosys_catalog_refs_entry' unless index_exists?(:cosmosys_catalog_refs, :document_catalog_entry_id, name: 'idx_cosmosys_catalog_refs_entry')
     add_foreign_key :cosmosys_catalog_refs, :issues, column: :issue_id unless foreign_key_exists?(:cosmosys_catalog_refs, :issues, column: :issue_id)
+    align_reference_type(:cosmosys_catalog_refs, :document_catalog_entry_id, :cosmosys_document_catalog_entries)
     add_foreign_key :cosmosys_catalog_refs, :cosmosys_document_catalog_entries, column: :document_catalog_entry_id, name: 'fk_cosmosys_catalog_refs_entry' unless foreign_key_exists?(:cosmosys_catalog_refs, :cosmosys_document_catalog_entries, column: :document_catalog_entry_id, name: 'fk_cosmosys_catalog_refs_entry')
 
     unless table_exists?(:cosmosys_report_placeholders)
@@ -143,8 +153,8 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
 
     remove_index :cosmosys_diagrams, name: 'idx_cosmosys_diagrams_issue_kind' if index_exists?(:cosmosys_diagrams, name: 'idx_cosmosys_diagrams_issue_kind')
     remove_index :cosmosys_diagrams, name: 'idx_cosmosys_diagrams_project_kind' if index_exists?(:cosmosys_diagrams, name: 'idx_cosmosys_diagrams_project_kind')
-    add_index :cosmosys_diagrams, [:issue_id, :kind, :render_variant, :layout_mode], unique: true, name: 'idx_cosmosys_diagrams_issue_render_kind' unless index_exists?(:cosmosys_diagrams, name: 'idx_cosmosys_diagrams_issue_render_kind')
-    add_index :cosmosys_diagrams, [:project_id, :kind, :render_variant, :layout_mode], unique: true, name: 'idx_cosmosys_diagrams_project_render_kind' unless index_exists?(:cosmosys_diagrams, name: 'idx_cosmosys_diagrams_project_render_kind')
+    add_index :cosmosys_diagrams, [:issue_id, :kind, :render_variant, :layout_mode], unique: true, where: index_presence_predicate(:cosmosys_diagrams, :issue_id), name: 'idx_cosmosys_diagrams_issue_render_kind' unless index_exists?(:cosmosys_diagrams, name: 'idx_cosmosys_diagrams_issue_render_kind')
+    add_index :cosmosys_diagrams, [:project_id, :kind, :render_variant, :layout_mode], unique: true, where: index_presence_predicate(:cosmosys_diagrams, :project_id), name: 'idx_cosmosys_diagrams_project_render_kind' unless index_exists?(:cosmosys_diagrams, name: 'idx_cosmosys_diagrams_project_render_kind')
 
     unless table_exists?(:cosmosys_issue_tree_revisions)
       create_table :cosmosys_issue_tree_revisions do |t|
@@ -183,8 +193,8 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
 
     add_column :cosmosys_diagram_preferences, :visible_layers, :text unless column_exists?(:cosmosys_diagram_preferences, :visible_layers)
 
-    add_index :cosmosys_diagram_preferences, [:issue_id, :kind], unique: true, name: 'idx_cosmosys_diagram_preferences_issue_kind' unless index_exists?(:cosmosys_diagram_preferences, name: 'idx_cosmosys_diagram_preferences_issue_kind')
-    add_index :cosmosys_diagram_preferences, [:project_id, :kind], unique: true, name: 'idx_cosmosys_diagram_preferences_project_kind' unless index_exists?(:cosmosys_diagram_preferences, name: 'idx_cosmosys_diagram_preferences_project_kind')
+    add_index :cosmosys_diagram_preferences, [:issue_id, :kind], unique: true, where: index_presence_predicate(:cosmosys_diagram_preferences, :issue_id), name: 'idx_cosmosys_diagram_preferences_issue_kind' unless index_exists?(:cosmosys_diagram_preferences, name: 'idx_cosmosys_diagram_preferences_issue_kind')
+    add_index :cosmosys_diagram_preferences, [:project_id, :kind], unique: true, where: index_presence_predicate(:cosmosys_diagram_preferences, :project_id), name: 'idx_cosmosys_diagram_preferences_project_kind' unless index_exists?(:cosmosys_diagram_preferences, name: 'idx_cosmosys_diagram_preferences_project_kind')
 
     unless table_exists?(:cosmosys_ods_transfers)
       create_table :cosmosys_ods_transfers do |t|
@@ -212,7 +222,7 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
 
     unless table_exists?(:cosmosys_ods_transfer_events)
       create_table :cosmosys_ods_transfer_events do |t|
-        t.integer :ods_transfer_id, null: false
+        t.bigint :ods_transfer_id, null: false
         t.string :severity, null: false
         t.string :code, null: false
         t.string :sheet
@@ -226,6 +236,7 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
       end
     end
     add_index :cosmosys_ods_transfer_events, [:ods_transfer_id, :severity], name: 'idx_cosmosys_ods_events_transfer' unless index_exists?(:cosmosys_ods_transfer_events, [:ods_transfer_id, :severity], name: 'idx_cosmosys_ods_events_transfer')
+    align_reference_type(:cosmosys_ods_transfer_events, :ods_transfer_id, :cosmosys_ods_transfers)
     add_foreign_key :cosmosys_ods_transfer_events, :cosmosys_ods_transfers, column: :ods_transfer_id, name: 'fk_cosmosys_ods_events_transfer' unless foreign_key_exists?(:cosmosys_ods_transfer_events, :cosmosys_ods_transfers, column: :ods_transfer_id, name: 'fk_cosmosys_ods_events_transfer')
 
     unless table_exists?(:cosmosys_ods_import_identities)
@@ -246,6 +257,22 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
   end
 
   def down
+    # MySQL will not remove an index still supporting a foreign key. Release
+    # outgoing constraints before removing the plugin tables' indexes.
+    %i[
+      cosmosys_template_assets cosmosys_ods_import_identities
+      cosmosys_ods_transfer_events cosmosys_ods_transfers
+      cosmosys_report_placeholders cosmosys_catalog_refs
+      cosmosys_document_catalog_entries cosmosys_diagrams
+      cosmosys_issue_tree_revisions cosmosys_project_report_settings
+      cosmosys_diagram_preferences
+    ].each do |table|
+      next unless table_exists?(table)
+
+      foreign_keys(table).each do |key|
+        remove_foreign_key table, to_table: key.to_table, column: key.column
+      end
+    end
     remove_column :issue_relations, :csys_restricted if column_exists?(:issue_relations, :csys_restricted)
     remove_foreign_key :projects, name: 'fk_projects_cosmosys_ods_template' if foreign_key_exists?(:projects, name: 'fk_projects_cosmosys_ods_template')
     remove_foreign_key :projects, name: 'fk_projects_cosmosys_report_template' if foreign_key_exists?(:projects, name: 'fk_projects_cosmosys_report_template')
@@ -322,6 +349,14 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
   end
 
   private
+
+  def align_reference_type(table, name, target)
+    source = columns(table).find { |column| column.name == name.to_s }
+    destination = columns(target).find { |column| column.name == 'id' }
+    return if source.type == destination.type && source.limit == destination.limit
+
+    change_column table, name, destination.type, limit: destination.limit
+  end
 
   def install_structural_trackers
     tracker_class = Class.new(ActiveRecord::Base) { self.table_name = 'trackers' }
