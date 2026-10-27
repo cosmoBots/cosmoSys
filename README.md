@@ -1,17 +1,13 @@
 # cosmoSys
 
-Version 0.2.5 corrects the oversized payload capacity declared in 0.2.4:
-new bounded text/binary columns request 16 MiB minus one byte through Rails.
-This does not preallocate that space, impose an upload policy, or shrink
-existing wider/unbounded columns. Version 0.2.4 cannot be installed from scratch
-on PostgreSQL because its 4 GiB text limit is rejected by the adapter.
-
-Version 0.2.4 introduced database migrations and runtime queries using Rails/Arel for
+Version 0.2.4: database migrations and runtime queries use Rails/Arel for
 database portability, with schema reconciliation for existing installations
 and larger payload capacity. The workspace functional suite passes 55/55 on
 PostgreSQL, MySQL and SQLite. Existing-installation schema reconciliation is
 validated against PostgreSQL; full populated rollback of all optional plugins
-is not certified.
+is not certified. New bounded text/binary columns request 16 MiB minus one byte
+through Rails. This does not preallocate space, impose an upload policy or
+shrink existing wider/unbounded columns.
 
 Version 0.2.3 introduced project subtree deletion that preserves external datum
 consumers and rolls back child failures. Administrators can audit project trees
@@ -45,7 +41,7 @@ the project's earlier history and authorship.
 
 ## Status
 
-The current code declares version **0.2.5**, correcting fresh PostgreSQL schema
+The current code declares version **0.2.4**, supporting fresh PostgreSQL schema
 creation while retaining database portability and schema reconciliation.
 It retains explicit recovery of
 interrupted snapshot imports, cooperative cancellation of abandoned diagram
