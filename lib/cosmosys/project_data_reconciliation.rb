@@ -61,7 +61,7 @@ module Cosmosys
       profile_keys = Cosmosys::ItemKindRegistry.all.select(&:defines_project_data).map(&:key)
       Issue.joins(:tracker)
            .where(project_id: root.self_and_descendants.select(:id), trackers: { csys_item_kind: profile_keys })
-           .where('LOWER(issues.csid) IN (?)', normalized)
+           .where(Issue.arel_table[:csid].lower.in(normalized))
            .index_by { |issue| issue.csid.downcase }
     end
   end

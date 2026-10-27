@@ -51,7 +51,7 @@ module Cosmosys
       destination_ids = entries.map { |entry| entry.fetch(:issue).id }
       project_ids = destination.root.self_and_descendants.pluck(:id)
       collisions = Issue.where(project_id: project_ids)
-                        .where('LOWER(csid) IN (?)', csids.map(&:downcase))
+                        .where(Issue.arel_table[:csid].lower.in(csids.map(&:downcase)))
                         .where.not(id: destination_ids).pluck(:csid)
       return if collisions.empty?
 

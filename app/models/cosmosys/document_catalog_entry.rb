@@ -22,7 +22,9 @@ module Cosmosys
 
     def catalog_label
       index = self.class.where(project_id: project_id, family: family)
-                        .where('position < ? OR (position = ? AND id <= ?)', position, position, id)
+                        .where(self.class.arel_table[:position].lt(position).or(
+                          self.class.arel_table[:position].eq(position).and(self.class.arel_table[:id].lteq(id))
+                        ))
                         .count
       "#{LABEL_PREFIXES.fetch(family)}.#{index}"
     end

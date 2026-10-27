@@ -11,7 +11,7 @@ module Cosmosys
       normalized = normalize(csid)
       return nil unless normalized
 
-      matches = visible_tree_scope.where('LOWER(issues.csid) = ?', normalized.downcase).limit(2).to_a
+      matches = visible_tree_scope.where(Issue.arel_table[:csid].lower.eq(normalized.downcase)).limit(2).to_a
       matches.one? ? matches.first : nil
     end
 
@@ -21,7 +21,8 @@ module Cosmosys
 
       scope = visible_tree_scope
       scope = scope.where.not(id: exclude_id) if exclude_id.present?
-      scope.where('LOWER(issues.csid) LIKE ?', "%#{ActiveRecord::Base.sanitize_sql_like(normalized.downcase.delete_prefix('#'))}%")
+      pattern = "%#{ActiveRecord::Base.sanitize_sql_like(normalized.downcase.delete_prefix('#'))}%"
+      scope.where(Issue.arel_table[:csid].lower.matches(pattern))
         .order(:csid)
         .limit(limit)
         .to_a

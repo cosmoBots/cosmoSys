@@ -12,38 +12,31 @@ def copy_tracker_rows(connection, table, source_id:, target_id:)
   columns = connection.columns(table).map(&:name) - ['id']
   return unless columns.include?('tracker_id')
 
-  quoted_columns = columns.map { |column| connection.quote_column_name(column) }.join(', ')
-  selected_columns = columns.map do |column|
-    column == 'tracker_id' ? connection.quote(target_id) : connection.quote_column_name(column)
-  end.join(', ')
-
-  connection.execute(<<~SQL.squish)
-    INSERT INTO #{connection.quote_table_name(table)} (#{quoted_columns})
-    SELECT #{selected_columns}
-    FROM #{connection.quote_table_name(table)}
-    WHERE tracker_id = #{connection.quote(source_id)}
-    ON CONFLICT DO NOTHING
-  SQL
-  connection.execute(
-    "DELETE FROM #{connection.quote_table_name(table)} WHERE tracker_id = #{connection.quote(source_id)}"
-  )
+  records = Class.new(ActiveRecord::Base) do
+    self.table_name = table
+    self.inheritance_column = :_disabled_type
+  end
+  records.where(tracker_id: source_id).to_a.each do |record|
+    attributes = record.attributes.slice(*columns).merge('tracker_id' => target_id)
+    records.find_or_create_by!(attributes)
+  end
+  records.where(tracker_id: source_id).delete_all
 end
 
 def replace_tracker_rows(connection, table, source_id:, target_id:)
   return 0 unless connection.data_source_exists?(table)
 
-  columns = connection.columns(table).map(&:name) - %w[id tracker_id]
-  quoted_columns = columns.map { |column| connection.quote_column_name(column) }
-  connection.execute(
-    "DELETE FROM #{connection.quote_table_name(table)} WHERE tracker_id = #{connection.quote(target_id)}"
-  )
-  result = connection.execute(<<~SQL.squish)
-    INSERT INTO #{connection.quote_table_name(table)} (tracker_id, #{quoted_columns.join(', ')})
-    SELECT #{connection.quote(target_id)}, #{quoted_columns.join(', ')}
-    FROM #{connection.quote_table_name(table)}
-    WHERE tracker_id = #{connection.quote(source_id)}
-  SQL
-  result.cmd_tuples
+  records = Class.new(ActiveRecord::Base) do
+    self.table_name = table
+    self.inheritance_column = :_disabled_type
+  end
+  records.where(tracker_id: target_id).delete_all
+  count = 0
+  records.where(tracker_id: source_id).to_a.each do |record|
+    records.create!(record.attributes.except('id').merge('tracker_id' => target_id))
+    count += 1
+  end
+  count
 end
 
 summary = []
@@ -53,7 +46,7 @@ Tracker.transaction do
     canonical = Tracker.find_by(csys_key: key)
     raise "Missing canonical structural tracker #{key}" unless canonical
 
-    duplicates = Tracker.where('LOWER(name) = ?', name.downcase).where.not(id: canonical.id).order(:id).to_a
+    duplicates = Tracker.where(Tracker.arel_table[:name].lower.eq(name.downcase)).where.not(id: canonical.id).order(:id).to_a
     duplicates.each do |duplicate|
       Issue.where(tracker_id: duplicate.id).update_all(tracker_id: canonical.id)
       %w[projects_trackers custom_fields_trackers workflows].each do |table|
@@ -65,7 +58,7 @@ Tracker.transaction do
   end
 
 
-  feature = Tracker.where('LOWER(name) = ?', 'feature').order(:id).first
+  feature = Tracker.where(Tracker.arel_table[:name].lower.eq('feature')).order(:id).first
   if feature
     definitions.each_key do |key|
       tracker = Tracker.find_by!(csys_key: key)

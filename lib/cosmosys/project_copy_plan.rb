@@ -97,7 +97,7 @@ module Cosmosys
       return [] if csids.empty?
 
       Issue.where(project_id: parent.root.self_and_descendants.select(:id))
-           .where('LOWER(csid) IN (?)', csids.map(&:downcase)).pluck(:csid).uniq
+           .where(Issue.arel_table[:csid].lower.in(csids.map(&:downcase))).pluck(:csid).uniq
     end
 
     def project_data_rows
@@ -113,7 +113,7 @@ module Cosmosys
     def inspect_external_relations
       return [] unless context.copying?('issues') && source_issue_ids.any?
 
-      IssueRelation.where('issue_from_id IN (?) OR issue_to_id IN (?)', source_issue_ids, source_issue_ids)
+      IssueRelation.where(issue_from_id: source_issue_ids).or(IssueRelation.where(issue_to_id: source_issue_ids))
                    .order(:id).filter_map do |relation|
         from_local = source_issue_ids.include?(relation.issue_from_id)
         to_local = source_issue_ids.include?(relation.issue_to_id)
@@ -139,7 +139,7 @@ module Cosmosys
       return ['lost', nil] if external.csid.blank?
 
       matches = Issue.where(project_id: parent.root.self_and_descendants.select(:id))
-                     .where('LOWER(csid) = ?', external.csid.downcase).pluck(:id)
+                     .where(Issue.arel_table[:csid].lower.eq(external.csid.downcase)).pluck(:id)
       return ['remap_by_csid', matches.first] if matches.one?
       return ['ambiguous', nil] if matches.many?
 
@@ -191,7 +191,7 @@ module Cosmosys
           [id, lock_version, updated_on&.utc&.iso8601(6)]
         end
         revisions[:relations] = IssueRelation
-          .where('issue_from_id IN (?) OR issue_to_id IN (?)', source_issue_ids, source_issue_ids)
+          .where(IssueRelation.arel_table[:issue_from_id].in(source_issue_ids).or(IssueRelation.arel_table[:issue_to_id].in(source_issue_ids)))
           .order(:id).pluck(:id, :issue_from_id, :issue_to_id, :relation_type, :delay)
       end
       revisions[:documents] = document_revisions if context.copying?('documents')

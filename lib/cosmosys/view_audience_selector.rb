@@ -340,7 +340,7 @@ module Cosmosys
 
       relation_scope = IssueRelation
         .where(relation_type: @relation_types)
-        .where('issue_from_id IN (:ids) OR issue_to_id IN (:ids)', ids: audience_ids.to_a)
+        .where(IssueRelation.arel_table[:issue_from_id].in(audience_ids.to_a).or(IssueRelation.arel_table[:issue_to_id].in(audience_ids.to_a)))
         .includes(
           issue_from: [
             :tracker, :status, :priority,
@@ -455,7 +455,7 @@ module Cosmosys
     end
 
     def direct_relations(item_ids)
-      relation_query('issue_from_id IN (:ids) OR issue_to_id IN (:ids)', item_ids.to_a)
+      relation_query(item_ids.to_a)
     end
 
     def internal_relations(item_ids)
@@ -471,7 +471,7 @@ module Cosmosys
       return [] unless @relation_types.include?('relates')
 
       relations = IssueRelation.where(relation_type: 'relates')
-                               .where('issue_from_id IN (:ids) OR issue_to_id IN (:ids)', ids: item_ids.to_a)
+                               .where(IssueRelation.arel_table[:issue_from_id].in(item_ids.to_a).or(IssueRelation.arel_table[:issue_to_id].in(item_ids.to_a)))
                                .includes(relation_endpoints_includes).order(:id).to_a
       record_examined_relations(relations)
       relations
@@ -532,12 +532,12 @@ module Cosmosys
       selected.values
     end
 
-    def relation_query(where_sql, ids)
+    def relation_query(ids)
       RenderCancellation.check!
       return [] if ids.empty?
 
       relations = IssueRelation.where(relation_type: @relation_types)
-                               .where(where_sql, ids: ids)
+                               .where(IssueRelation.arel_table[:issue_from_id].in(ids).or(IssueRelation.arel_table[:issue_to_id].in(ids)))
                                .includes(relation_endpoints_includes).order(:id).to_a
       record_examined_relations(relations)
       relations

@@ -26,7 +26,7 @@ module Cosmosys
 
       chapter_column = QueryColumn.new(
         :chapter_label,
-        sortable: -> { Cosmosys::ChapterSort.sql },
+        sortable: true,
         caption: :label_cosmosys_chapter
       )
       unless base.available_columns.any? { |available_column| available_column.name == :chapter_label }
@@ -50,6 +50,20 @@ module Cosmosys
       end
     end
 
+    def available_columns
+      columns = super
+      chapter = columns.find { |column| column.name == :chapter_label }
+      return columns unless chapter
+
+      columns.map do |column|
+        next column unless column.equal?(chapter)
+
+        column.dup.tap do |copy|
+          copy.sortable = -> { Cosmosys::ChapterSort.columns(scope: base_scope) }
+        end
+      end
+    end
+
     def initialize_available_filters
       super
       add_available_filter('csid', type: :string, name: :label_cosmosys_csid) unless available_filters.key?('csid')
@@ -69,13 +83,14 @@ module Cosmosys
     def sql_for_field(field, operator, value, db_table, db_field, is_custom_filter = false)
       return super unless field == POSITIVE_FILTER
 
-      positive = "(#{IssueStatus.table_name}.is_closed = #{self.class.connection.quoted_false} OR #{IssueStatus.table_name}.csys_closed_outcome = 'successful')"
-      return positive if operator == '=' && value.include?('1')
-      return "NOT #{positive}" if operator == '!' && value.include?('1')
-      return "NOT #{positive}" if operator == '=' && value.include?('0')
-      return positive if operator == '!' && value.include?('0')
+      statuses = IssueStatus.arel_table
+      positive = statuses[:is_closed].eq(false).or(statuses[:csys_closed_outcome].eq('successful'))
+      return positive.to_sql if operator == '=' && value.include?('1')
+      return positive.not.to_sql if operator == '!' && value.include?('1')
+      return positive.not.to_sql if operator == '=' && value.include?('0')
+      return positive.to_sql if operator == '!' && value.include?('0')
 
-      '1=0'
+      statuses[:id].in([]).to_sql
     end
 
     def initialize(attributes = nil, *args)

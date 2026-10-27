@@ -599,7 +599,8 @@ module Cosmosys
 
     def resolve_item_by_key(key)
       return if key.blank? || key.start_with?('n')
-      Issue.where(project_id: project.project_root.self_and_descendants.select(:id)).find_by('LOWER(csid) = ?', key.downcase)
+      Issue.where(project_id: project.project_root.self_and_descendants.select(:id))
+           .find_by(Issue.arel_table[:csid].lower.eq(key.downcase))
     end
 
     def resolve_document(row)

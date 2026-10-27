@@ -49,7 +49,7 @@ module Cosmosys
     def superseded_by_newer_import?
       return false unless direction == 'import' && persisted?
 
-      self.class.where(project_id: project_id, direction: 'import').where('id > ?', id).exists?
+      self.class.where(project_id: project_id, direction: 'import').where(self.class.arel_table[:id].gt(id)).exists?
     end
 
     def export_payload
@@ -67,7 +67,7 @@ module Cosmosys
 
       project.with_lock do
         self.class.where(project_id: project_id, direction: 'import', state: PENDING_IMPORT_STATES)
-                  .where('id < ?', id).find_each do |older|
+                  .where(self.class.arel_table[:id].lt(id)).find_each do |older|
           older_summary = older.summary.merge(
             'progress_phase' => 'superseded',
             'superseded_by_transfer_id' => id

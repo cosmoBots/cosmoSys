@@ -564,7 +564,7 @@ module Cosmosys
 
         project.root.with_lock do
           project_ids = project.root.self_and_descendants.select(:id)
-          self.csidnum = Issue.where(project_id: project_ids).where('csidnum < 0').minimum(:csidnum).to_i - 1
+          self.csidnum = Issue.where(project_id: project_ids).where(Issue.arel_table[:csidnum].lt(0)).minimum(:csidnum).to_i - 1
         end
         return
       end
@@ -652,7 +652,7 @@ module Cosmosys
       return if csid.blank? || current_project.blank?
 
       sibling_ids = current_project.root.self_and_descendants.pluck(:id)
-      duplicates = Issue.where(project_id: sibling_ids).where('LOWER(issues.csid) = ?', csid.downcase)
+      duplicates = Issue.where(project_id: sibling_ids).where(Issue.arel_table[:csid].lower.eq(csid.downcase))
       duplicates = duplicates.where.not(id: id) if persisted?
       return unless duplicates.exists?
 

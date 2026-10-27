@@ -323,7 +323,7 @@ module Cosmosys
       profile_keys = ItemKindRegistry.all.select(&:defines_project_data).map(&:key)
       existing = Issue.joins(:tracker)
                       .where(project_id: root.self_and_descendants.select(:id), trackers: { csys_item_kind: profile_keys })
-                      .where('LOWER(issues.csid) = ?', row.fetch('csid').downcase)
+                      .where(Issue.arel_table[:csid].lower.eq(row.fetch('csid').downcase))
                       .first
       return unless existing
 

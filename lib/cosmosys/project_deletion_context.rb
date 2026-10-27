@@ -20,10 +20,15 @@ module Cosmosys
         @project_ids.concat(pending)
         pending = Project.where(parent_id: pending).where.not(id: project_ids).pluck(:id)
       end
-      external_children = Issue.where.not(project_id: project_ids).joins(
-        'INNER JOIN issues cosmosys_doomed ON issues.root_id = cosmosys_doomed.root_id ' \
-        'AND issues.lft > cosmosys_doomed.lft AND issues.rgt < cosmosys_doomed.rgt'
-      ).where('cosmosys_doomed.project_id IN (?)', project_ids)
+      issues = Issue.arel_table
+      doomed = issues.alias('cosmosys_doomed')
+      descendants = issues.join(doomed).on(
+        issues[:root_id].eq(doomed[:root_id])
+          .and(issues[:lft].gt(doomed[:lft]))
+          .and(issues[:rgt].lt(doomed[:rgt]))
+      ).join_sources
+      external_children = Issue.where.not(project_id: project_ids)
+                               .joins(descendants).where(doomed[:project_id].in(project_ids))
       if external_children.exists?
         raise ActiveRecord::RecordNotDestroyed.new(I18n.t(:error_cosmosys_project_external_children), @project)
       end

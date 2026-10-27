@@ -1,12 +1,18 @@
 # frozen_string_literal: true
 
 require 'digest'
+require 'set'
 
 module Cosmosys
   class RequiredProjectTrackersConsolidator
     CONSOLIDATOR_KEY = 'required_project_trackers'.freeze
     ALGORITHM_VERSION = 1
     BATCH_SIZE = 500
+
+    class Assignment < ActiveRecord::Base
+      self.table_name = 'projects_trackers'
+      self.primary_key = nil
+    end
 
     class << self
       def call
@@ -80,23 +86,11 @@ module Cosmosys
       end
 
       def add_missing_associations(project_ids, tracker_ids)
-        connection = ActiveRecord::Base.connection
-        quoted_projects = project_ids.map { |id| connection.quote(id) }.join(', ')
-        quoted_trackers = tracker_ids.map { |id| connection.quote(id) }.join(', ')
-
-        connection.execute(<<~SQL.squish)
-          INSERT INTO projects_trackers (project_id, tracker_id)
-          SELECT projects.id, trackers.id
-          FROM projects
-          CROSS JOIN trackers
-          WHERE projects.id IN (#{quoted_projects})
-            AND trackers.id IN (#{quoted_trackers})
-            AND NOT EXISTS (
-              SELECT 1 FROM projects_trackers
-              WHERE projects_trackers.project_id = projects.id
-                AND projects_trackers.tracker_id = trackers.id
-            )
-        SQL
+        existing = Assignment.where(project_id: project_ids, tracker_id: tracker_ids)
+                             .pluck(:project_id, :tracker_id).to_set
+        rows = project_ids.product(tracker_ids).reject { |pair| existing.include?(pair) }
+                          .map { |project_id, tracker_id| { project_id: project_id, tracker_id: tracker_id } }
+        Assignment.insert_all!(rows) if rows.any?
       end
     end
   end

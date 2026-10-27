@@ -62,7 +62,7 @@ module Cosmosys
     def reconcile_external_relations!
       copied_ids = context.issue_map.values.map(&:id).to_set
       removed = 0
-      IssueRelation.where('issue_from_id IN (?) OR issue_to_id IN (?)', copied_ids, copied_ids).find_each do |relation|
+      IssueRelation.where(issue_from_id: copied_ids).or(IssueRelation.where(issue_to_id: copied_ids)).find_each do |relation|
         next if copied_ids.include?(relation.issue_from_id) && copied_ids.include?(relation.issue_to_id)
         relation.destroy!
         removed += 1

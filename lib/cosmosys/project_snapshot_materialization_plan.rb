@@ -220,7 +220,7 @@ module Cosmosys
 
       tree_root = parent.root || parent
       Issue.where(project_id: tree_root.self_and_descendants.select(:id))
-           .where('LOWER(csid) IN (?)', csids).pluck(:csid).uniq
+           .where(Issue.arel_table[:csid].lower.in(csids)).pluck(:csid).uniq
     end
 
     def data_profile?(row)
@@ -336,7 +336,7 @@ module Cosmosys
           if project && project.root.id == parent.root.id
             matches = Issue.visible(@user)
                            .where(project_id: project.id)
-                           .where('LOWER(csid) = ?', row['external_csid'].to_s.downcase)
+                           .where(Issue.arel_table[:csid].lower.eq(row['external_csid'].to_s.downcase))
                            .pluck(:id)
             if matches.one?
               classification = 'resolved'

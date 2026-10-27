@@ -344,7 +344,7 @@ module Cosmosys
 
       siblings = Project.where(id: scope_ids).where.not(id: id)
 
-      if siblings.where('LOWER(projects.cscode) = ?', cscode.downcase).exists?
+      if siblings.where(Project.arel_table[:cscode].lower.eq(cscode.downcase)).exists?
         errors.add(:cscode, :taken)
       end
     end

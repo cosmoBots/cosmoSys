@@ -59,7 +59,7 @@ module Cosmosys
            .where(project_id: project.root.self_and_descendants.select(:id))
            .where(trackers: { csys_item_kind: profile_keys })
            .includes(:project, :tracker)
-           .order(Arel.sql('LOWER(issues.csid) ASC'), :id)
+           .order(Issue.arel_table[:csid].lower.asc, :id)
            .map { |issue| Entry.new(key: issue.csid, name: issue.subject, value: issue.csys_value, issue: issue) }
     end
 
@@ -74,7 +74,7 @@ module Cosmosys
                    .joins(:tracker)
                    .where(project_id: project.root.self_and_descendants.select(:id))
                    .where(trackers: { csys_item_kind: profile_keys })
-                   .where('LOWER(issues.csid) = ?', key.to_s.downcase)
+                   .where(Issue.arel_table[:csid].lower.eq(key.to_s.downcase))
                    .order(:id)
                    .first
       return unless issue
