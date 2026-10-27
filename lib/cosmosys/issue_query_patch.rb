@@ -59,7 +59,15 @@ module Cosmosys
         next column unless column.equal?(chapter)
 
         column.dup.tap do |copy|
-          copy.sortable = -> { Cosmosys::ChapterSort.columns(scope: base_scope) }
+          copy.sortable = lambda do
+            if sort_criteria.any? { |field, _direction| field.to_s == 'chapter_label' }
+              Cosmosys::ChapterSort.columns(scope: base_scope)
+            else
+              # Redmine enumerates every sortable column even when ordering by
+              # a different field. Do not discover chapter paths in that case.
+              [Arel::Nodes::Grouping.new(Issue.arel_table[:id]).to_sql]
+            end
+          end
         end
       end
     end

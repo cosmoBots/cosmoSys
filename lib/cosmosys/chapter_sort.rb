@@ -9,7 +9,7 @@ module Cosmosys
       # trees touched by this query. Ancestors outside the filter still belong
       # in the path, but do not become additional query results.
       ids = scope.reorder(nil).distinct.pluck(Issue.arel_table[:id]).to_set
-      return [Issue.arel_table[:id].to_sql] if ids.empty?
+      return [Arel::Nodes::Grouping.new(Issue.arel_table[:id]).to_sql] if ids.empty?
 
       roots = scope.reorder(nil).select(Issue.arel_table[:root_id])
       rows = Issue.where(root_id: roots).order(:root_id, :lft, :id)
