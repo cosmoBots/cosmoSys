@@ -1,6 +1,13 @@
 # cosmoSys
 
-Version 0.2.3: project subtree deletion preserves external datum
+Version 0.2.4: database migrations and runtime queries use Rails/Arel for
+database portability, with schema reconciliation for existing installations
+and larger payload capacity. The workspace functional suite passes 55/55 on
+PostgreSQL, MySQL and SQLite. Existing-installation schema reconciliation is
+validated against PostgreSQL; full populated rollback of all optional plugins
+is not certified.
+
+Version 0.2.3 introduced project subtree deletion that preserves external datum
 consumers and rolls back child failures. Administrators can audit project trees
 and explicitly retry scheduled deletions with the scripts in `scripts/`.
 Missing consolidated evidence is reported separately from content drift;
@@ -32,7 +39,8 @@ the project's earlier history and authorship.
 
 ## Status
 
-The current code declares version **0.2.3**, adding explicit recovery of
+The current code declares version **0.2.4**, adding database portability and
+schema reconciliation. It retains explicit recovery of
 interrupted snapshot imports, cooperative cancellation of abandoned diagram
 renders, safer project deletion and diagnostics for missing approval evidence.
 It retains server-side LaTeX report export and complete macro preservation.

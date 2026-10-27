@@ -141,8 +141,8 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
         t.integer :root_generation, null: false, default: 0
         t.integer :tree_revision, null: false, default: 0
         t.string :signature
-        t.text :svg_body
-        t.text :dot_body
+        t.text :svg_body, limit: LARGE_PAYLOAD_LIMIT
+        t.text :dot_body, limit: LARGE_PAYLOAD_LIMIT
         t.datetime :generated_at
         t.timestamps null: false
       end
@@ -210,9 +210,9 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
         t.string :export_id
         t.string :format_version
         t.boolean :include_subprojects, null: false, default: false
-        t.text :summary_json
-        t.binary :file_data
-        t.binary :result_data
+        t.text :summary_json, limit: LARGE_PAYLOAD_LIMIT
+        t.binary :file_data, limit: LARGE_PAYLOAD_LIMIT
+        t.binary :result_data, limit: LARGE_PAYLOAD_LIMIT
         t.timestamps null: false
       end
     end
@@ -230,8 +230,8 @@ class CreateCosmosysBootstrap < ActiveRecord::Migration[6.1]
         t.string :field_name
         t.string :entity_type
         t.string :entity_key
-        t.text :message
-        t.text :details_json
+        t.text :message, limit: LARGE_PAYLOAD_LIMIT
+        t.text :details_json, limit: LARGE_PAYLOAD_LIMIT
         t.timestamps null: false
       end
     end

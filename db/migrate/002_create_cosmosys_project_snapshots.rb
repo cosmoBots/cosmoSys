@@ -1,4 +1,7 @@
+require_relative '../../lib/cosmosys/migration_schema'
+
 class CreateCosmosysProjectSnapshots < ActiveRecord::Migration[6.1]
+  include Cosmosys::MigrationSchema
   def up
     unless table_exists?(:cosmosys_project_snapshots)
       create_table :cosmosys_project_snapshots do |t|
@@ -7,7 +10,7 @@ class CreateCosmosysProjectSnapshots < ActiveRecord::Migration[6.1]
         t.string :schema_version, null: false
         t.string :content_sha256, null: false
         t.string :name
-        t.binary :manifest_gzip, null: false
+        t.binary :manifest_gzip, limit: LARGE_PAYLOAD_LIMIT, null: false
         t.integer :item_count, null: false, default: 0
         t.integer :document_count, null: false, default: 0
         t.integer :relation_count, null: false, default: 0

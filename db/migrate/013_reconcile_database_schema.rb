@@ -14,6 +14,7 @@ class ReconcileDatabaseSchema < ActiveRecord::Migration[7.2]
   ].freeze
 
   def up
+    reconcile_large_payload_capacity
     REFERENCES.each do |table, column, target, name|
       reconcile_reference_type(table, column, target, name: name)
     end

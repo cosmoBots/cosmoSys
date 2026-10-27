@@ -1,11 +1,14 @@
+require_relative '../../lib/cosmosys/migration_schema'
+
 class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
+  include Cosmosys::MigrationSchema
   TRACKERS = {
     'cs_data' => { name: 'csData', item_profile: 'data_section' },
     'cs_datum' => { name: 'csDatum', item_profile: 'datum' }
   }.freeze
 
   def up
-    add_column :issues, :csys_value, :text unless column_exists?(:issues, :csys_value)
+    add_column :issues, :csys_value, :text, limit: LARGE_PAYLOAD_LIMIT unless column_exists?(:issues, :csys_value)
     add_column :issues, :csys_datum_source_issue_id, :integer unless column_exists?(:issues, :csys_datum_source_issue_id)
     add_index :issues, :csys_datum_source_issue_id unless index_exists?(:issues, :csys_datum_source_issue_id)
 
@@ -63,9 +66,9 @@ class AddCosmosysProjectData < ActiveRecord::Migration[6.1]
     create_table :cosmosys_presentation_baselines do |t|
       t.references :issue, **reference_type(:issues), null: false, foreign_key: { to_table: :issues }
       t.string :attribute_name, null: false
-      t.text :source_text, null: false
-      t.text :resolved_text, null: false
-      t.text :ledger_json, null: false
+      t.text :source_text, limit: LARGE_PAYLOAD_LIMIT, null: false
+      t.text :resolved_text, limit: LARGE_PAYLOAD_LIMIT, null: false
+      t.text :ledger_json, limit: LARGE_PAYLOAD_LIMIT, null: false
       t.string :resolved_sha256, null: false
       t.integer :captured_status_id
       t.integer :captured_maturity, null: false
