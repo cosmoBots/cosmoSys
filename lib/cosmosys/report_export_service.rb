@@ -34,7 +34,7 @@ module Cosmosys
       'landscape' => ['COSMOSYS_REPORT_LANDSCAPE_START', 'COSMOSYS_REPORT_LANDSCAPE_END'],
       'portrait' => ['COSMOSYS_REPORT_PORTRAIT_START', 'COSMOSYS_REPORT_PORTRAIT_END']
     }.freeze
-    CACHE_SCHEMA = 'cosmosys-report-artifact-v31'.freeze
+    CACHE_SCHEMA = 'cosmosys-report-artifact-v32'.freeze
     MAX_CACHED_REPORTS_PER_PROJECT = 5
     IMAGE_MAGICK_RESOURCE_LIMITS = %w[-limit memory 256MiB -limit map 512MiB -limit disk 1GiB -limit area 40MP].freeze
 
@@ -670,11 +670,59 @@ module Cosmosys
         end
       end
 
+      fit_table_graphics(document)
+
       # Writer does not reliably preserve background/border styling attached
       # to an HTML article. A text colour applied to every descendant is a
       # portable, unambiguous indication that the item closed unsuccessfully.
       document.css('.cosmosys-report-negative-item, .cosmosys-report-negative-item *').each do |node|
         add_inline_declarations(node, 'color' => '#8b1a1a')
+      end
+    end
+
+    # Writer treats image widths as minimum cell widths and may grow the whole
+    # table beyond its requested width. max-width:100% alone does not constrain
+    # its HTML importer. Fit images proportionally to the actual column budget.
+    def fit_table_graphics(document)
+      page_width = report_template_dimensions.current_page.content_width_px.floor
+      cell_widths = {}
+      document.css('table').each do |table|
+        next unless table.at_css('img')
+
+        parent_cell = table.ancestors.find { |node| %w[td th].include?(node.name) }
+        width = [METADATA_TABLE_WIDTH_PX, page_width - 2, cell_widths.fetch(parent_cell, page_width - 2)].min
+        next unless width.positive?
+
+        table['width'] = width.to_s
+        add_inline_declarations(table, 'width' => "#{width}px", 'table-layout' => 'fixed')
+        rows = table.xpath('./tr | ./thead/tr | ./tbody/tr | ./tfoot/tr')
+        columns = rows.map { |row| row.xpath('./td | ./th').sum { |cell| cell['colspan'].to_i.clamp(1, 64) } }.max.to_i
+        next if columns.zero?
+
+        rows.each do |row|
+          row.xpath('./td | ./th').each do |cell|
+            share = cell['colspan'].to_i.clamp(1, 64).to_f / columns
+            percent = style_declaration(cell, 'width').to_s.match(/\A(\d+(?:\.\d+)?)%\z/)
+            share = [percent[1].to_f / 100, 1.0].min if percent
+            # Baseline table cells have 4pt padding on each side plus borders.
+            available = [(width * share).floor - 12, 1].max
+            cell_widths[cell] = available
+            cell.css('img').each do |image|
+              next unless image.ancestors.find { |node| node.name == 'table' } == table
+
+              native = image_native_dimensions_px(image)
+              next unless native
+
+              image_width = declared_image_width_px(image) || native.fetch(:width)
+              image_height = declared_image_height_px(image) || native.fetch(:height) * image_width / native.fetch(:width).to_f
+              scale = [available / image_width.to_f, 1.0].min
+              fitted_width = [(image_width * scale).floor, 1].max
+              fitted_height = [(image_height * scale).floor, 1].max
+              image['width'], image['height'] = fitted_width.to_s, fitted_height.to_s
+              add_inline_declarations(image, 'width' => "#{fitted_width}px", 'height' => "#{fitted_height}px")
+            end
+          end
+        end
       end
     end
 
@@ -793,6 +841,7 @@ module Cosmosys
     # page, reuse the report's existing orientation decision before measuring
     # the final page width. Explicitly sized images retain their authored size.
     def prepare_report_image(image, document, work_dir)
+      return if image.ancestors.any? { |node| node.name == 'table' }
       return if declared_image_width_px(image) || declared_image_height_px(image)
 
       image_data = decoded_embedded_image(image)
