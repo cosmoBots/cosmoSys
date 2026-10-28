@@ -5,12 +5,14 @@ module Cosmosys
   # Selects the model content that belongs to a view, independently of how a
   # particular consumer (diagram, PORIS viewer, preview, ...) renders it.
   #
-  # `audience_items` are the selected content. Structural ancestors and direct
-  # relation endpoints outside that audience are returned separately as
-  # context; neither kind of context is recursively expanded.
+  # `audience_items` are the selected content. Structural ancestors and relation
+  # endpoints outside that audience are returned separately as context.
+  # Relation discovery follows the requested scope; structural ancestors never
+  # become traversal seeds.
   class ViewAudienceSelector
     PROJECT_SCOPES = %i[
       project
+      project_with_related_items
       project_and_ancestors
       project_and_descendants
       project_ancestors_and_descendants
@@ -106,6 +108,8 @@ module Cosmosys
       audience_ids = items.map(&:id).to_set
       relations, boundary_relations, relation_context = if @category == :item
                                                           select_item_relations(audience_ids, items)
+                                                        elsif @scope == :project_with_related_items
+                                                          select_project_related_items(audience_ids, items)
                                                         else
                                                           select_relations(audience_ids)
                                                         end
@@ -209,7 +213,7 @@ module Cosmosys
       return [] unless @category == :project
 
       projects = case @scope
-                 when :project
+                 when :project, :project_with_related_items
                    [@focus]
                  when :project_and_ancestors
                    @focus.self_and_ancestors.to_a
@@ -353,12 +357,29 @@ module Cosmosys
         )
         .order(:id)
 
+      scanned_relations = relation_scope.to_a
+      record_examined_relations(scanned_relations)
+      partition_relations(scanned_relations, audience_ids)
+    end
+
+    # Only the focal project's items are seeds. Foreign endpoints may continue
+    # the same causal path; their ancestors are added afterwards as structure,
+    # never as new traversal seeds. Relates remains a direct, terminal context.
+    def select_project_related_items(audience_ids, items)
+      return [[], [], []] if audience_ids.empty? || @relation_types.empty?
+
+      edges = causal_relation_walk(
+        audience_ids, items.index_by(&:id), directions: %i[upstream downstream],
+        stop_at_project_boundary: false
+      )
+      edges.concat(relates_relations(audience_ids))
+      partition_relations(edges.uniq(&:id).sort_by(&:id), audience_ids)
+    end
+
+    def partition_relations(scanned_relations, audience_ids)
       internal = []
       boundary = []
       context_by_id = {}
-
-      scanned_relations = relation_scope.to_a
-      record_examined_relations(scanned_relations)
       scanned_relations.each do |relation|
         from = relation.issue_from
         to = relation.issue_to
@@ -368,10 +389,10 @@ module Cosmosys
         to_in = audience_ids.include?(relation.issue_to_id)
         if from_in && to_in
           internal << relation
-        elsif from_in || to_in
+        else
           boundary << relation
-          context_issue = from_in ? to : from
-          context_by_id[context_issue.id] = context_issue
+          context_by_id[from.id] = from unless from_in
+          context_by_id[to.id] = to unless to_in
         end
       end
 
@@ -490,7 +511,7 @@ module Cosmosys
         end
         [direction, ids]
       end
-      focus_project_id = @focus.project_id
+      focus_project_id = @category == :project ? @focus.id : @focus.project_id
 
       until frontiers.values.all?(&:empty?)
         RenderCancellation.check!

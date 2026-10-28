@@ -93,7 +93,7 @@ module Cosmosys
     def component
       @component ||= ViewAudienceDiagramData.for_project(
         @project,
-        scope: @mode == :full ? :project_and_descendants : :project,
+        scope: @mode == :full ? :project_with_related_items : :project,
         user: User.current,
         relation_types: @relation_types
       ).component
