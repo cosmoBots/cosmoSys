@@ -1,5 +1,16 @@
 # cosmoSys
 
+Version 0.2.6: Figure, Table, Formula and Model document families
+extend the catalog. Cite with `document:di123` or include the document's Markdown
+description with `{{document_embed(di123)}}`. Project report settings choose
+catalog ordering or first-inclusion numbering per family. The `doc` item profile
+offers optional indexes for all seven families; the related-document section
+installer creates them together. No schema migration is needed.
+Automatic captions use italic blockquotes. `{{image_gap(0.5cm)}}` (also mm/px)
+adds transparent spacing within a row of images; keep the macro and images in
+the same paragraph. Export fits table images to their cell widths so their
+intrinsic size cannot force tables beyond page margins.
+
 Version 0.2.5 fixes project combined and dependency diagrams with cross-project
 traversal: only the focal project's items seed discovery. Enabled causal paths
 and their visible ancestors are included, but disconnected subproject items
@@ -46,8 +57,9 @@ the project's earlier history and authorship.
 
 ## Status
 
-The current code declares version **0.2.5**, retaining database portability and
-schema reconciliation while correcting connected project diagram selection.
+The current code declares **0.2.6**, extending document
+families on top of release 0.2.5 while retaining database portability and
+schema reconciliation.
 It retains explicit recovery of
 interrupted snapshot imports, cooperative cancellation of abandoned diagram
 renders, safer project deletion and diagnostics for missing approval evidence.
