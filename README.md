@@ -1,5 +1,10 @@
 # cosmoSys
 
+Version 0.2.5 fixes project combined and dependency diagrams with cross-project
+traversal: only the focal project's items seed discovery. Enabled causal paths
+and their visible ancestors are included, but disconnected subproject items
+and unrelated branches are not. No database migration is added.
+
 Version 0.2.4: database migrations and runtime queries use Rails/Arel for
 database portability, with schema reconciliation for existing installations
 and larger payload capacity. The workspace functional suite passes 55/55 on
@@ -41,8 +46,8 @@ the project's earlier history and authorship.
 
 ## Status
 
-The current code declares version **0.2.4**, supporting fresh PostgreSQL schema
-creation while retaining database portability and schema reconciliation.
+The current code declares version **0.2.5**, retaining database portability and
+schema reconciliation while correcting connected project diagram selection.
 It retains explicit recovery of
 interrupted snapshot imports, cooperative cancellation of abandoned diagram
 renders, safer project deletion and diagnostics for missing approval evidence.
