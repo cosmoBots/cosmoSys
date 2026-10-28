@@ -3,6 +3,11 @@ module Cosmosys
     def initialize(issues:, csid_map:, id_map:, marker_map: {})
       @issues = issues
       @replacements = csid_map.merge(marker_map).merge(id_map)
+      @editorial_marker_ids = marker_map.each_with_object({}) do |(source, target), result|
+        next unless source.match?(/\Adocument:di\d+\z/) && target.match?(/\Adocument:di\d+\z/)
+
+        result[source.delete_prefix('document:')] = target.delete_prefix('document:')
+      end
     end
 
     def call
@@ -23,7 +28,11 @@ module Cosmosys
     end
 
     def rewrite_text(text)
-      replacements.sort_by { |source, _target| -source.length }.reduce(text.to_s) do |result, (source, target)|
+      text = text.to_s.gsub(/(document_embed\(\s*)(di\d+)(\s*\))/) do |marker|
+        target = @editorial_marker_ids[Regexp.last_match(2)]
+        target ? "#{Regexp.last_match(1)}#{target}#{Regexp.last_match(3)}" : marker
+      end
+      replacements.sort_by { |source, _target| -source.length }.reduce(text) do |result, (source, target)|
         result.gsub(/(?<![A-Za-z0-9_-])#{Regexp.escape(source)}(?![A-Za-z0-9_-])/, target)
       end
     end

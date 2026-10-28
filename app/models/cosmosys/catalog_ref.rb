@@ -21,6 +21,10 @@ module Cosmosys
       "document:di#{id}"
     end
 
+    def markdown_embed
+      "{{document_embed(di#{id})}}"
+    end
+
     def visible?(user = User.current)
       issue.visible?(user) && document.visible?(user)
     end
@@ -51,14 +55,14 @@ module Cosmosys
     def ensure_not_mentioned_by_issue
       return if @skip_text_reference_guard
 
-      marker = markdown_reference
+      markers = [Regexp.new(Regexp.escape(markdown_reference) + '(?![0-9])'), /document_embed\(\s*di#{id}\s*\)/]
       values = [issue.description]
       issue.custom_field_values.each do |value|
         values << value.value if value.custom_field.field_format.in?(%w[string text link])
       end
-      return unless values.flatten.compact.any? { |value| value.to_s.include?(marker) }
+      return unless values.flatten.compact.any? { |value| markers.any? { |marker| marker.match?(value.to_s) } }
 
-      errors.add(:base, I18n.t(:error_cosmosys_catalog_ref_in_use, reference: marker))
+      errors.add(:base, I18n.t(:error_cosmosys_catalog_ref_in_use, reference: markdown_reference))
       throw :abort
     end
 

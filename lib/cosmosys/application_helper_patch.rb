@@ -43,7 +43,8 @@ module Cosmosys
         if catalog_ref.visible?(User.current)
           title = [catalog_ref.document.title, catalog_ref.sense, catalog_ref.location].compact_blank.join(' — ')
           url = Rails.application.routes.url_helpers.cosmosys_catalog_ref_path(catalog_ref)
-          link_to(catalog_ref.catalog_label, url, class: 'cosmosys-catalog-ref-link', title: title).to_s
+          label = @report&.document_context&.label(catalog_ref.document_catalog_entry) || catalog_ref.catalog_label
+          link_to(label, url, class: 'cosmosys-catalog-ref-link', title: title).to_s
         elsif catalog_ref.restricted_document?(User.current)
           content_tag(:span, l(:label_cosmosys_restricted_document), class: 'cosmosys-restricted-document').to_s
         else
@@ -74,6 +75,35 @@ module Cosmosys
       end
 
       super
+    end
+
+    def cosmosys_catalog_label(entry)
+      @report&.document_context&.label(entry) || entry.catalog_label
+    end
+
+    def cosmosys_embed_document(id, object)
+      ref = Cosmosys::CatalogRef.includes(:issue, document_catalog_entry: :document).find_by(id: id)
+      project = object.try(:project) || @project
+      unless ref && project && ref.project_id == project.id && ref.visible?(User.current) && ref.document_catalog_entry.editorial?
+        return content_tag(:span, l(:label_cosmosys_broken_reference), class: 'cosmosys-broken-reference')
+      end
+
+      @cosmosys_document_embed_stack ||= []
+      document = ref.document
+      if @cosmosys_document_embed_stack.include?(document.id) || @cosmosys_document_embed_stack.length >= 32
+        return content_tag(:span, l(:text_cosmosys_document_embed_cycle), class: 'cosmosys-broken-reference')
+      end
+      @cosmosys_document_embed_stack << document.id
+      begin
+        body = textilizable(Cosmosys::MainReportTextNormalizer.normalize(document.description),
+                            object: document, attachments: document.attachments)
+        label = @report&.document_context&.label(ref.document_catalog_entry) || ref.catalog_label
+        content_tag(:div, class: 'cosmosys-editorial-document', data: { document_id: document.id }) do
+          safe_join([body, content_tag(:blockquote, content_tag(:p, content_tag(:em, "#{label} — #{document.title}")), class: 'cosmosys-editorial-caption')])
+        end
+      ensure
+        @cosmosys_document_embed_stack.pop
+      end
     end
 
     def cosmosys_inline_wiki_html(value, object: nil)

@@ -188,6 +188,13 @@ module Cosmosys
       restore_wikis!(projects, entries) if restore_wiki
       report_progress(91, 'references')
       rewrite_internal_references!(items, entries.flat_map { |entry| entry.fetch('items') }, marker_map) if include_items
+      if include_documents && marker_map.any?
+        rewriter = MaterializationReferenceRewriter.new(issues: [], csid_map: {}, id_map: {}, marker_map: marker_map)
+        documents.each_value do |document|
+          rewritten = rewriter.rewrite_text(document.description.to_s)
+          document.update!(description: rewritten) if rewritten != document.description.to_s
+        end
+      end
       report_progress(94, 'baselines')
       restore_presentation_baselines!(items, entries.flat_map { |entry| entry.fetch('items') }, marker_map: marker_map) if include_items && faithful?
       report_progress(97, 'consolidation')
@@ -222,6 +229,12 @@ module Cosmosys
       project.trackers = Tracker.where(csys_key: tracker_keys).or(Tracker.where(name: tracker_keys)).to_a
       project.enabled_module_names = source.fetch('enabled_modules')
       project.save!
+      if source['document_numbering'].is_a?(Hash)
+        numbering = source['document_numbering'].select { |key, _| Cosmosys::MainReportSettings::OPTION_NAMES.include?(key) && key.start_with?('appearance_') }
+        setting = project.cosmosys_report_setting_record || project.build_cosmosys_report_setting_record
+        setting.assign_report_settings(options: Cosmosys::MainReportSettings.normalize_options(project.cosmosys_report_options.merge(numbering)))
+        setting.save!
+      end
       project
     end
 

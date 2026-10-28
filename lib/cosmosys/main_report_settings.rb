@@ -12,7 +12,9 @@ module Cosmosys
         'item_url_link' => '0',
         'info_url_link' => '0',
         'project_data_links' => '0',
-        'include_negative_items' => '0'
+        'include_negative_items' => '0',
+        'appearance_R' => '0', 'appearance_A' => '0', 'appearance_C' => '0',
+        'appearance_F' => '1', 'appearance_T' => '1', 'appearance_Q' => '1', 'appearance_M' => '1'
       }
     }.freeze
 

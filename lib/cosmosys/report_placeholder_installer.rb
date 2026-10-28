@@ -3,7 +3,11 @@ module Cosmosys
     DEFAULT_SUBJECTS = {
       'reference_documents' => :label_cosmosys_placeholder_reference_documents,
       'applicable_documents' => :label_cosmosys_placeholder_applicable_documents,
-      'compliance_documents' => :label_cosmosys_placeholder_compliance_documents
+      'compliance_documents' => :label_cosmosys_placeholder_compliance_documents,
+      'figures' => :label_cosmosys_placeholder_figures,
+      'tables' => :label_cosmosys_placeholder_tables,
+      'formulas' => :label_cosmosys_placeholder_formulas,
+      'models' => :label_cosmosys_placeholder_models
     }.freeze
 
     Result = Struct.new(:created, :existing, :section, keyword_init: true)

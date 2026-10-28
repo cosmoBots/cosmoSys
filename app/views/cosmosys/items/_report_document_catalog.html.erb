@@ -16,7 +16,7 @@
           <% document = entry.document %>
           <% has_metadata = document.external_code.present? || document.csys_document_date.present? || document.csys_document_version.present? %>
           <tr class="cosmosys-report-document-catalog-primary-row">
-            <td><%= entry.catalog_label %></td>
+            <td><%= cosmosys_catalog_label(entry) %></td>
             <td colspan="3"><%= link_to document.title, document_path(document) %></td>
           </tr>
           <% if has_metadata %>

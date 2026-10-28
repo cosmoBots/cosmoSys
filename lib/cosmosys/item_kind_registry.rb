@@ -216,7 +216,7 @@ Cosmosys::ItemKindRegistry.register(
   aggregate_children: false,
   allowed_parent_profiles: %w[info].freeze,
   dsm_mode: 'none',
-  report_placeholder_kinds: %w[reference_documents applicable_documents compliance_documents].freeze
+  report_placeholder_kinds: %w[reference_documents applicable_documents compliance_documents figures tables formulas models].freeze
 )
 
 Cosmosys::ItemKindRegistry.register(

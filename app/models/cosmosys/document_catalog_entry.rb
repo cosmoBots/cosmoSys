@@ -2,8 +2,19 @@ module Cosmosys
   class DocumentCatalogEntry < ActiveRecord::Base
     self.table_name = 'cosmosys_document_catalog_entries'
 
-    FAMILIES = %w[R A C].freeze
-    LABEL_PREFIXES = { 'R' => 'RD', 'A' => 'AD', 'C' => 'CD' }.freeze
+    FAMILY_LABELS = {
+      'R' => :label_cosmosys_family_reference, 'A' => :label_cosmosys_family_applicable,
+      'C' => :label_cosmosys_family_compliance, 'F' => :label_cosmosys_family_figure,
+      'T' => :label_cosmosys_family_table, 'Q' => :label_cosmosys_family_formula,
+      'M' => :label_cosmosys_family_model
+    }.freeze
+    FAMILIES = FAMILY_LABELS.keys.freeze
+    EDITORIAL_FAMILIES = %w[F T Q M].freeze
+    LABEL_PREFIXES = { 'R' => 'RD', 'A' => 'AD', 'C' => 'CD', 'F' => 'FIG', 'T' => 'TAB', 'Q' => 'FM', 'M' => 'MOD' }.freeze
+
+    def editorial?
+      EDITORIAL_FAMILIES.include?(family)
+    end
 
     belongs_to :project
     belongs_to :document

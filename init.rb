@@ -10,7 +10,7 @@ Redmine::Plugin.register :cosmosys do
   name 'cosmoSys'
   author 'cosmoBots.eu'
   description 'Base plugin for cosmoSys on top of Redmine.'
-  version '0.2.5'
+  version '0.2.5-dirty'
   url 'https://github.com/cosmoBots/cosmoSys'
   author_url 'https://cosmobots.eu'
 
@@ -138,6 +138,9 @@ require_dependency File.expand_path('lib/cosmosys/dependency_settings', __dir__)
 require_dependency File.expand_path('lib/cosmosys/cache_settings', __dir__)
 require_dependency File.expand_path('lib/cosmosys/main_report_settings', __dir__)
 require_dependency File.expand_path('lib/cosmosys/main_report_text_normalizer', __dir__)
+require_dependency File.expand_path('lib/cosmosys/editorial_document_context', __dir__)
+require_dependency File.expand_path('lib/cosmosys/image_gap', __dir__)
+require_relative 'config/editorial_macros'
 require_dependency File.expand_path('lib/cosmosys/main_report_field_registry', __dir__)
 require_dependency File.expand_path('lib/cosmosys/main_report_service', __dir__)
 require_dependency File.expand_path('lib/cosmosys/inline_svg_style_scope', __dir__)

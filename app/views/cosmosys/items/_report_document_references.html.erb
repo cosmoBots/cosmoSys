@@ -12,7 +12,7 @@
     <tbody>
       <% section.document_references.each do |catalog_ref| %>
         <tr>
-          <td><%= link_to catalog_ref.catalog_label, document_path(catalog_ref.document) %></td>
+          <td><%= link_to cosmosys_catalog_label(catalog_ref.document_catalog_entry), document_path(catalog_ref.document) %></td>
           <td><%= catalog_ref.document.title %></td>
           <td><%= catalog_ref.sense.presence || '-' %></td>
           <td><%= catalog_ref.location.presence || '-' %></td>

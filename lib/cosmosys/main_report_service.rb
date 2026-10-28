@@ -1,6 +1,6 @@
 module Cosmosys
   class MainReportService
-    Report = Struct.new(:project, :sections, :toc_entries, :local_issues, :options, :orphaned_sections, keyword_init: true)
+    Report = Struct.new(:project, :sections, :toc_entries, :local_issues, :options, :orphaned_sections, :document_context, keyword_init: true)
     Section = Struct.new(:issue, :depth, :heading_level, :chapter, :anchor, :metadata_fields, :body_fields, :children, :report_placeholder, :document_catalog_entries, :document_references, :negative_items, :numbered, :orphaned, keyword_init: true)
     OutlineEntry = Struct.new(:issue, :chapter, keyword_init: true)
 
@@ -17,7 +17,7 @@ module Cosmosys
       root_sections = report_roots.map { |issue| build_section(issue, 0, chapter_map) }
       orphaned = orphaned_sections
 
-      Report.new(
+      report = Report.new(
         project: @project,
         sections: root_sections,
         toc_entries: flatten_sections(root_sections),
@@ -25,6 +25,14 @@ module Cosmosys
         options: Cosmosys::MainReportSettings.normalize_options(@options),
         orphaned_sections: orphaned
       )
+      report.document_context = EditorialDocumentContext.new(report, user: @user)
+      report.toc_entries.each do |section|
+        family = section.report_placeholder&.family
+        next unless DocumentCatalogEntry::EDITORIAL_FAMILIES.include?(family)
+
+        section.document_catalog_entries = report.document_context.entries(family)
+      end
+      report
     end
 
     # Lightweight report order for consumers that need the same hierarchy and

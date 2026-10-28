@@ -11,7 +11,7 @@
 </div>
 <h2><%= l(:label_cosmosys_document_catalog) %></h2>
 
-<% [['R', :label_cosmosys_family_reference], ['A', :label_cosmosys_family_applicable], ['C', :label_cosmosys_family_compliance]].each do |family, label| %>
+<% Cosmosys::DocumentCatalogEntry::FAMILY_LABELS.each do |family, label| %>
   <% entries = Array(@entries_by_family[family]) %>
   <h3><%= l(label) %></h3>
   <% if entries.any? %>

@@ -6,6 +6,10 @@ module Cosmosys
       'reference_documents' => 'R',
       'applicable_documents' => 'A',
       'compliance_documents' => 'C',
+      'figures' => 'F',
+      'tables' => 'T',
+      'formulas' => 'Q',
+      'models' => 'M',
       'project_data' => nil
     }.freeze
     DOCUMENT_KINDS = KINDS.select { |_kind, family| family.present? }.freeze
