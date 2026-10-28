@@ -1,7 +1,26 @@
 module Cosmosys
   class MaterializationReferenceRewriter
-    def initialize(issues:, csid_map:, id_map:, marker_map: {})
+    class << self
+      def register(key, &rewriter)
+        raise ArgumentError, 'a rewriter block is required' unless rewriter
+
+        extensions[key.to_sym] = rewriter
+      end
+
+      def rewrite_extensions(text, attachment_id_map:)
+        extensions.each_value.reduce(text) { |result, rewriter| rewriter.call(result, attachment_id_map) }
+      end
+
+      private
+
+      def extensions
+        @extensions ||= {}
+      end
+    end
+
+    def initialize(issues:, csid_map:, id_map:, marker_map: {}, attachment_id_map: {})
       @issues = issues
+      @attachment_id_map = attachment_id_map.dup.freeze
       @replacements = csid_map.merge(marker_map).merge(id_map)
       @editorial_marker_ids = marker_map.each_with_object({}) do |(source, target), result|
         next unless source.match?(/\Adocument:di\d+\z/) && target.match?(/\Adocument:di\d+\z/)
@@ -32,9 +51,10 @@ module Cosmosys
         target = @editorial_marker_ids[Regexp.last_match(2)]
         target ? "#{Regexp.last_match(1)}#{target}#{Regexp.last_match(3)}" : marker
       end
-      replacements.sort_by { |source, _target| -source.length }.reduce(text) do |result, (source, target)|
+      rewritten = replacements.sort_by { |source, _target| -source.length }.reduce(text) do |result, (source, target)|
         result.gsub(/(?<![A-Za-z0-9_-])#{Regexp.escape(source)}(?![A-Za-z0-9_-])/, target)
       end
+      self.class.rewrite_extensions(rewritten, attachment_id_map: @attachment_id_map)
     end
 
     private

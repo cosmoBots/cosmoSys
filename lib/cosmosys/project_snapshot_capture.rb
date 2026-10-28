@@ -321,6 +321,7 @@ module Cosmosys
     def attachment_payloads(attachments)
       attachments.sort_by(&:id).map do |attachment|
         {
+          'source_id' => attachment.id,
           'filename' => attachment.filename,
           'content_type' => attachment.content_type,
           'byte_size' => attachment.filesize,

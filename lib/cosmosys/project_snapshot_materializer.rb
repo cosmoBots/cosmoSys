@@ -144,6 +144,8 @@ module Cosmosys
     def materialize_contents!(content, entries, projects, selected_parts: nil, copy_context: nil,
                               include_external_relations: false, restore_wiki: true)
       @reused_item_keys = Set.new
+      @attachment_id_map = {}
+      @restored_wiki_contents = []
       initialize_progress_totals(entries) unless @progress_totals
       include_items = selected_parts.nil? || selected_parts.include?('issues')
       include_documents = selected_parts.nil? || selected_parts.include?('documents')
@@ -188,12 +190,17 @@ module Cosmosys
       restore_wikis!(projects, entries) if restore_wiki
       report_progress(91, 'references')
       rewrite_internal_references!(items, entries.flat_map { |entry| entry.fetch('items') }, marker_map) if include_items
-      if include_documents && marker_map.any?
-        rewriter = MaterializationReferenceRewriter.new(issues: [], csid_map: {}, id_map: {}, marker_map: marker_map)
+      rewriter = MaterializationReferenceRewriter.new(issues: [], csid_map: {}, id_map: {},
+        marker_map: marker_map, attachment_id_map: @attachment_id_map)
+      if include_documents
         documents.each_value do |document|
           rewritten = rewriter.rewrite_text(document.description.to_s)
           document.update!(description: rewritten) if rewritten != document.description.to_s
         end
+      end
+      @restored_wiki_contents.each do |content|
+        rewritten = rewriter.rewrite_text(content.text.to_s)
+        content.update_columns(text: rewritten) if rewritten != content.text.to_s
       end
       report_progress(94, 'baselines')
       restore_presentation_baselines!(items, entries.flat_map { |entry| entry.fetch('items') }, marker_map: marker_map) if include_items && faithful?
@@ -431,7 +438,8 @@ module Cosmosys
     def restore_presentation_baselines!(items, rows, marker_map: {})
       csid_map = rows.to_h { |row| [row.fetch('csid'), items.fetch(row.fetch('key')).csid] }
       id_map = rows.to_h { |row| ["##{row.fetch('source_id')}", "##{items.fetch(row.fetch('key')).id}"] }
-      rewriter = MaterializationReferenceRewriter.new(issues: [], csid_map: csid_map, id_map: id_map, marker_map: marker_map)
+      rewriter = MaterializationReferenceRewriter.new(issues: [], csid_map: csid_map, id_map: id_map,
+        marker_map: marker_map, attachment_id_map: @attachment_id_map)
       rows.each do |row|
         next if @reused_item_keys.include?(row.fetch('key'))
 
@@ -503,15 +511,16 @@ module Cosmosys
       id_map = rows.to_h { |row| ["##{row.fetch('source_id')}", "##{items.fetch(row.fetch('key')).id}"] }
       MaterializationReferenceRewriter.new(
         issues: items.values, csid_map: csid_map, id_map: id_map,
-        marker_map: marker_map
+        marker_map: marker_map, attachment_id_map: @attachment_id_map
       ).call
     end
 
     def restore_attachments!(container, rows)
       rows.each do |row|
         File.open(asset_path(row.fetch('content_sha256')), 'rb') do |file|
-          Attachment.create!(container: container, author: user, file: file, filename: row.fetch('filename'),
-                             content_type: row['content_type'], description: row['description'])
+          attachment = Attachment.create!(container: container, author: user, file: file, filename: row.fetch('filename'),
+                                          content_type: row['content_type'], description: row['description'])
+          @attachment_id_map[row['source_id'].to_i] = attachment.id if row['source_id'].present?
           @progress_counts['attachments'] += 1
           report_progress(@last_progress_percent || 0, @last_progress_phase || 'items',
                           attachments_processed: @progress_counts['attachments'], attachments_total: @progress_totals&.fetch(:attachments, 0))
@@ -604,8 +613,8 @@ module Cosmosys
 
     def restore_wiki_page_content!(page, content)
       author = User.find_by(login: content['author']) || user
-      WikiContent.create!(page: page, text: content.fetch('text'), author: author,
-                          comments: content['comments'])
+      @restored_wiki_contents << WikiContent.create!(page: page, text: content.fetch('text'), author: author,
+                                                    comments: content['comments'])
     end
   end
 end

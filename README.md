@@ -1,5 +1,11 @@
 # cosmoSys
 
+Version 0.2.7: snapshots retain attachment source IDs and pass
+the imported attachment ID map to registered reference rewriters. Plugins own
+their macro syntax; cosmoSys does not depend on CAD or the document catalog
+for attachment identity. Rewriting runs after file restoration for items,
+documents, restored wiki content and imported presentation baselines.
+
 Version 0.2.6: Figure, Table, Formula and Model document families
 extend the catalog. Cite with `document:di123` or include the document's Markdown
 description with `{{document_embed(di123)}}`. Project report settings choose
@@ -57,7 +63,7 @@ the project's earlier history and authorship.
 
 ## Status
 
-The current code declares **0.2.6**, extending document
+The current code declares **0.2.7**. Release 0.2.6 extends document
 families on top of release 0.2.5 while retaining database portability and
 schema reconciliation.
 It retains explicit recovery of
