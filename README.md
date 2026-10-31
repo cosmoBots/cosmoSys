@@ -120,19 +120,20 @@ Redmine plugin. You do not need Docker or the deployment repository for this.
    on this workspace.
 
 3. **Install dependencies.** Redmine resolves plugins from its own `Gemfile`.
-   cosmoSys' gems must be available to the Redmine bundle, so run from the
-   Redmine root:
+   For a local installation of the `ruby4-libxml6` fork, follow
+   [Installing rspreadsheet from source](#installing-rspreadsheet-from-source)
+   below, then return to step 4. Otherwise, cosmoSys' gems must be available
+   to the Redmine bundle, so run from the Redmine root:
 
    ```bash
    bundle install
    ```
 
-   If Bundler cannot read this plugin's `Gemfile` (for example because it uses
-   the `RSPREADSHEET_PATH` form), install the gems explicitly in the Redmine
-   environment:
+   Install the additional runtime gems in the same Ruby environment used by
+   Redmine:
 
    ```bash
-   gem install andand rubyzip libxml-ruby
+   gem install andand 'rubyzip:>= 3.0, < 4' 'libxml-ruby:>= 6.0' --no-document
    ```
 
 4. **Run the plugin migrations.** cosmoSys extends the Redmine schema with its
@@ -171,6 +172,73 @@ Redmine plugin. You do not need Docker or the deployment repository for this.
 6. **Restart Redmine** so the plugin is loaded, then open the administration
    screen to see the cosmoSys entries (item kinds, templates, and visual
    identity) and confirm the plugin is listed.
+
+### Installing rspreadsheet from source
+
+Use the cosmoBots fork's
+[`ruby4-libxml6` branch](https://github.com/cosmoBots/rspreadsheet/tree/ruby4-libxml6)
+for Ruby 4 / libxml-ruby 6 compatibility. Run Ruby commands with the same Ruby
+installation and gem environment as Redmine (including its version manager,
+if any).
+
+1. **Install build prerequisites.** On Debian/Ubuntu:
+
+   ```bash
+   sudo apt-get update
+   sudo apt-get install -y build-essential git libxml2-dev pkg-config
+   gem install andand 'rubyzip:>= 3.0, < 4' 'libxml-ruby:>= 6.0' --no-document
+   ```
+
+   Ruby development headers must also be available; with a distribution Ruby,
+   install the matching `ruby-dev` package. Other operating systems need the
+   equivalent compiler, libxml2 development files and pkg-config packages.
+
+2. **Clone the branch** into a permanent directory readable by Redmine:
+
+   ```bash
+   mkdir -p "$HOME/src"
+   cd "$HOME/src"
+   git clone --branch ruby4-libxml6 --single-branch https://github.com/cosmoBots/rspreadsheet.git
+   cd rspreadsheet
+   ```
+
+   To reproduce the revision currently pinned by cosmoSys' `Gemfile` and the
+   reference deployment, check it out before building:
+
+   ```bash
+   git checkout --detach c01d413abc728db9d62aa1bebe776f548ee69999
+   ```
+
+   Omit that checkout only if you intend to evaluate the latest branch commit.
+
+3. **Build and install the gem** from that checkout:
+
+   ```bash
+   gem build rspreadsheet.gemspec --output rspreadsheet-local.gem
+   gem install ./rspreadsheet-local.gem --no-document
+   ruby -r rspreadsheet -e 'puts Gem.loaded_specs.fetch("rspreadsheet").full_gem_path'
+   ```
+
+   Installing the generated file ensures you install this fork rather than
+   the gem published on RubyGems under the same name.
+
+4. **Select the checkout in Redmine's bundle.** Installing a gem alone does
+   not override the Git source declared by cosmoSys. From the Redmine root:
+
+   ```bash
+   cd /path/to/redmine
+   export RSPREADSHEET_PATH="$HOME/src/rspreadsheet"
+   bundle install
+   bundle exec ruby -r rspreadsheet -e 'puts Gem.loaded_specs.fetch("rspreadsheet").full_gem_path'
+   ```
+
+   The last command must print the checkout directory. Set `RSPREADSHEET_PATH`
+   to that same **absolute path** in the Redmine service environment as well,
+   for both web processes and background jobs, and keep it set for migrations
+   and future Bundler commands. Use a shared directory if the service user
+   cannot access your home directory. Keep the checkout: Bundler loads its
+   source through `path:`, as in the reference Dockerfile's `/opt/rspreadsheet`
+   installation. Return to installation step 4 to migrate and restart Redmine.
 
 ### Upgrading an existing installation
 
