@@ -133,7 +133,9 @@ Redmine plugin. You do not need Docker or the deployment repository for this.
    Redmine:
 
    ```bash
-   gem install andand 'rubyzip:>= 3.0, < 4' 'libxml-ruby:>= 6.0' --no-document
+   gem install andand --no-document
+   gem install rubyzip --version '>= 3.0, < 4' --no-document
+   gem install libxml-ruby --version '>= 6.0' --no-document
    ```
 
 4. **Run the plugin migrations.** cosmoSys extends the Redmine schema with its
@@ -186,7 +188,9 @@ if any).
    ```bash
    sudo apt-get update
    sudo apt-get install -y build-essential git libxml2-dev pkg-config
-   gem install andand 'rubyzip:>= 3.0, < 4' 'libxml-ruby:>= 6.0' --no-document
+   gem install andand --no-document
+   gem install rubyzip --version '>= 3.0, < 4' --no-document
+   gem install libxml-ruby --version '>= 6.0' --no-document
    ```
 
    Ruby development headers must also be available; with a distribution Ruby,
@@ -239,6 +243,19 @@ if any).
    cannot access your home directory. Keep the checkout: Bundler loads its
    source through `path:`, as in the reference Dockerfile's `/opt/rspreadsheet`
    installation. Return to installation step 4 to migrate and restart Redmine.
+
+### ODS template fields and dictionaries
+
+The `Dict` sheet contains the base catalogs. Domain plugins register their
+own dictionary sheets, columns and accepted values through
+`Cosmosys::OdsItemFieldRegistry`. Template preparation creates their catalogs
+and range-based selectors without reserving columns in `Dict`; export fills
+catalog values and preserves the template structure. A registered
+`header` can differ from the internal attribute name. Import accepts that
+header only, rejects prefixed alternatives and duplicate columns, and never
+uses workbook catalogs to override model validation. Unused tracker/status
+selectors remain empty. For new items, choose a valid tracker; blank status
+and priority retain the import defaults.
 
 ### Upgrading an existing installation
 

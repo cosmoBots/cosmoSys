@@ -1,5 +1,7 @@
 require 'fileutils'
 require_relative '../lib/cosmosys/ods_items'
+require_relative '../lib/cosmosys/ods_template_service'
+require_relative '../lib/cosmosys/odf_package_normalizer'
 
 source = Pathname(ENV.fetch('SOURCE_ODS'))
 output = Pathname(ENV.fetch('OUTPUT_ODS'))
@@ -157,5 +159,8 @@ end
 end
 
 FileUtils.mkdir_p(output.dirname)
+Cosmosys::OdsTemplateService.call(workbook)
 workbook.save(output.to_s)
+File.binwrite(output, Cosmosys::OdfPackageNormalizer.call(File.binread(output),
+  expected_mimetype: 'application/vnd.oasis.opendocument.spreadsheet'))
 puts "Normalized ODS export template: #{output}"

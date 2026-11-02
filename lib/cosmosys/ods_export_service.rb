@@ -3,6 +3,8 @@ require 'digest'
 require 'json'
 require 'securerandom'
 
+require_relative 'ods_template_service'
+
 module Cosmosys
   class OdsExportService
     Result = Struct.new(:data, :filename, :content_type, :export_id, :payload_sha256, :summary, keyword_init: true)
@@ -59,7 +61,10 @@ module Cosmosys
       chapter_by_issue_id = sections.to_h { |section| [section.issue.id, section.chapter] }
       issues = sections.map(&:issue)
 
-      trace_phase('ods_export.dictionary', 16, 'dictionary') { populate_dictionary(dictionary) }
+      trace_phase('ods_export.dictionary', 16, 'dictionary') do
+        populate_dictionary(dictionary)
+        OdsTemplateService.populate_dictionaries(workbook)
+      end
       locations = template_field_locations(items_sheet, extra_sheet)
       trace_phase('ods_export.preload', 20, 'preloading') do
         prepare_issue_export_data(issues, include_last_notes: locations.key?('last_notes'))
@@ -175,6 +180,11 @@ module Cosmosys
       { 'items' => items_sheet, 'extra' => extra_sheet }.each do |sheet_key, sheet|
         (1..HEADER_SCAN_LIMIT).each do |column|
           header = sheet.cell(1, column).value.to_s.strip
+          field = OdsItemFieldRegistry.fields[header]
+          if field && field.header != header
+            raise ExportError, "#{sheet.name} has obsolete header #{header}; use #{field.header}"
+          end
+          header = OdsItemFieldRegistry.canonical_name(header)
           next if header.blank? || locations.key?(header)
 
           locations[header] = { sheet: sheet_key, column: column }

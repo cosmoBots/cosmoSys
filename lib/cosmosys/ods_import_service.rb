@@ -180,10 +180,7 @@ module Cosmosys
       raise ImportError, "Missing #{sheet_name} sheet" if required && sheet.nil?
       return [] unless sheet
 
-      headers = (1..128).filter_map do |column|
-        name = sheet.cell(1, column).value.to_s.strip
-        [name, column] if name.present?
-      end.to_h
+      headers = sheet_headers(sheet)
       empty = 0
       rows = []
       (2..MAX_ROWS).each do |row_number|
@@ -356,8 +353,10 @@ module Cosmosys
       issue.priority ||= IssuePriority.default || IssuePriority.active.sorted.first
       issue.subject = normalized_text(allowed.fetch('subject', row['subject'].presence || row['csid']), row, 'subject') if new_record || allowed.key?('subject')
       issue.description = normalized_text(allowed.fetch('description', row['description']), row, 'description') if new_record || allowed.key?('description')
-      assign_status(issue, allowed['status'], row) if allowed.key?('status')
-      issue.priority = IssuePriority.active.find_by(name: allowed['priority']) if allowed.key?('priority')
+      assign_status(issue, allowed['status'], row) if allowed.key?('status') && !(new_record && allowed['status'].blank?)
+      if allowed.key?('priority') && !(new_record && allowed['priority'].blank?)
+        issue.priority = IssuePriority.active.find_by(name: allowed['priority'])
+      end
       issue.done_ratio = allowed['done_ratio'].to_i if allowed.key?('done_ratio')
       issue.estimated_hours = allowed['estimated_hours'].presence if allowed.key?('estimated_hours')
       assign_assignee(issue, allowed['assignee'], row) if allowed.key?('assignee')
@@ -747,10 +746,21 @@ module Cosmosys
     end
 
     def sheet_headers(sheet)
-      (1..128).filter_map do |column|
+      (1..128).each_with_object({}) do |column, headers|
         name = sheet.cell(1, column).value.to_s.strip
-        [name, column] if name.present?
-      end.to_h
+        next if name.blank?
+
+        if %w[Items ExtraFields].include?(sheet.name)
+          field = OdsItemFieldRegistry.fields[name]
+          if field && field.header != name
+            raise ImportError, "#{sheet.name} has obsolete header #{name}; use #{field.header}"
+          end
+          name = OdsItemFieldRegistry.canonical_name(name)
+        end
+        raise ImportError, "#{sheet.name} repeats column #{name}" if headers.key?(name)
+
+        headers[name] = column
+      end
     end
   end
 end
