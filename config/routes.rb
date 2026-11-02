@@ -1,5 +1,6 @@
 RedmineApp::Application.routes.draw do
   match 'issues/:issue_id/cosmosys/model-yaml', to: 'cosmosys/model_yaml_previews#show', via: [:get, :post], as: :issue_cosmosys_model_yaml
+  match 'projects/:project_id/cosmosys/model-yaml', to: 'cosmosys/model_yaml_previews#show', via: [:get, :post], as: :project_cosmosys_model_yaml
   post 'cosmosys/render-requests/cancel', to: 'cosmosys/render_requests#cancel', as: :cosmosys_cancel_render_requests
   resources :cosmosys_catalog_refs,
             path: 'cosmosys/document-references',

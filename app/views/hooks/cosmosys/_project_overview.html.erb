@@ -1,5 +1,8 @@
 <% project = local_assigns[:project] || @project %>
 <% if project&.visible?(User.current) %>
+  <% if User.current.allowed_to?(:view_issues, project) %>
+    <p><%= link_to l(:label_cosmosys_model_yaml_preview), project_cosmosys_model_yaml_path(project), class: 'icon icon-preview' %></p>
+  <% end %>
   <div class="cosmosys-project-diagrams box" data-cosmosys-project-diagrams>
     <%= render partial: 'hooks/cosmosys/project_diagram_tabs', locals: { project: project } %>
   </div>

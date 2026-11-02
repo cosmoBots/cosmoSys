@@ -1,4 +1,5 @@
 en:
+  label_cosmosys_item_model_yaml_example: "Reload the item and descendants example (read-only)"
   label_cosmosys_model_yaml_example: "Load a read-only example from this project"
   label_cosmosys_model_yaml_preview: "Preview YAML model"
   button_cosmosys_preview_yaml: "Validate and preview"

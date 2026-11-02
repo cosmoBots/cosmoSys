@@ -7,13 +7,20 @@ module Cosmosys
     before_action :find_source
 
     def show
-      @attachments = @issue.attachments.select { |attachment| attachment.filename.match?(/\.ya?ml\z/i) }
+      @source = @issue || @project
+      @preview_path = @issue ? issue_cosmosys_model_yaml_path(@issue) : project_cosmosys_model_yaml_path(@project)
+      @attachments = @source.attachments.select { |attachment| attachment.filename.match?(/\.ya?ml\z/i) && attachment.visible?(User.current) }
       @yaml = params[:yaml].is_a?(String) ? params[:yaml] : ''
       unless request.post?
-        @yaml = @issue.description.to_s[/```(?:cosmosys-model|yaml)\s*\n(.*?)\n```/m, 1].to_s
-        if params[:example] == '1'
-          selection = ViewAudienceDiagramData.for_project(@project, scope: :project, user: User.current, relation_types: %w[blocks precedes relates])
-          @yaml = ModelYamlCapture.call(entries: selection.root_entries, relations: selection.relations, profile: @project.csys_project_profile)
+        @yaml = @source.description.to_s[/```(?:cosmosys-model|yaml)\s*\n(.*?)\n```/m, 1].to_s
+        if params[:example] == '1' || @yaml.blank?
+          selection = if @issue
+                        ViewAudienceDiagramData.for_item(@issue, scope: :node_and_descendants, user: User.current, relation_types: %w[blocks precedes relates])
+                      else
+                        ViewAudienceDiagramData.for_project(@project, scope: :project, user: User.current, relation_types: %w[blocks precedes relates])
+                      end
+          @yaml = ModelYamlCapture.call(entries: selection.root_entries, relations: selection.relations,
+            profile: @project.csys_project_profile, focus: @issue)
         end
         return
       end
@@ -35,9 +42,14 @@ module Cosmosys
     private
 
     def find_source
-      @issue = Issue.find(params[:issue_id])
-      @project = @issue.project
-      raise Unauthorized unless @issue.visible?(User.current) && User.current.allowed_to?(:view_issues, @project)
+      if params[:issue_id]
+        @issue = Issue.find(params[:issue_id])
+        @project = @issue.project
+        raise Unauthorized unless @issue.visible?(User.current)
+      else
+        @project = Project.find(params[:project_id])
+      end
+      raise Unauthorized unless @project.visible?(User.current) && User.current.allowed_to?(:view_issues, @project)
       raise ActiveRecord::RecordNotFound unless ModelYamlDialects.registered?(@project.csys_project_profile)
     rescue ActiveRecord::RecordNotFound
       render_404

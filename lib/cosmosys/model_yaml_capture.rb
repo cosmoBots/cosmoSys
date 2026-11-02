@@ -5,7 +5,7 @@ require_relative 'model_yaml_document'
 module Cosmosys
   # Explicit export of a previously authorized selection. Preview never selects.
   class ModelYamlCapture
-    def self.call(entries:, relations:, profile:)
+    def self.call(entries:, relations:, profile:, focus: nil)
       flatten = lambda { |rows| rows.flat_map { |row| [row] + flatten.call(Array(row[:children])) } }
       entries = flatten.call(entries)
       raise ModelYamlDocument::Invalid, 'Selection is too large for a YAML preview (500 items)' if entries.size > ModelYamlDocument::MAX_ITEMS
@@ -23,12 +23,12 @@ module Cosmosys
                'description' => issue.description.to_s, 'source_id' => issue.id, 'csid' => issue.csid,
                'position' => index + 1, 'boundary' => entry[:boundary] == true,
                'closed' => issue.status.is_closed?, 'done_ratio' => issue.done_ratio,
-               'fields' => dialect.fields.filter_map do |key, attr|
+               'fields' => dialect.fields.invert.filter_map do |attr, key|
                  value = issue[attr]
                  [key, value.is_a?(BigDecimal) ? value.to_s('F') : value] unless value.nil?
                end.to_h}
         row['parent'] = "i#{issue.parent_id}" if ids.include?(issue.parent_id)
-        if issue.cosmosys_item_kind.reference_mode.to_s == 'chapter'
+        if issue.cosmosys_item_kind.value(:reference_mode, issue, kind: 'combined').to_s == 'chapter'
           chapter = issue.cosmosys_chapter
           row['chapter'] = chapter if chapter
         end
@@ -42,6 +42,7 @@ module Cosmosys
         row['delay'] = relation.delay if relation.delay
         data['relations'] << row
       end
+      data['diagram'] = {'focus' => "i#{focus.id}"} if focus && ids.include?(focus.id)
       text = YAML.dump(data)
       ModelYamlDocument.new(text, expected_profile: profile)
       text

@@ -1,5 +1,6 @@
 require 'yaml'
 require 'date'
+require 'bigdecimal'
 require_relative 'model_yaml_dialects'
 
 module Cosmosys
@@ -97,6 +98,20 @@ module Cosmosys
         csids << row['csid'].downcase if row['csid']
         source_ids << row['source_id'] if row['source_id']
         mapping!(row.fetch('fields', {}), "item #{key} fields", dialect.fields.keys)
+        targets = []
+        row.fetch('fields', {}).each do |field, value|
+          target = dialect.fields.fetch(field)
+          raise Invalid, "item #{key}: duplicate aliases for #{target}" if targets.include?(target)
+          targets << target
+          unless value.nil? || [true, false].include?(value) || value.is_a?(String) || value.is_a?(Integer) || (value.is_a?(Float) && value.finite?)
+            raise Invalid, "item #{key}: #{field} must be a finite scalar"
+          end
+          attribute = Issue.attribute_types[target]
+          if %i[decimal float integer].include?(attribute&.type) && !value.nil?
+            number = BigDecimal(value.to_s, exception: false)
+            raise Invalid, "item #{key}: #{field} must be a bounded number" unless number&.finite? && number.abs < BigDecimal('1e100')
+          end
+        end
         dialect.validate_item&.call(row)
       end
       raise Invalid, 'Duplicate csid' unless csids.uniq.size == csids.size
@@ -132,7 +147,8 @@ module Cosmosys
 
     def validate_diagram!
       options = data.fetch('diagram', {})
-      mapping!(options, 'diagram', %w[rankdir layout container_policy])
+      mapping!(options, 'diagram', %w[rankdir layout container_policy focus])
+      raise Invalid, 'Diagram focus must name a declared item' if options.key?('focus') && !items.key?(options['focus'])
       raise Invalid, 'Unsupported rankdir' if options['rankdir'] && !%w[TB LR].include?(options['rankdir'])
       raise Invalid, 'Only dot layout is supported in this first preview' if options['layout'] && options['layout'] != 'dot'
       if options['container_policy'] && !%w[all_containers related_only].include?(options['container_policy'])

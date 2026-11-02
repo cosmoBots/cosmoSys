@@ -1,7 +1,12 @@
 # cosmoSys
 
 Development: read-only YAML model drafts at
-`/issues/ID/cosmosys/model-yaml` (basic items/PORIS dialects). Paste YAML, use a
+`/issues/ID/cosmosys/model-yaml` (item and descendants, matching its combined
+diagram) and `/projects/IDENTIFIER/cosmosys/model-yaml` (whole project, linked
+from project overview). All registered project/item profiles are available
+without a second YAML registration. Native scalar plugin fields reuse the ODS
+field allowlist; optional YAML extensions add aliases and validation, never
+persistence writers. Paste YAML, use a
 source-item YAML attachment or upload a temporary file; validate and preview
 through the existing combined Graphviz renderer. No model creation or sync,
 no requirement-validity calculation, no migrations. Drafts are bounded to

@@ -1,7 +1,7 @@
-<h2><%= l(:label_cosmosys_model_yaml_preview) %> — <%= @issue.subject %></h2>
+<h2><%= l(:label_cosmosys_model_yaml_preview) %> — <%= @issue ? @issue.subject : @project.name %></h2>
 <p class="warning"><%= l(:text_cosmosys_model_yaml_preview) %></p>
-<p><%= link_to l(:label_cosmosys_model_yaml_example), issue_cosmosys_model_yaml_path(@issue, example: 1) %></p>
-<%= form_tag issue_cosmosys_model_yaml_path(@issue), multipart: true do %>
+<p><%= link_to l(@issue ? :label_cosmosys_item_model_yaml_example : :label_cosmosys_model_yaml_example), "#{@preview_path}?example=1" %></p>
+<%= form_tag @preview_path, multipart: true do %>
   <p><%= label_tag :yaml, 'YAML' %><br>
   <%= text_area_tag :yaml, @yaml, rows: 24, style: 'width: 98%; font-family: monospace', maxlength: Cosmosys::ModelYamlDocument::MAX_BYTES %></p>
   <p><%= label_tag :yaml_file, l(:label_attachment) %> <%= file_field_tag :yaml_file, accept: '.yaml,.yml' %></p>

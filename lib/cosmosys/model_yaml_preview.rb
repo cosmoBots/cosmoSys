@@ -71,10 +71,11 @@ module Cosmosys
       policy = options.fetch('container_policy', profile.combined_diagram_container_node_policy)
       titles = policy == 'related_only' ? containers & endpoints : containers
       renderer = CombinedDiagramRenderer.new(cluster_title_issue_ids: titles,
+        current_issue: options['focus'] && items.fetch(options['focus']),
         cluster_anchor_issue_ids: (containers & endpoints) - titles,
         rankdir: options.fetch('rankdir', relations.any? { |relation| %w[blocks precedes].include?(relation.relation_type) } ? profile.combined_diagram_rankdir : 'TB'),
         issue_url_resolver: ->(_issue) { '' })
-      renderer.build_graph(title: 'cosmosys_project_combined') do |lines|
+      renderer.build_graph(title: options['focus'] ? 'cosmosys_combined' : 'cosmosys_project_combined') do |lines|
         roots.each { |entry| lines.concat(renderer.build_tree(entry)) }
         relations.each { |relation| lines.concat(renderer.build_edge(relation)) }
       end
