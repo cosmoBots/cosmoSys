@@ -1,4 +1,5 @@
 require 'redmine'
+require_relative 'lib/cosmosys/model_yaml_dialects'
 require 'i18n/backend/fallbacks'
 
 I18n::Backend::Simple.include(I18n::Backend::Fallbacks) unless I18n::Backend::Simple < I18n::Backend::Fallbacks
@@ -10,7 +11,7 @@ Redmine::Plugin.register :cosmosys do
   name 'cosmoSys'
   author 'cosmoBots.eu'
   description 'Base plugin for cosmoSys on top of Redmine.'
-  version '0.2.7'
+  version '0.2.7-dirty'
   url 'https://github.com/cosmoBots/cosmoSys'
   author_url 'https://cosmobots.eu'
 

@@ -1,4 +1,8 @@
 es:
+  label_cosmosys_model_yaml_example: "Cargar un ejemplo del proyecto (sólo lectura)"
+  label_cosmosys_model_yaml_preview: "Previsualizar modelo YAML"
+  button_cosmosys_preview_yaml: "Validar y previsualizar"
+  text_cosmosys_model_yaml_preview: "Borrador de sólo lectura. No se crearán ni modificarán ítems, proyectos o relaciones. No se evalúa la validez de requisitos. El fichero o adjunto tiene prioridad sobre el editor."
   label_cosmosys_snapshot_imports: "Importaciones de snapshots"
   button_cosmosys_import_project_snapshot: "Importar proyecto desde snapshot"
   label_cosmosys_snapshot_destination_parent: "Proyecto padre de destino"

@@ -1,10 +1,13 @@
 require 'open3'
+require 'timeout'
 require_relative 'render_cancellation'
 
 module Cosmosys
   module CancellableGraphviz
-    def self.capture(dot_body)
-      return Open3.capture3('dot', '-Tsvg', stdin_data: dot_body) unless RenderCancellation.current
+    def self.capture(dot_body, timeout: nil)
+      return Open3.capture3('dot', '-Tsvg', stdin_data: dot_body) unless RenderCancellation.current || timeout
+
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout if timeout
 
       RenderCancellation.check!
       # Own the process group; cancellation terminates and reaps only our
@@ -19,8 +22,10 @@ module Cosmosys
           input.close rescue nil
         end
         begin
+          raise Timeout::Error, 'Graphviz preview exceeded its time limit' if deadline && Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
           until waiter.join(0.05) && readers.none?(&:alive?) && !writer.alive?
             RenderCancellation.check!
+            raise Timeout::Error, 'Graphviz preview exceeded its time limit' if deadline && Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
           end
           writer.value
           completed = true

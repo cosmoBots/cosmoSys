@@ -1,5 +1,13 @@
 # cosmoSys
 
+Development: read-only YAML model drafts at
+`/issues/ID/cosmosys/model-yaml` (basic items/PORIS dialects). Paste YAML, use a
+source-item YAML attachment or upload a temporary file; validate and preview
+through the existing combined Graphviz renderer. No model creation or sync,
+no requirement-validity calculation, no migrations. Drafts are bounded to
+1 MiB/500 items/2000 relations and Graphviz to 10 seconds. View-issues permission
+and source-item visibility are required; no API write/auth extension is added.
+
 Version 0.2.7: snapshots retain attachment source IDs and pass
 the imported attachment ID map to registered reference rewriters. Plugins own
 their macro syntax; cosmoSys does not depend on CAD or the document catalog

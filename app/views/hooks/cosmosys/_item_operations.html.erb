@@ -3,3 +3,6 @@
     <%= link_to l(:label_cosmosys_create_related_items), issue_cosmosys_related_items_path(issue), class: 'icon icon-link' %>
   </p>
 <% end %>
+<% if defined?(Cosmosys::ModelYamlDialects) && Cosmosys::ModelYamlDialects.registered?(issue.project.csys_project_profile) && issue.visible?(User.current) %>
+  <p class="contextual"><%= link_to l(:label_cosmosys_model_yaml_preview), issue_cosmosys_model_yaml_path(issue), class: 'icon icon-preview' %></p>
+<% end %>

@@ -1,0 +1,16 @@
+<h2><%= l(:label_cosmosys_model_yaml_preview) %> — <%= @issue.subject %></h2>
+<p class="warning"><%= l(:text_cosmosys_model_yaml_preview) %></p>
+<p><%= link_to l(:label_cosmosys_model_yaml_example), issue_cosmosys_model_yaml_path(@issue, example: 1) %></p>
+<%= form_tag issue_cosmosys_model_yaml_path(@issue), multipart: true do %>
+  <p><%= label_tag :yaml, 'YAML' %><br>
+  <%= text_area_tag :yaml, @yaml, rows: 24, style: 'width: 98%; font-family: monospace', maxlength: Cosmosys::ModelYamlDocument::MAX_BYTES %></p>
+  <p><%= label_tag :yaml_file, l(:label_attachment) %> <%= file_field_tag :yaml_file, accept: '.yaml,.yml' %></p>
+  <% if @attachments.any? %>
+    <p><%= select_tag :attachment_id, options_for_select(@attachments.map { |attachment| [attachment.filename, attachment.id] }), include_blank: true %></p>
+  <% end %>
+  <%= submit_tag l(:button_cosmosys_preview_yaml) %>
+<% end %>
+<% if @svg %>
+  <h3><%= l(:label_preview) %></h3>
+  <img alt="Graphviz" style="max-width: 100%" src="data:image/svg+xml;base64,<%= Base64.strict_encode64(@svg) %>">
+<% end %>

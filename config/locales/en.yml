@@ -1,4 +1,8 @@
 en:
+  label_cosmosys_model_yaml_example: "Load a read-only example from this project"
+  label_cosmosys_model_yaml_preview: "Preview YAML model"
+  button_cosmosys_preview_yaml: "Validate and preview"
+  text_cosmosys_model_yaml_preview: "Read-only draft. No items, projects or relations will be created or changed. Requirement validity is not evaluated. Upload/attachment takes precedence over the editor."
   label_cosmosys_snapshot_imports: "Snapshot imports"
   button_cosmosys_import_project_snapshot: "Import project from snapshot"
   label_cosmosys_snapshot_destination_parent: "Destination parent project"

@@ -20,7 +20,8 @@ module Cosmosys
       VALID_RENDER_VARIANTS.include?(variant.to_s)
     end
 
-    def initialize(current_issue: nil, cluster_title_issue_ids: Set.new, cluster_anchor_issue_ids: Set.new, layout_mode: DEFAULT_LAYOUT_MODE, rankdir: 'TB')
+    def initialize(current_issue: nil, cluster_title_issue_ids: Set.new, cluster_anchor_issue_ids: Set.new, layout_mode: DEFAULT_LAYOUT_MODE, rankdir: 'TB', issue_url_resolver: nil)
+      @issue_url_resolver = issue_url_resolver
       @current_issue = current_issue
       @cluster_title_issue_ids = cluster_title_issue_ids
       @cluster_anchor_issue_ids = cluster_anchor_issue_ids
@@ -372,6 +373,8 @@ module Cosmosys
     end
 
     def issue_url(issue)
+      return @issue_url_resolver.call(issue) if @issue_url_resolver
+
       Rails.application.routes.url_helpers.issue_path(issue)
     end
 
