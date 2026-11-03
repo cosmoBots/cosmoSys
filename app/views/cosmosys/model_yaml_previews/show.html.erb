@@ -2,6 +2,7 @@
 <p class="warning"><%= l(:text_cosmosys_model_yaml_preview) %></p>
 <%= render partial: 'scopes', locals: {issue: @issue, project: @project, selected_scope: @scope} %>
 <p><%= l(:text_cosmosys_model_yaml_scope_links) %></p>
+<p><%= l(:text_cosmosys_model_yaml_windows) %></p>
 <%= form_tag @preview_path, multipart: true do %>
   <%= hidden_field_tag :scope, @scope %>
   <p><%= label_tag :yaml, 'YAML' %><br>

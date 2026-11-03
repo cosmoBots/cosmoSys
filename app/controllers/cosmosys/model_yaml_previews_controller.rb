@@ -1,6 +1,7 @@
 require_relative '../../../lib/cosmosys/model_yaml_preview'
 require_relative '../../../lib/cosmosys/model_yaml_capture'
 require_relative '../../../lib/cosmosys/view_audience_diagram_data'
+require_relative '../../../lib/cosmosys/model_yaml_selection'
 
 module Cosmosys
   class ModelYamlPreviewsController < ApplicationController
@@ -11,17 +12,13 @@ module Cosmosys
       @preview_path = @issue ? issue_cosmosys_model_yaml_path(@issue) : project_cosmosys_model_yaml_path(@project)
       @attachments = @source.attachments.select { |attachment| attachment.filename.match?(/\.ya?ml\z/i) && attachment.visible?(User.current) }
       @yaml = params[:yaml].is_a?(String) ? params[:yaml] : ''
-      scopes = @issue ? ViewAudienceSelector::ITEM_SCOPES : ViewAudienceSelector::PROJECT_SCOPES
+      scopes = @issue ? ModelYamlSelection::ITEM_SCOPES : ModelYamlSelection::PROJECT_SCOPES
       @scope = params[:scope].presence || (@issue ? 'node_and_descendants' : 'project')
       raise ViewAudienceSelector::InvalidScope, 'Invalid example scope' unless @scope.is_a?(String) && scopes.map(&:to_s).include?(@scope)
       unless request.post?
         @yaml = @source.description.to_s[/```(?:cosmosys-model|yaml)\s*\n(.*?)\n```/m, 1].to_s
         if params[:example] == '1' || @yaml.blank?
-          selection = if @issue
-                        ViewAudienceDiagramData.for_item(@issue, scope: @scope, user: User.current, relation_types: %w[blocks precedes relates])
-                      else
-                        ViewAudienceDiagramData.for_project(@project, scope: @scope, user: User.current, relation_types: %w[blocks precedes relates])
-                      end
+          selection = ModelYamlSelection.call(@source, scope: @scope, user: User.current)
           @yaml = ModelYamlCapture.call(entries: selection.root_entries, relations: selection.relations,
             profile: @project.csys_project_profile, focus: @issue)
         end

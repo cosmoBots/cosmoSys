@@ -65,20 +65,21 @@ module Cosmosys
 
     class InvalidScope < ArgumentError; end
 
-    def self.for_project(project, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES)
-      new(project, category: :project, scope: scope, user: user, relation_types: relation_types).select
+    def self.for_project(project, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES, include_structural_ancestors: true)
+      new(project, category: :project, scope: scope, user: user, relation_types: relation_types, include_structural_ancestors: include_structural_ancestors).select
     end
 
-    def self.for_item(issue, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES)
-      new(issue, category: :item, scope: scope, user: user, relation_types: relation_types).select
+    def self.for_item(issue, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES, include_structural_ancestors: true)
+      new(issue, category: :item, scope: scope, user: user, relation_types: relation_types, include_structural_ancestors: include_structural_ancestors).select
     end
 
-    def initialize(focus, category:, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES)
+    def initialize(focus, category:, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES, include_structural_ancestors: true)
       @focus = focus
       @category = category.to_sym
       @scope = scope.to_sym
       @user = user
       @relation_types = Array(relation_types).map(&:to_s).uniq
+      @include_structural_ancestors = include_structural_ancestors
       reset_traversal_metrics
       validate_scope!
     end
@@ -114,7 +115,9 @@ module Cosmosys
                                                           select_relations(audience_ids)
                                                         end
       relation_context_ids = relation_context.map(&:id).to_set
-      structural_ids = structural_ancestors(audience_ids, seed_items: items).map(&:id).to_set
+      # Diagram consumers reconstruct containing boxes. Explicit model windows
+      # do not, unless ancestors were themselves selected as audience.
+      structural_ids = @include_structural_ancestors ? structural_ancestors(audience_ids, seed_items: items).map(&:id).to_set : Set.new
       if (@category == :item && @scope == :node_and_descendants) ||
          (@category == :project && @scope == :project)
         structural_ids.merge(project_boundary_children(audience_ids))
@@ -123,7 +126,7 @@ module Cosmosys
         relation_context_ids, stop_ids: audience_ids,
         exclude_ids: audience_ids | relation_context_ids,
         seed_items: relation_context
-      ).map(&:id))
+      ).map(&:id)) if @include_structural_ancestors
       structural_context = visible_items(structural_ids.to_a).sort_by(&:id)
 
       selection = Selection.new(

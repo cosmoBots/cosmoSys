@@ -1,4 +1,6 @@
 en:
+  text_cosmosys_model_yaml_windows: "Node only includes its subtree and relations up to the first node at another project's boundary; Node and descendants crosses boundaries. Ancestors are included only when requested or explicitly related, never just to reconstruct containing boxes."
+  text_cosmosys_yaml_macro_usage: "Use {{cosmosys_diagram followed by a cosmoSys model YAML block and }} on its own line. No arguments. This macro never creates model records."
   label_cosmosys_model_yaml_scopes: "YAML example scopes"
   text_cosmosys_model_yaml_scope_links: "Choosing a scope loads a new example and replaces the editor text. Preview only renders the written YAML."
   label_cosmosys_model_yaml_scope_node: "Node only"

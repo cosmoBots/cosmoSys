@@ -1,4 +1,6 @@
 es:
+  text_cosmosys_model_yaml_windows: "Sólo nodo incluye su subárbol y relaciones hasta el primer nodo frontera de otro proyecto; Nodo y descendientes atraviesa fronteras. Los ancestros sólo se añaden si el ámbito los solicita o están relacionados explícitamente, no para reconstruir cajas."
+  text_cosmosys_yaml_macro_usage: "Usa {{cosmosys_diagram seguido de un bloque YAML de modelo cosmoSys y }} en una línea propia. Sin argumentos. Esta macro nunca crea ítems del modelo."
   label_cosmosys_model_yaml_scopes: "Ámbitos del ejemplo YAML"
   text_cosmosys_model_yaml_scope_links: "Elegir un ámbito carga un ejemplo nuevo y sustituye el texto del editor. Al previsualizar sólo se pinta el YAML escrito."
   label_cosmosys_model_yaml_scope_node: "Sólo el nodo"

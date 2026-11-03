@@ -8,10 +8,10 @@ module Cosmosys
   class ViewAudienceDiagramData
     attr_reader :selection, :issues, :relations, :boundary_issue_ids, :audience_issue_ids
 
-    def self.for_project(project, scope:, user:, relation_types: ViewAudienceSelector::DEFAULT_RELATION_TYPES, selection_only: false)
+    def self.for_project(project, scope:, user:, relation_types: ViewAudienceSelector::DEFAULT_RELATION_TYPES, selection_only: false, include_structural_ancestors: true)
       selection = PerformanceTrace.measure_with_sql('diagram.selection', category: :project, scope: scope, focus_id: project.id) do
         ViewAudienceSelector.for_project(
-          project, scope: scope, user: user, relation_types: relation_types
+          project, scope: scope, user: user, relation_types: relation_types, include_structural_ancestors: include_structural_ancestors
         )
       end
       return selection if selection_only
@@ -56,10 +56,10 @@ module Cosmosys
       )
     end
 
-    def self.for_item(issue, scope:, user:, relation_types: ViewAudienceSelector::DEFAULT_RELATION_TYPES, selection_only: false)
+    def self.for_item(issue, scope:, user:, relation_types: ViewAudienceSelector::DEFAULT_RELATION_TYPES, selection_only: false, include_structural_ancestors: true)
       selection = PerformanceTrace.measure_with_sql('diagram.selection', category: :item, scope: scope, focus_id: issue.id) do
         ViewAudienceSelector.for_item(
-          issue, scope: scope, user: user, relation_types: relation_types
+          issue, scope: scope, user: user, relation_types: relation_types, include_structural_ancestors: include_structural_ancestors
         )
       end
       return selection if selection_only
