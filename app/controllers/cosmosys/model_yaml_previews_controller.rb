@@ -11,13 +11,16 @@ module Cosmosys
       @preview_path = @issue ? issue_cosmosys_model_yaml_path(@issue) : project_cosmosys_model_yaml_path(@project)
       @attachments = @source.attachments.select { |attachment| attachment.filename.match?(/\.ya?ml\z/i) && attachment.visible?(User.current) }
       @yaml = params[:yaml].is_a?(String) ? params[:yaml] : ''
+      scopes = @issue ? ViewAudienceSelector::ITEM_SCOPES : ViewAudienceSelector::PROJECT_SCOPES
+      @scope = params[:scope].presence || (@issue ? 'node_and_descendants' : 'project')
+      raise ViewAudienceSelector::InvalidScope, 'Invalid example scope' unless @scope.is_a?(String) && scopes.map(&:to_s).include?(@scope)
       unless request.post?
         @yaml = @source.description.to_s[/```(?:cosmosys-model|yaml)\s*\n(.*?)\n```/m, 1].to_s
         if params[:example] == '1' || @yaml.blank?
           selection = if @issue
-                        ViewAudienceDiagramData.for_item(@issue, scope: :node_and_descendants, user: User.current, relation_types: %w[blocks precedes relates])
+                        ViewAudienceDiagramData.for_item(@issue, scope: @scope, user: User.current, relation_types: %w[blocks precedes relates])
                       else
-                        ViewAudienceDiagramData.for_project(@project, scope: :project, user: User.current, relation_types: %w[blocks precedes relates])
+                        ViewAudienceDiagramData.for_project(@project, scope: @scope, user: User.current, relation_types: %w[blocks precedes relates])
                       end
           @yaml = ModelYamlCapture.call(entries: selection.root_entries, relations: selection.relations,
             profile: @project.csys_project_profile, focus: @issue)
@@ -34,7 +37,7 @@ module Cosmosys
       end
       document = ModelYamlDocument.new(@yaml, expected_profile: @project.csys_project_profile)
       @svg = ModelYamlPreview.new(document).svg
-    rescue ModelYamlDocument::Invalid, Timeout::Error => error
+    rescue ModelYamlDocument::Invalid, ViewAudienceSelector::InvalidScope, Timeout::Error => error
       flash.now[:error] = error.message
       render :show, status: :unprocessable_entity
     end

@@ -1,0 +1,16 @@
+<% focus_issue = local_assigns[:issue] %>
+<% scopes = focus_issue ? Cosmosys::ViewAudienceSelector::ITEM_SCOPES : Cosmosys::ViewAudienceSelector::PROJECT_SCOPES %>
+<% base_path = focus_issue ? issue_cosmosys_model_yaml_path(focus_issue) : project_cosmosys_model_yaml_path(project) %>
+<% selected_scope = local_assigns[:selected_scope].to_s %>
+<nav class="cosmosys-model-yaml-scopes" aria-label="<%= l(:label_cosmosys_model_yaml_scopes) %>">
+  <strong><%= l(:label_cosmosys_model_yaml_scopes) %>:</strong>
+  <ul style="display:flex;flex-wrap:wrap;gap:0.4em 1em;list-style:none;padding-left:0">
+    <% scopes.each do |scope| %>
+      <li><%= link_to l("label_cosmosys_model_yaml_scope_#{scope}"),
+                      "#{base_path}?#{ {example: '1', scope: scope}.to_query }",
+                      class: ('selected' if selected_scope == scope.to_s),
+                      style: ('font-weight:bold' if selected_scope == scope.to_s),
+                      aria: { current: (selected_scope == scope.to_s ? 'page' : nil) } %></li>
+    <% end %>
+  </ul>
+</nav>

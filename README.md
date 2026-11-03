@@ -4,6 +4,10 @@ Development: read-only YAML model drafts at
 `/issues/ID/cosmosys/model-yaml` (item and descendants, matching its combined
 diagram) and `/projects/IDENTIFIER/cosmosys/model-yaml` (whole project, linked
 from project overview). All registered project/item profiles are available
+with category-specific scope links in item/project details and the editor.
+Scopes come from the existing selector: selecting one reloads the example,
+replacing unsaved editor text; preview still renders only the explicit YAML.
+Unknown/wrong-category scopes return HTTP 422. Profiles are available
 without a second YAML registration. Native scalar plugin fields reuse the ODS
 field allowlist; optional YAML extensions add aliases and validation, never
 persistence writers. Paste YAML, use a
