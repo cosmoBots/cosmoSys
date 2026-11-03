@@ -1,4 +1,15 @@
+require_relative '../lib/cosmosys/model_yaml_diagram'
+
 Redmine::WikiFormatting::Macros.register do
+  desc "Render an explicit, read-only cosmoSys YAML model: {{cosmosys_diagram\nformat: cosmosys-model\n...\n}}"
+  macro :cosmosys_diagram do |_object, args, text|
+    raise l(:text_cosmosys_yaml_macro_usage) unless args.empty? && text.present?
+
+    @cosmosys_yaml_diagram_index = @cosmosys_yaml_diagram_index.to_i + 1
+    svg = Cosmosys::ModelYamlDiagram.render(text, instance_id: @cosmosys_yaml_diagram_index)
+    content_tag(:div, svg.html_safe, class: 'cosmosys-report-diagram cosmosys-yaml-diagram-container')
+  end
+
   desc 'Transparent spacing between adjacent images: {{image_gap(0.5cm)}} or {{image_gap(24px)}}'
   macro :image_gap do |_object, args|
     begin

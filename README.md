@@ -1,12 +1,17 @@
 # cosmoSys
 
 Development: read-only YAML model drafts at
-`/issues/ID/cosmosys/model-yaml` (item and descendants, matching its combined
-diagram) and `/projects/IDENTIFIER/cosmosys/model-yaml` (whole project, linked
+`/issues/ID/cosmosys/model-yaml` (explicit model window, without automatic ancestor
+boxes) and `/projects/IDENTIFIER/cosmosys/model-yaml` (whole project, linked
 from project overview). All registered project/item profiles are available
 with category-specific scope links inside the editor only. Item/project details
 keep a single entry link to the preview, without repeating its scope menu.
-Scopes come from the existing selector: selecting one reloads the example,
+Model windows reuse the existing selector's discovery/authorization but omit
+structural ancestor context. Node only includes descendants/relations up to
+foreign-project frontier nodes; Node and descendants crosses project boundaries.
+Only the explicit ancestors scope selects containing ancestors. The redundant
+across-project item scope is removed. Normal combined diagrams are unchanged.
+Selecting a scope reloads the example,
 replacing unsaved editor text; preview still renders only the explicit YAML.
 Unknown/wrong-category scopes return HTTP 422. Profiles are available
 without a second YAML registration. Native scalar plugin fields reuse the ODS
@@ -17,6 +22,13 @@ through the existing combined Graphviz renderer. No model creation or sync,
 no requirement-validity calculation, no migrations. Drafts are bounded to
 1 MiB/500 items/2000 relations and Graphviz to 10 seconds. View-issues permission
 and source-item visibility are required; no API write/auth extension is added.
+
+Embed a complete model YAML in formatted text with `{{cosmosys_diagram` on an
+opening line, the YAML body (including format/version/project_profile), and `}}`
+on its own closing line. This macro belongs to core, works with all registered
+profiles and returns static sanitized SVG for the normal report-export path.
+It never creates model records. The experimental `poris_diagram` name has been
+removed without an alias; update existing experimental examples to the new name.
 
 Version 0.2.7: snapshots retain attachment source IDs and pass
 the imported attachment ID map to registered reference rewriters. Plugins own
