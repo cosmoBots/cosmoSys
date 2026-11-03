@@ -19,7 +19,9 @@ module Cosmosys
 
       scope = scope.to_sym
       options = {scope: scope, user: user, include_structural_ancestors: false}
-      if category == :item
+      if category == :item && scope == :project
+        ViewAudienceDiagramData.for_project(source.project, **options)
+      elsif category == :item
         ViewAudienceDiagramData.for_item(source, **options.merge(scope: ITEM_SELECTOR_SCOPES.fetch(scope, scope)))
       else
         ViewAudienceDiagramData.for_project(source, **options)
