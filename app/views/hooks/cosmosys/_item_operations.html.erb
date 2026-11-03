@@ -5,5 +5,4 @@
 <% end %>
 <% if defined?(Cosmosys::ModelYamlDialects) && Cosmosys::ModelYamlDialects.registered?(issue.project.csys_project_profile) && issue.visible?(User.current) %>
   <p class="contextual"><%= link_to l(:label_cosmosys_model_yaml_preview), issue_cosmosys_model_yaml_path(issue), class: 'icon icon-preview' %></p>
-  <%= render partial: 'cosmosys/model_yaml_previews/scopes', locals: {issue: issue, project: issue.project} %>
 <% end %>
