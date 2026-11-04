@@ -21,6 +21,13 @@ module Cosmosys
       # cosmoSys report artifact caches on every otherwise identical request.
       prefix = "cosmosys-yaml-#{Digest::SHA256.hexdigest(source.to_s)[0, 16]}-#{instance_id}-"
       ([svg] + svg.css('*').to_a).each do |node|
+        # Graphviz wraps tooltip/link geometry in SVG anchors. Discard the
+        # interactive wrapper, not the paths and arrowheads inside it. Children
+        # remain in this traversal and undergo the same allowlist checks.
+        if node.name == 'a' && [nil, 'http://www.w3.org/2000/svg'].include?(node.namespace&.href)
+          node.replace(node.children)
+          next
+        end
         unless ELEMENTS.include?(node.name) && [nil, 'http://www.w3.org/2000/svg'].include?(node.namespace&.href)
           node.remove
           next
