@@ -1,5 +1,10 @@
 # cosmoSys
 
+Version **0.2.8**. Includes the read-only
+YAML model preview/macro and ODS dictionary changes developed after 0.2.7.
+Embedded YAML diagrams retain edge lines and arrowheads when removing
+Graphviz tooltip/link wrappers; links and active SVG attributes stay disabled.
+
 Development: read-only YAML model drafts at
 `/issues/ID/cosmosys/model-yaml` (explicit model window, without automatic ancestor
 boxes) and `/projects/IDENTIFIER/cosmosys/model-yaml` (whole project, linked
@@ -93,7 +98,7 @@ the project's earlier history and authorship.
 
 ## Status
 
-The current code declares **0.2.7**. Release 0.2.6 extends document
+The current code declares **0.2.8**. Release 0.2.6 extends document
 families on top of release 0.2.5 while retaining database portability and
 schema reconciliation.
 It retains explicit recovery of
