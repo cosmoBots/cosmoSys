@@ -1,5 +1,9 @@
 # cosmoSys
 
+> **PRODUCTION:** cosmoSys is intended for production use on the supported
+> Redmine versions and documented configurations. Optional experimental plugins
+> are separate, opt-in integrations; they do not share this production status.
+
 Version **0.2.8**. Includes the read-only
 YAML model preview/macro and ODS dictionary changes developed after 0.2.7.
 Embedded YAML diagrams retain edge lines and arrowheads when removing
@@ -109,9 +113,11 @@ It includes the tree editor, report image layout fixes, independent settings
 tabs and global snapshot imports from 0.2.1. These workflows were validated in
 Redmine 3001. Publication and deployment pinning are separate steps.
 
-This repository contains an early alpha artifact. It is suitable for controlled
-evaluation and is not yet declared production-ready. You can install it and try
-it, but expect breaking changes.
+cosmoSys is a production plugin, not an early-alpha evaluation artifact.
+Production upgrades must follow the documented compatibility requirements,
+validation and backup procedures. Experimental extensions remain optional and
+have their own warnings; installing one introduces its experimental risks into
+the instance.
 
 ## Requirements
 
@@ -320,9 +326,9 @@ trackers. Plugin migrations remain conventional and do not need to call this
 service. `rails runner` and migration tasks do not trigger startup
 consolidation; restart the web server after applying migrations.
 
-The migration base is developed fast and the project is still in alpha: the
-schema is not yet backward-compatible by design, so back up the database
-before upgrading.
+Back up the database and validate the documented upgrade path before upgrading.
+Follow release-specific migration instructions; returning to an earlier image
+does not undo schema changes and may require restoring the matching backup.
 
 ## Installation with Docker Compose
 
