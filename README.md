@@ -4,77 +4,28 @@
 > Redmine versions and documented configurations. Optional experimental plugins
 > are separate, opt-in integrations; they do not share this production status.
 
-Version **0.2.8**. Includes the read-only
-YAML model preview/macro and ODS dictionary changes developed after 0.2.7.
-Embedded YAML diagrams retain edge lines and arrowheads when removing
-Graphviz tooltip/link wrappers; links and active SVG attributes stay disabled.
+Version **0.2.8**.
 
-Development: read-only YAML model drafts at
-`/issues/ID/cosmosys/model-yaml` (explicit model window, without automatic ancestor
-boxes) and `/projects/IDENTIFIER/cosmosys/model-yaml` (whole project, linked
-from project overview). All registered project/item profiles are available
-with category-specific scope links inside the editor only. Item/project details
-keep a single entry link to the preview, without repeating its scope menu.
-Model windows reuse the existing selector's discovery/authorization but omit
-structural ancestor context. Node only includes descendants/relations up to
-foreign-project frontier nodes; Node and descendants crosses project boundaries.
-Only the explicit ancestors scope selects containing ancestors. The redundant
-across-project item scope is removed. Normal combined diagrams are unchanged.
-Selecting a scope reloads the example,
-replacing unsaved editor text; preview still renders only the explicit YAML.
-Unknown/wrong-category scopes return HTTP 422. Profiles are available
-without a second YAML registration. Native scalar plugin fields reuse the ODS
-field allowlist; optional YAML extensions add aliases and validation, never
-persistence writers. Paste YAML, use a
-source-item YAML attachment or upload a temporary file; validate and preview
-through the existing combined Graphviz renderer. No model creation or sync,
-no requirement-validity calculation, no migrations. Drafts are bounded to
-1 MiB/500 items/2000 relations and Graphviz to 10 seconds. View-issues permission
-and source-item visibility are required; no API write/auth extension is added.
+## Capabilities
 
-Embed a complete model YAML in formatted text with `{{cosmosys_diagram` on an
-opening line, the YAML body (including format/version/project_profile), and `}}`
-on its own closing line. This macro belongs to core, works with all registered
-profiles and returns static sanitized SVG for the normal report-export path.
-It never creates model records. The experimental `poris_diagram` name has been
-removed without an alias; update existing experimental examples to the new name.
+- Navigate items, relationships, trees, diagrams and matrices.
+- Generate HTML, ODT, DOCX and PDF reports.
+- Organize references and embed Figure, Table, Formula and Model documents with
+  `{{document_embed(di123)}}`. Each project can number families by catalog order
+  or first appearance. Use `{{image_gap(0.5cm)}}` to space adjacent images.
+- Exchange project data through ODS and project snapshots. Attachment references
+  within the captured scope are remapped on import.
+- Preview a YAML model without creating or changing items: use **Preview YAML
+  model** from an item or project. Select an example scope, paste YAML, use an
+  attachment or upload a file. Changing the example scope replaces unsaved text.
+  Drafts are limited to 1 MiB, 500 items and 2,000 relations.
 
-Version 0.2.7: snapshots retain attachment source IDs and pass
-the imported attachment ID map to registered reference rewriters. Plugins own
-their macro syntax; cosmoSys does not depend on CAD or the document catalog
-for attachment identity. Rewriting runs after file restoration for items,
-documents, restored wiki content and imported presentation baselines.
-
-Version 0.2.6: Figure, Table, Formula and Model document families
-extend the catalog. Cite with `document:di123` or include the document's Markdown
-description with `{{document_embed(di123)}}`. Project report settings choose
-catalog ordering or first-inclusion numbering per family. The `doc` item profile
-offers optional indexes for all seven families; the related-document section
-installer creates them together. No schema migration is needed.
-Automatic captions use italic blockquotes. `{{image_gap(0.5cm)}}` (also mm/px)
-adds transparent spacing within a row of images; keep the macro and images in
-the same paragraph. Export fits table images to their cell widths so their
-intrinsic size cannot force tables beyond page margins.
-
-Version 0.2.5 fixes project combined and dependency diagrams with cross-project
-traversal: only the focal project's items seed discovery. Enabled causal paths
-and their visible ancestors are included, but disconnected subproject items
-and unrelated branches are not. No database migration is added.
-
-Version 0.2.4: database migrations and runtime queries use Rails/Arel for
-database portability, with schema reconciliation for existing installations
-and larger payload capacity. The workspace functional suite passes 55/55 on
-PostgreSQL, MySQL and SQLite. Existing-installation schema reconciliation is
-validated against PostgreSQL; full populated rollback of all optional plugins
-is not certified. New bounded text/binary columns request 16 MiB minus one byte
-through Rails. This does not preallocate space, impose an upload policy or
-shrink existing wider/unbounded columns.
-
-Version 0.2.3 introduced project subtree deletion that preserves external datum
-consumers and rolls back child failures. Administrators can audit project trees
-and explicitly retry scheduled deletions with the scripts in `scripts/`.
-Missing consolidated evidence is reported separately from content drift;
-viewing an item never creates approval evidence.
+To embed a model in documentation, write `{{cosmosys_diagram` on an opening
+line, a complete model YAML beneath it, and `}}` on its own closing line.
+Use the preview's generated examples for the format and the types and fields
+supported by each installed project profile. The macro renders a static diagram
+and also works in report exports. Neither the preview nor the macro creates or
+synchronizes model records; normal source-item visibility permissions apply.
 
 Base plugin for [Redmine](https://www.redmine.org), providing a shared
 engineering model on which domain extensions are built.
@@ -102,16 +53,6 @@ the project's earlier history and authorship.
 
 ## Status
 
-The current code declares **0.2.8**. Release 0.2.6 extends document
-families on top of release 0.2.5 while retaining database portability and
-schema reconciliation.
-It retains explicit recovery of
-interrupted snapshot imports, cooperative cancellation of abandoned diagram
-renders, safer project deletion and diagnostics for missing approval evidence.
-It retains server-side LaTeX report export and complete macro preservation.
-It includes the tree editor, report image layout fixes, independent settings
-tabs and global snapshot imports from 0.2.1. These workflows were validated in
-Redmine 3001. Publication and deployment pinning are separate steps.
 
 cosmoSys is a production plugin, not an early-alpha evaluation artifact.
 Production upgrades must follow the documented compatibility requirements,
@@ -186,16 +127,8 @@ Redmine plugin. You do not need Docker or the deployment repository for this.
    RAILS_ENV=production bundle exec rake redmine:plugins:migrate NAME=cosmosys
    ```
 
-   For a development or test environment, set `RAILS_ENV=development` (or
-   `test`) accordingly. Migrations `001`–`009` are sealed by releases through
-   0.1.6. Migration `009` adds the snapshot wiki-page count only if the column
-   is absent, so it also repairs databases where an earlier 0.1.5 build already
-   added it. An upgrade from an earlier release migrates through the latest
-   available migration. Release 0.1.9 seals migration `010`, which enables
-   missing required profile trackers on existing projects. Release 0.1.11
-   seals migration `011`, adding the per-project requirement-chain-validity
-   setting (enabled by default). Release 0.2.0 seals migration `012`, which
-   stores fingerprints for post-migration contract reconciliation.
+   For development or tests, set `RAILS_ENV=development` or `test`.
+   Run all available migrations when upgrading.
 
 5. **Normalise item query names (recommended).** cosmoSys sets the visible
    domain vocabulary to `item`/`items` (and `ítem`/`ítems` in Spanish) and
@@ -310,21 +243,8 @@ RAILS_ENV=production bundle exec rake redmine:plugins:migrate NAME=cosmosys
 # restart Redmine
 ```
 
-Migration `010` repairs existing projects by enabling the available required
-trackers of their registered profile, including `csNegative`, without removing
-existing assignments. It is idempotent and keeps these assignments on rollback.
-This addresses the 0.1.8 upgrade failure when bootstrap saves legacy help
-projects. Ordinary project saves no longer validate unrelated tracker state;
-the tracker assignment methods continue to reject removal of required trackers.
-
-After plugin migrations have run, the web server runs
-`Cosmosys::ConsolidationService` at startup. It compares the current registered
-profile-contract fingerprints with the stored fingerprints and reconciles only
-the affected profile scopes. The initial consolidator ensures that existing
-projects have the required trackers for their profile; it does not remove
-trackers. Plugin migrations remain conventional and do not need to call this
-service. `rails runner` and migration tasks do not trigger startup
-consolidation; restart the web server after applying migrations.
+Restart the web server after migrations so registered project profiles are
+reconciled. Existing tracker assignments are retained.
 
 Back up the database and validate the documented upgrade path before upgrading.
 Follow release-specific migration instructions; returning to an earlier image
@@ -396,10 +316,6 @@ pixels. Consecutive images that are the only contents of a Markdown paragraph
 are composed side by side and bottom-aligned; paragraphs with text or explicit
 image sizing keep their authored layout.
 
-These report improvements and startup contract reconciliation are included in
-cosmoSys since 0.2.0. Version 0.2.1 also fixes composition of explicitly sized
-inline HTML images and centers the composed row within the printable width.
-Validation runs against Redmine 3001 before publication and deployment.
 
 ## Project settings and snapshot imports
 
