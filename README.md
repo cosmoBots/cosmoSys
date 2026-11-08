@@ -4,7 +4,7 @@
 > Redmine versions and documented configurations. Optional experimental plugins
 > are separate, opt-in integrations; they do not share this production status.
 
-Version **0.2.8**.
+Version **0.2.9-dirty** (development).
 
 ## Capabilities
 
@@ -19,6 +19,12 @@ Version **0.2.8**.
   model** from an item or project. Select an example scope, paste YAML, use an
   attachment or upload a file. Changing the example scope replaces unsaved text.
   Drafts are limited to 1 MiB, 500 items and 2,000 relations.
+
+ODS imports are incremental: rows absent from the workbook leave existing items
+untouched; absent columns leave those attributes unchanged. An empty cell in a
+present column explicitly clears that attribute where permitted. Importing only
+new rows adds those items without replacing the project. ODS import never
+deletes items: change their status or delete them in Redmine instead.
 
 To embed a model in documentation, write `{{cosmosys_diagram` on an opening
 line, a complete model YAML beneath it, and `}}` on its own closing line.

@@ -93,10 +93,12 @@ module Cosmosys
       provisional_markers = {}
 
       ActiveRecord::Base.transaction do
-        report_progress(15, 'applying_items')
-        apply_items!(current_data.fetch('items'), current_data.fetch('extra'), resolved_items, result)
-        report_progress(45, 'applying_hierarchy')
-        apply_item_hierarchy_and_relations!(current_data.fetch('items'), current_data.fetch('extra'), resolved_items)
+        Cosmosys::SiblingOrder.without_normalization do
+          report_progress(15, 'applying_items')
+          apply_items!(current_data.fetch('items'), current_data.fetch('extra'), resolved_items, result)
+          report_progress(45, 'applying_hierarchy')
+          apply_item_hierarchy_and_relations!(current_data.fetch('items'), current_data.fetch('extra'), resolved_items)
+        end
         report_progress(60, 'applying_documents')
         apply_documents!(current_data.fetch('documents'), resolved_documents, result)
         report_progress(72, 'applying_catalog')
@@ -246,12 +248,14 @@ module Cosmosys
     end
 
     def semantic_rows(rows, fields)
-      rows.map { |row| fields.to_h { |field| [field, row[field].to_s] } }
+      rows.map { |row| fields.select { |field| row.key?(field) }.to_h { |field| [field, row[field].to_s] } }
     end
 
     def build_plan(data)
       validate_duplicate_rows!(data)
-      item_counts = inspect_rows(data.fetch('items'), 'Item') { |row| resolve_item(row) }
+      extras = data.fetch('extra').index_by { |row| row['csid'] }
+      item_rows = data.fetch('items').map { |row| (extras[row['csid']] || {}).merge(row) }
+      item_counts = inspect_rows(item_rows, 'Item') { |row| resolve_item(row) }
       document_counts = inspect_rows(data.fetch('documents'), 'Document') { |row| resolve_document(row) }
       inspect_catalog_rows(data.fetch('catalog'), data)
       {
@@ -345,7 +349,7 @@ module Cosmosys
     def apply_item_fields(issue, row, new_record:)
       base = parse_base(row)
       current = current_item_values(issue)
-      proposed = item_fields.to_h { |field| [field, canonical_text(row[field])] }
+      proposed = item_fields.select { |field| row.key?(field) }.to_h { |field| [field, canonical_text(row[field])] }
       allowed = safe_proposals(base, current, proposed, row, issue)
       issue.project = row_project(row) if new_record
       issue.tracker = tracker_for(allowed['tracker'].presence || row['tracker'], issue.project) if new_record || allowed.key?('tracker')
@@ -443,11 +447,20 @@ module Cosmosys
       rows.filter_map { |row| resolved[row['csid']] }.group_by { |issue| [issue.project_id, issue.reload.parent_id] }.each_value do |imported|
         scope = Cosmosys::SiblingOrder.sibling_scope(imported.first)
         imported_by_id = imported.index_by(&:id)
-        preferred = imported.map(&:id)
-        ordered = scope.reorder(:lft, :id).to_a.map do |issue|
-          imported_by_id.key?(issue.id) ? imported_by_id.fetch(preferred.shift) : issue
+        siblings = scope.reorder(:csposition, :id).to_a
+        occupied = siblings.reject { |issue| imported_by_id.key?(issue.id) }.map(&:csposition)
+        slots = if occupied.empty?
+                  (1..imported.size).to_a
+                else
+                  imported.map(&:csposition).compact.reject { |position| occupied.include?(position) }.uniq.sort
+                end
+        last = siblings.map(&:csposition).compact.max || 0
+        while slots.size < imported.size
+          last += 1
+          slots << last
         end
-        Cosmosys::SiblingOrder.apply_order!(ordered)
+        # ODS may reorder the supplied siblings, not renumber omitted items.
+        imported.each_with_index { |issue, index| issue.update_column(:csposition, slots[index]) unless issue.csposition == slots[index] }
       end
     end
 
@@ -496,7 +509,8 @@ module Cosmosys
         document ||= Document.new(project: row_project(row))
         base = parse_base(row)
         current = current_document_values(document)
-        safe = safe_proposals(base, current, DOCUMENT_FIELDS.to_h { |field| [field, canonical_text(row[field])] }, row, document)
+        proposed = DOCUMENT_FIELDS.select { |field| row.key?(field) }.to_h { |field| [field, canonical_text(row[field])] }
+        safe = safe_proposals(base, current, proposed, row, document)
         document.title = normalized_text(safe.fetch('title', row['title']), row, 'title') if new_record || safe.key?('title')
         document.description = normalized_text(safe.fetch('description', row['description']), row, 'description') if new_record || safe.key?('description')
         document.external_code = safe['external_code'] if safe.key?('external_code')

@@ -1,5 +1,15 @@
 module Cosmosys
   class SiblingOrder
+    # An incremental import must not renumber records absent from its input.
+    # Keep the suppression scoped to this execution, including on failure.
+    def self.without_normalization
+      previous = ActiveSupport::IsolatedExecutionState[:cosmosys_skip_sibling_normalization]
+      ActiveSupport::IsolatedExecutionState[:cosmosys_skip_sibling_normalization] = true
+      yield
+    ensure
+      ActiveSupport::IsolatedExecutionState[:cosmosys_skip_sibling_normalization] = previous
+    end
+
     def self.append(issue)
       siblings = sibling_scope(issue).where.not(id: issue.id)
       next_position = siblings.maximum(:csposition).to_i + 1
@@ -15,6 +25,7 @@ module Cosmosys
     end
 
     def self.normalize!(scope)
+      return if ActiveSupport::IsolatedExecutionState[:cosmosys_skip_sibling_normalization]
       scope.reorder(:csposition, :id).each.with_index(1) do |issue, index|
         next if issue.csposition == index
 
