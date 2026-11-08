@@ -4,7 +4,7 @@
 > Redmine versions and documented configurations. Optional experimental plugins
 > are separate, opt-in integrations; they do not share this production status.
 
-Version **0.2.10-dirty**.
+Version **0.2.10**.
 
 ## Capabilities
 
