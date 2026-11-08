@@ -1155,12 +1155,24 @@
 
         var body = new FormData();
         body.append('format', format);
-        window.fetch(button.dataset.exportUrl, {
+        // Plugins may prepare static report resources in the browser before
+        // the server rebuilds the export. Wait without knowing their domain.
+        var resources = button.closest('[data-cosmosys-report]') || document;
+        var preparing = new Promise(function(resolve, reject) {
+          var started = Date.now();
+          function check() {
+            if (!resources.querySelector('[data-cosmosys-report-resource="pending"]')) return resolve();
+            if (Date.now() - started > 300000) return reject(new Error('Report resources are not ready'));
+            window.setTimeout(check, 100);
+          }
+          check();
+        });
+        preparing.then(function() { return window.fetch(button.dataset.exportUrl, {
           method: 'POST',
           body: body,
           credentials: 'same-origin',
           headers: token ? { 'X-CSRF-Token': token.content, 'X-Requested-With': 'XMLHttpRequest' } : {}
-        })
+        }); })
           .then(function(response) {
             if (!response.ok) throw new Error('Report export failed');
             return response.blob();

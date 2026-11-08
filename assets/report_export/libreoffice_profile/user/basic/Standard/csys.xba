@@ -42,9 +42,21 @@ Sub FitGraphicsToPageContent(oDoc)
         If sStyleName = &quot;&quot; Then sStyleName = &quot;Standard&quot;
         If oPageStyles.hasByName(sStyleName) Then
             oPageStyle = oPageStyles.getByName(sStyleName)
-            nMaxWidth = oPageStyle.Width - oPageStyle.LeftMargin - oPageStyle.RightMargin
-            nMaxHeight = oPageStyle.Height - oPageStyle.TopMargin - oPageStyle.BottomMargin
+        Else
+            oPageStyle = oPageStyles.getByName(&quot;Standard&quot;)
         End If
+        nMaxWidth = oPageStyle.Width - oPageStyle.LeftMargin - oPageStyle.RightMargin
+        nMaxHeight = oPageStyle.Height - oPageStyle.TopMargin - oPageStyle.BottomMargin
+        rem Margins alone are not the body area when headers/footers are on.
+        If oPageStyle.HeaderIsOn Then
+            nMaxHeight = nMaxHeight - oPageStyle.HeaderHeight - oPageStyle.HeaderBodyDistance
+        End If
+        If oPageStyle.FooterIsOn Then
+            nMaxHeight = nMaxHeight - oPageStyle.FooterHeight - oPageStyle.FooterBodyDistance
+        End If
+        nMaxHeight = nMaxHeight - oCursor.ParaTopMargin - oCursor.ParaBottomMargin
+        rem Leave one millimetre for line layout and unit rounding.
+        nMaxHeight = nMaxHeight - 100
         If aSize.Width &gt; nMaxWidth And aSize.Width &gt; 0 Then
             nOriginalWidth = aSize.Width
             aSize.Width = nMaxWidth
