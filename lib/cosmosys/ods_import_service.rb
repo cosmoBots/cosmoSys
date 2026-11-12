@@ -120,6 +120,7 @@ module Cosmosys
 
       event!('error', 'application_failed', (@application_error_context || {}).merge(message: error.message))
       transfer.update!(state: 'failed', summary: transfer.summary.merge('application_exception' => error.class.name,
+                                                                         'blocking' => true,
                                                                          'row_errors' => localized_error_summary,
                                                                          'progress_phase' => 'failed'))
       transfer
@@ -279,6 +280,7 @@ module Cosmosys
       counts = { 'create' => 0, 'update' => 0, 'unchanged' => 0 }
       rows.each do |row|
         entity = yield(row)
+        changes = {}
         if entity
           changes = conflicting_changes(entity_type, entity, row)
           counts[changes.empty? ? 'unchanged' : 'update'] += 1
@@ -286,8 +288,21 @@ module Cosmosys
           counts['create'] += 1
           validate_new_row_identity!(row, entity_type)
         end
+        inspect_item_tracker(row, entity, changes) if entity_type == 'Item'
       end
       counts
+    end
+
+    def inspect_item_tracker(row, entity, changes)
+      return if entity && !changes.key?('tracker')
+
+      field = 'project'
+      target_project = entity ? entity.project : row_project(row)
+      field = 'tracker'
+      tracker_for(entity ? changes['tracker'] : canonical_text(row['tracker']), target_project)
+    rescue ImportError => error
+      event!('error', "invalid_#{field}", row_context(row).merge(field_name: field,
+        entity_type: 'Issue', entity_key: row['csid'], message: error.message))
     end
 
     def inspect_catalog_rows(rows, data)
@@ -352,7 +367,7 @@ module Cosmosys
       proposed = item_fields.select { |field| row.key?(field) }.to_h { |field| [field, canonical_text(row[field])] }
       allowed = safe_proposals(base, current, proposed, row, issue)
       issue.project = row_project(row) if new_record
-      issue.tracker = tracker_for(allowed['tracker'].presence || row['tracker'], issue.project) if new_record || allowed.key?('tracker')
+      issue.tracker = tracker_for(new_record ? canonical_text(row['tracker']) : allowed['tracker'], issue.project) if new_record || allowed.key?('tracker')
       issue.status ||= IssueStatus.sorted.first
       issue.priority ||= IssuePriority.default || IssuePriority.active.sorted.first
       issue.subject = normalized_text(allowed.fetch('subject', row['subject'].presence || row['csid']), row, 'subject') if new_record || allowed.key?('subject')
@@ -655,8 +670,11 @@ module Cosmosys
     end
 
     def tracker_for(name, target_project)
+      raise ImportError, 'Tracker is required for a new item or an explicit tracker change' if name.blank?
+
       tracker = Tracker.find_by(name: name)
-      raise ImportError, "Unknown or unavailable tracker #{name}" unless tracker && target_project.trackers.exists?(tracker.id)
+      raise ImportError, "Unknown tracker #{name.inspect}" unless tracker
+      raise ImportError, "Tracker #{name.inspect} is not available in project #{target_project.identifier}" unless target_project.trackers.exists?(tracker.id)
       tracker
     end
 

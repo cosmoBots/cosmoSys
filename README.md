@@ -4,7 +4,7 @@
 > Redmine versions and documented configurations. Optional experimental plugins
 > are separate, opt-in integrations; they do not share this production status.
 
-Version **0.2.10**.
+Version **0.2.11-dirty** (development).
 
 ## Capabilities
 
@@ -25,6 +25,10 @@ untouched; absent columns leave those attributes unchanged. An empty cell in a
 present column explicitly clears that attribute where permitted. Importing only
 new rows adds those items without replacing the project. ODS import never
 deletes items: change their status or delete them in Redmine instead.
+
+New items require a tracker enabled in the target project. The import preview
+also checks explicit tracker changes before confirmation. The protected
+`Cosmosys` metadata sheet is hidden on export; do not delete it from the workbook.
 
 To embed a model in documentation, write `{{cosmosys_diagram` on an opening
 line, a complete model YAML beneath it, and `}}` on its own closing line.
