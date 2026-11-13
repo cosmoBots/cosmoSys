@@ -36,6 +36,9 @@ module Cosmosys
 
         line = transform_title_node(line)
         line = transform_cluster(line, current_clusters.last)
+        # A hierarchy must use dot's ranks even if its source combined graph
+        # uses the project's fdp default. Containment selection stays identical.
+        line = line.sub(/\blayout="(?:fdp|dot)"/, 'layout="dot"') if line.match?(/\A\s*graph\s*\[/)
         line = compact_rank_separation(line)
         rendered << omit_relation_edge(line)
         if (match = line.match(/^\s*subgraph "cluster_issue_(\d+)" \{$/)) && @layout_anchor_issue_ids.include?(match[1])

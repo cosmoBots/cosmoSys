@@ -310,7 +310,7 @@ module Cosmosys
 
     def cosmosys_combined_diagram_layout_mode
       mode = cosmosys_report_setting_record&.combined_layout_mode.to_s
-      Cosmosys::CombinedDiagramRenderer.valid_layout_mode?(mode) ? mode : Cosmosys::CombinedDiagramRenderer::DEFAULT_LAYOUT_MODE
+      Cosmosys::CombinedDiagramRenderer.valid_layout_mode?(mode) ? mode : cosmosys_project_profile_definition.combined_diagram_layout_mode
     end
 
     def cosmosys_combined_diagram_render_variant

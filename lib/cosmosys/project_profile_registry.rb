@@ -7,7 +7,7 @@ module Cosmosys
       :default_report_columns,
       :default_report_field_presentations, :default_report_options,
       :default_item_list_columns, :combined_diagram_rankdir,
-      :combined_diagram_container_node_policy,
+      :combined_diagram_container_node_policy, :combined_diagram_layout_mode,
       keyword_init: true
     )
     DEFAULT_KEY = 'items'.freeze
@@ -31,11 +31,11 @@ module Cosmosys
 
     module_function
 
-    def register(key, label:, description:, provider:, required_trackers:, default_root_tracker: nil, ods_export_template: DEFAULT_ODS_EXPORT_TEMPLATE, report_export_template: DEFAULT_REPORT_EXPORT_TEMPLATE, default_enabled_modules: [], default_disabled_modules: [], required_modules: [], default_report_columns: DEFAULT_REPORT_COLUMNS, default_report_field_presentations: {}, default_report_options: DEFAULT_REPORT_OPTIONS, default_item_list_columns: DEFAULT_ITEM_LIST_COLUMNS, combined_diagram_rankdir: 'TB', combined_diagram_container_node_policy: 'all_containers')
+    def register(key, label:, description:, provider:, required_trackers:, default_root_tracker: nil, ods_export_template: DEFAULT_ODS_EXPORT_TEMPLATE, report_export_template: DEFAULT_REPORT_EXPORT_TEMPLATE, default_enabled_modules: [], default_disabled_modules: [], required_modules: [], default_report_columns: DEFAULT_REPORT_COLUMNS, default_report_field_presentations: {}, default_report_options: DEFAULT_REPORT_OPTIONS, default_item_list_columns: DEFAULT_ITEM_LIST_COLUMNS, combined_diagram_rankdir: 'TB', combined_diagram_container_node_policy: 'all_containers', combined_diagram_layout_mode: 'dot')
       key = normalize_key(key)
       raise ArgumentError, "#{DEFAULT_KEY} is the reserved project profile" if key == DEFAULT_KEY
       raise ArgumentError, "project profile #{key} is already registered" if profiles.key?(key)
-      candidate = build(key:, label:, description:, provider:, required_trackers: BASE_TRACKERS + required_trackers, default_root_tracker:, ods_export_template:, report_export_template:, default_enabled_modules:, default_disabled_modules:, required_modules:, default_report_columns:, default_report_field_presentations:, default_report_options:, default_item_list_columns:, combined_diagram_rankdir:, combined_diagram_container_node_policy:)
+      candidate = build(key:, label:, description:, provider:, required_trackers: BASE_TRACKERS + required_trackers, default_root_tracker:, ods_export_template:, report_export_template:, default_enabled_modules:, default_disabled_modules:, required_modules:, default_report_columns:, default_report_field_presentations:, default_report_options:, default_item_list_columns:, combined_diagram_rankdir:, combined_diagram_container_node_policy:, combined_diagram_layout_mode:)
       validate_contract!(candidate)
       profiles[key] = candidate
     end
@@ -79,12 +79,16 @@ module Cosmosys
       attributes[:default_report_options] = Hash(attributes[:default_report_options]).stringify_keys.transform_values { |value| ActiveModel::Type::Boolean.new.cast(value) }.freeze
       attributes[:combined_diagram_rankdir] = attributes[:combined_diagram_rankdir].to_s.upcase.presence || 'TB'
       attributes[:combined_diagram_container_node_policy] = attributes[:combined_diagram_container_node_policy].to_s.presence || 'all_containers'
+      attributes[:combined_diagram_layout_mode] = attributes[:combined_diagram_layout_mode].to_s.presence || 'dot'
       item_list_columns = Array(attributes[:default_item_list_columns]).map(&:to_s).reject(&:blank?).uniq
       attributes[:default_item_list_columns] = (%w[chapter_label subject] + (item_list_columns - %w[chapter_label subject])).freeze
       Profile.new(**attributes.transform_values { |value| value.frozen? ? value : value.freeze }).freeze
     end
 
     def validate_contract!(candidate)
+      unless %w[dot fdp].include?(candidate.combined_diagram_layout_mode)
+        raise ArgumentError, "invalid combined diagram layout #{candidate.combined_diagram_layout_mode.inspect}"
+      end
       unless %w[TB LR].include?(candidate.combined_diagram_rankdir)
         raise ArgumentError, "invalid combined diagram rankdir #{candidate.combined_diagram_rankdir.inspect}"
       end

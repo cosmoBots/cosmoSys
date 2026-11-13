@@ -333,6 +333,9 @@ Project settings use separate General, Reports, Item list, Diagrams and Branding
 sections. Each form saves only its submitted settings and returns to that
 section. Save before switching sections.
 
+Project profiles can supply a default combined-diagram layout (`dot` or `fdp`).
+An explicitly saved project layout takes precedence over that default.
+
 Administrators can import directly from the global Projects list, New project
 or Administration via `/cosmosys/snapshots/import`, without creating an origin
 project. The parent is optional and defaults to root-level placement. Global
