@@ -4,6 +4,18 @@ module Cosmosys
     CATALOG_REF_PATTERN = /(?<![A-Za-z0-9_:\-])document:di([0-9]+)\b/
     CROSS_PROJECT_CATALOG_REF_PATTERN = /(?<![A-Za-z0-9_:\-])(?:[A-Za-z0-9_-]+:document:di[0-9]+|document:[A-Za-z0-9_-]+:di[0-9]+)\b/
 
+    def favicon_path
+      return super if current_theme&.favicon?
+
+      image_path('plugin_assets/cosmosys/favicon.svg')
+    end
+
+    def favicon
+      return super if current_theme&.favicon?
+
+      favicon_link_tag(favicon_path, rel: 'icon', type: 'image/svg+xml')
+    end
+
     def url_for(options = nil)
       if options.is_a?(Hash) && (options[:controller] || options['controller']).to_s == 'wiki'
         key = options.key?(:controller) ? :controller : 'controller'
