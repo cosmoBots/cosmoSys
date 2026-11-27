@@ -16,10 +16,14 @@ module Cosmosys
       raise ArgumentError, 'Invalid diagram instance' unless instance_id.is_a?(Integer) && instance_id.positive?
       document = Cosmosys::ModelYamlDocument.new(source)
       output = Cosmosys::ModelYamlPreview.new(document).svg
-      svg = Nokogiri::XML(output) { |config| config.strict.nonet }.root
       # Stable for the same source/order, unlike random IDs which would bust
       # cosmoSys report artifact caches on every otherwise identical request.
       prefix = "cosmosys-yaml-#{Digest::SHA256.hexdigest(source.to_s)[0, 16]}-#{instance_id}-"
+      sanitize(output, prefix: prefix)
+    end
+
+    def self.sanitize(output, prefix:)
+      svg = Nokogiri::XML(output) { |config| config.strict.nonet }.root
       ([svg] + svg.css('*').to_a).each do |node|
         # Graphviz wraps tooltip/link geometry in SVG anchors. Discard the
         # interactive wrapper, not the paths and arrowheads inside it. Children

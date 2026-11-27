@@ -14,7 +14,7 @@ module Cosmosys
     ROOT_KEYS = %w[format version project_profile projects items relations diagram].freeze
     ITEM_KEYS = %w[type project parent csid subject description position source_id boundary chapter closed done_ratio due_date assigned_to_id fields].freeze
 
-    def initialize(text, expected_profile: nil)
+    def initialize(text, expected_profile: nil, allow_empty: false)
       raise Invalid, 'YAML exceeds 1 MiB' if text.to_s.bytesize > MAX_BYTES
       syntax = Psych.parse(text.to_s)
       validate_syntax!(syntax, 0) if syntax
@@ -26,7 +26,7 @@ module Cosmosys
       raise Invalid, "Document profile #{profile} differs from project profile #{expected_profile}" if expected_profile && profile != expected_profile
       @dialect = ModelYamlDialects.fetch(profile)
       validate_projects!
-      validate_items!
+      validate_items!(allow_empty: allow_empty)
       validate_relations!
       validate_diagram!
     rescue Psych::Exception, TypeError, KeyError, ArgumentError => error
@@ -71,9 +71,10 @@ module Cosmosys
       no_cycles!(projects, 'project')
     end
 
-    def validate_items!
+    def validate_items!(allow_empty:)
       mapping!(items, 'items')
-      raise Invalid, "Declare between 1 and #{MAX_ITEMS} items" unless items.size.between?(1, MAX_ITEMS)
+      minimum = allow_empty ? 0 : 1
+      raise Invalid, "Declare between #{minimum} and #{MAX_ITEMS} items" unless items.size.between?(minimum, MAX_ITEMS)
       source_ids = []; csids = []
       items.each do |key, row|
         identifier!(key)
