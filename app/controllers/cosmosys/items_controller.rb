@@ -632,7 +632,8 @@ module Cosmosys
         render_variant: options.render_variant,
         layout_mode: options.layout_mode,
         relation_types: relation_options.relation_types,
-        include_document_references: relation_options.include_document_references?
+        include_document_references: relation_options.include_document_references?,
+        tracker_keys: Array.wrap(params[:tracker_keys]).grep(String).reject(&:blank?)
       }
       @export_issue ? Cosmosys::CombinedDiagramService.fetch(@export_issue, **arguments) : Cosmosys::ProjectCombinedDiagramService.fetch(@project, **arguments)
     end

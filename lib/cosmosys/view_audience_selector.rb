@@ -65,21 +65,22 @@ module Cosmosys
 
     class InvalidScope < ArgumentError; end
 
-    def self.for_project(project, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES, include_structural_ancestors: true)
-      new(project, category: :project, scope: scope, user: user, relation_types: relation_types, include_structural_ancestors: include_structural_ancestors).select
+    def self.for_project(project, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES, include_structural_ancestors: true, tracker_keys: nil)
+      new(project, category: :project, scope: scope, user: user, relation_types: relation_types, include_structural_ancestors: include_structural_ancestors, tracker_keys: tracker_keys).select
     end
 
-    def self.for_item(issue, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES, include_structural_ancestors: true)
-      new(issue, category: :item, scope: scope, user: user, relation_types: relation_types, include_structural_ancestors: include_structural_ancestors).select
+    def self.for_item(issue, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES, include_structural_ancestors: true, tracker_keys: nil)
+      new(issue, category: :item, scope: scope, user: user, relation_types: relation_types, include_structural_ancestors: include_structural_ancestors, tracker_keys: tracker_keys).select
     end
 
-    def initialize(focus, category:, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES, include_structural_ancestors: true)
+    def initialize(focus, category:, scope:, user: User.current, relation_types: DEFAULT_RELATION_TYPES, include_structural_ancestors: true, tracker_keys: nil)
       @focus = focus
       @category = category.to_sym
       @scope = scope.to_sym
       @user = user
       @relation_types = Array(relation_types).map(&:to_s).uniq
       @include_structural_ancestors = include_structural_ancestors
+      @allowed_trackers = Tracker.where(csys_key: tracker_keys).select(:id) if tracker_keys.present?
       reset_traversal_metrics
       validate_scope!
     end
@@ -151,7 +152,7 @@ module Cosmosys
       return Set.new if parent_ids.empty?
 
       focus_project_id = @category == :project ? @focus.id : @focus.project_id
-      children = Issue.visible(@user)
+      children = allowed_issues(Issue.visible(@user))
                       .where(parent_id: parent_ids.to_a)
                       .where.not(project_id: focus_project_id)
                       .includes(:tracker, :status, :priority, { project: :parent, parent: [:project, :tracker, :status, :priority] })
@@ -231,8 +232,10 @@ module Cosmosys
 
     def selected_item_ids(projects)
       if @category == :project
-        return Issue.where(project_id: projects.map(&:id)).pluck(:id).to_set
+        return allowed_issues(Issue.where(project_id: projects.map(&:id))).pluck(:id).to_set
       end
+
+      return Set.new if @allowed_trackers && !allowed_issues(Issue.where(id: @focus.id)).exists?
 
       case @scope
       when :node
@@ -240,7 +243,7 @@ module Cosmosys
       when :node_and_descendants
         same_project_subtree_ids
       when :project
-        Issue.where(project_id: @focus.project_id).pluck(:id).to_set
+        allowed_issues(Issue.where(project_id: @focus.project_id)).pluck(:id).to_set
       when :node_and_descendants_across_projects
         descendants_in_item_tree
       when :node_and_descendants_with_successors, :node_and_descendants_with_predecessors
@@ -256,7 +259,7 @@ module Cosmosys
 
       until pending.empty?
         RenderCancellation.check!
-        children = Issue.visible(@user).where(parent_id: pending).pluck(:id)
+        children = allowed_issues(Issue.visible(@user)).where(parent_id: pending).pluck(:id)
         @traversal_metrics[:candidate_item_ids].merge(children)
         fresh = children.reject { |issue_id| selected.include?(issue_id) }
         selected.merge(fresh)
@@ -294,7 +297,7 @@ module Cosmosys
 
       until pending.empty?
         RenderCancellation.check!
-        children = Issue.visible(@user).where(parent_id: pending, project_id: project_id).pluck(:id)
+        children = allowed_issues(Issue.visible(@user)).where(parent_id: pending, project_id: project_id).pluck(:id)
         @traversal_metrics[:candidate_item_ids].merge(children)
         fresh = children.reject { |issue_id| selected.include?(issue_id) }
         selected.merge(fresh)
@@ -308,7 +311,7 @@ module Cosmosys
       RenderCancellation.check!
       return [] if ids.empty?
 
-      items = Issue.visible(@user).where(id: ids.to_a)
+      items = allowed_issues(Issue.visible(@user)).where(id: ids.to_a)
            .includes(
              :tracker, :status, :priority,
              { project: :parent, parent: [:project, :tracker, :status, :priority] }
@@ -345,8 +348,7 @@ module Cosmosys
     def select_relations(audience_ids)
       return [[], [], []] if audience_ids.empty? || @relation_types.empty?
 
-      relation_scope = IssueRelation
-        .where(relation_type: @relation_types)
+      relation_scope = allowed_relations.where(relation_type: @relation_types)
         .where(IssueRelation.arel_table[:issue_from_id].in(audience_ids.to_a).or(IssueRelation.arel_table[:issue_to_id].in(audience_ids.to_a)))
         .includes(
           issue_from: [
@@ -410,7 +412,7 @@ module Cosmosys
 
       items_by_id = audience_items.index_by(&:id)
       focus_project_id = @focus.project_id
-      focus_children = Issue.visible(@user).where(parent_id: @focus.id)
+      focus_children = allowed_issues(Issue.visible(@user)).where(parent_id: @focus.id)
                             .includes(:project, :tracker).to_a
       @traversal_metrics[:candidate_item_ids].merge(focus_children.map(&:id))
       @traversal_metrics[:loaded_item_ids].merge(focus_children.map(&:id))
@@ -485,7 +487,7 @@ module Cosmosys
     def internal_relations(item_ids)
       return [] if item_ids.empty?
 
-      relations = IssueRelation.where(relation_type: @relation_types, issue_from_id: item_ids.to_a, issue_to_id: item_ids.to_a)
+      relations = allowed_relations.where(relation_type: @relation_types, issue_from_id: item_ids.to_a, issue_to_id: item_ids.to_a)
                                .includes(relation_endpoints_includes).order(:id).to_a
       record_examined_relations(relations)
       relations
@@ -494,7 +496,7 @@ module Cosmosys
     def relates_relations(item_ids)
       return [] unless @relation_types.include?('relates')
 
-      relations = IssueRelation.where(relation_type: 'relates')
+      relations = allowed_relations.where(relation_type: 'relates')
                                .where(IssueRelation.arel_table[:issue_from_id].in(item_ids.to_a).or(IssueRelation.arel_table[:issue_to_id].in(item_ids.to_a)))
                                .includes(relation_endpoints_includes).order(:id).to_a
       record_examined_relations(relations)
@@ -523,7 +525,7 @@ module Cosmosys
 
           batch_ids = frontier_ids.shift(frontier_ids.length)
           @traversal_metrics[:frontier_batches] += 1
-          edge_scope = IssueRelation.where(relation_type: @relation_types & %w[blocks precedes])
+          edge_scope = allowed_relations.where(relation_type: @relation_types & %w[blocks precedes])
           edge_scope = if direction == :upstream
                          edge_scope.where(issue_to_id: batch_ids)
                        else
@@ -560,11 +562,22 @@ module Cosmosys
       RenderCancellation.check!
       return [] if ids.empty?
 
-      relations = IssueRelation.where(relation_type: @relation_types)
+      relations = allowed_relations.where(relation_type: @relation_types)
                                .where(IssueRelation.arel_table[:issue_from_id].in(ids).or(IssueRelation.arel_table[:issue_to_id].in(ids)))
                                .includes(relation_endpoints_includes).order(:id).to_a
       record_examined_relations(relations)
       relations
+    end
+
+    def allowed_issues(scope)
+      @allowed_trackers ? scope.where(tracker_id: @allowed_trackers) : scope
+    end
+
+    def allowed_relations
+      return IssueRelation.all unless @allowed_trackers
+
+      issue_ids = allowed_issues(Issue.all).select(:id)
+      IssueRelation.where(issue_from_id: issue_ids, issue_to_id: issue_ids)
     end
 
     def record_examined_relations(relations)

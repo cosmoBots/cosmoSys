@@ -13,14 +13,15 @@ module Cosmosys
     FULL_KIND = 'combined_full'.freeze
     SUPPORTED_RELATION_TYPES = %w[blocks precedes relates].freeze
 
-    def self.fetch(issue, mode: :project_boundary, render_variant: nil, layout_mode: nil, include_document_references: true, relation_types: SUPPORTED_RELATION_TYPES)
-      new(issue, mode: mode, render_variant: render_variant, layout_mode: layout_mode, include_document_references: include_document_references, relation_types: relation_types).fetch
+    def self.fetch(issue, mode: :project_boundary, render_variant: nil, layout_mode: nil, include_document_references: true, relation_types: SUPPORTED_RELATION_TYPES, tracker_keys: nil)
+      new(issue, mode: mode, render_variant: render_variant, layout_mode: layout_mode, include_document_references: include_document_references, relation_types: relation_types, tracker_keys: tracker_keys).fetch
     end
 
-    def initialize(issue, mode: :project_boundary, render_variant: nil, layout_mode: nil, include_document_references: true, relation_types: SUPPORTED_RELATION_TYPES)
+    def initialize(issue, mode: :project_boundary, render_variant: nil, layout_mode: nil, include_document_references: true, relation_types: SUPPORTED_RELATION_TYPES, tracker_keys: nil)
       @issue = issue
       @mode = mode
-      @include_document_references = include_document_references
+      @tracker_keys = Array(tracker_keys).map(&:to_s).uniq.sort.presence
+      @include_document_references = include_document_references && @tracker_keys.nil?
       @relation_types = Array(relation_types).map(&:to_s) & SUPPORTED_RELATION_TYPES
       @render_variant = Cosmosys::CombinedDiagramRenderer.valid_render_variant?(render_variant) ? render_variant.to_s : @issue.project.cosmosys_combined_diagram_render_variant
       @layout_mode = Cosmosys::CombinedDiagramRenderer.valid_layout_mode?(layout_mode) ? layout_mode.to_s : @issue.project.cosmosys_combined_diagram_layout_mode
@@ -55,6 +56,8 @@ module Cosmosys
 
     def diagram_kind
       base_kind = @mode == :full ? FULL_KIND : KIND
+      return "#{base_kind}_filtered" if @tracker_keys
+
       @include_document_references ? base_kind : "#{base_kind}_without_document_refs"
     end
 
@@ -191,6 +194,7 @@ module Cosmosys
       payload << "mode:#{@mode}"
       payload << "document_refs:#{@include_document_references ? 1 : 0}"
       payload << "relations:#{@relation_types.sort.join(',')}"
+      payload << "trackers:#{@tracker_keys.to_json}" if @tracker_keys
       payload << "render_variant:#{@render_variant}"
       payload << "layout_mode:#{@layout_mode}"
       payload << "rankdir:#{graph_rankdir}"
@@ -233,7 +237,8 @@ module Cosmosys
         @issue,
         scope: @mode == :full ? :node_and_descendants_across_projects : :node_and_descendants,
         user: User.current,
-        relation_types: @relation_types
+        relation_types: @relation_types,
+        tracker_keys: @tracker_keys
       )
     end
 
