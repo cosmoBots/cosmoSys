@@ -4,7 +4,7 @@
 > Redmine versions and documented configurations. Optional experimental plugins
 > are separate, opt-in integrations; they do not share this production status.
 
-Version **0.2.12**.
+Version **0.2.13**.
 
 cosmoSys supplies its own rocket favicon without modifying Redmine. A custom
 theme favicon takes precedence.
