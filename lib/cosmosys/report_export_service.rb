@@ -206,16 +206,26 @@ module Cosmosys
       digest.hexdigest
     end
 
+    # Browser MathJax runs after the page loads; Writer imports static HTML
+    # and never executes it. Reuse the optional LaTeX plugin's server renderer
+    # before normal resource checks and document layout, as notebook exports do.
+    # Only the LaTeX macros (marked_only) are formulas, as on screen: a "$" in
+    # wiki text is text in both. A plugin too old for that option renders none,
+    # since rendering every "$" would turn prices and ${KEY} into formulas.
+    def render_latex(html)
+      return html unless defined?(RedmineCbotsLatex::LatexRenderer)
+
+      renderer = RedmineCbotsLatex::LatexRenderer
+      unless renderer.method(:render_html).parameters.include?([:key, :marked_only])
+        Rails.logger.warn('cosmoSys report export: redmine_cbots_latex lacks marked_only; formulas left as text')
+        return html
+      end
+
+      renderer.render_html(html, marked_only: true)
+    end
+
     def export_html(work_dir)
-      # Browser MathJax runs after the page loads; Writer imports static HTML
-      # and never executes it. Reuse the optional LaTeX plugin's server renderer
-      # before normal resource checks and document layout, as notebook exports do.
-      html = if defined?(RedmineCbotsLatex::LatexRenderer)
-               RedmineCbotsLatex::LatexRenderer.render_html(@html)
-             else
-               @html
-             end
-      document = Nokogiri::HTML5(html)
+      document = Nokogiri::HTML5(render_latex(@html))
       secure_embedded_resources!(document)
       prepare_export_document(document, work_dir: work_dir)
       document.css('svg').each_with_index do |svg, index|
